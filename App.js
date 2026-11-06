@@ -150,9 +150,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(7, 9, 14, 0.94)',
+    backgroundColor: 'rgba(7, 9, 14, 0.96)',
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 3,
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
   },
@@ -160,14 +160,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
+    paddingVertical: 3,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 12,
   },
   navItemActive: {
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 10,
     fontWeight: '700',
-    marginTop: 3,
+    marginTop: 2,
     letterSpacing: 0.3,
   },
 });

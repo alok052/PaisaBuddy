@@ -762,7 +762,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         onClose={() => setMigratingFund(null)}
       />
 
-      <View style={{ height: 95 }} />
+      <View style={{ height: 125 }} />
     </ScrollView>
   );
 }

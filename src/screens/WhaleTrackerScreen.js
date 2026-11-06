@@ -435,7 +435,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         onClose={() => setCloningWhale(null)}
       />
 
-      <View style={{ height: 95 }} />
+      <View style={{ height: 125 }} />
     </ScrollView>
   );
 }

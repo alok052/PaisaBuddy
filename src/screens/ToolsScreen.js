@@ -362,7 +362,7 @@ export default function ToolsScreen({ onOpenMenu }) {
         onClose={() => setTaxModalVisible(false)}
       />
 
-      <View style={{ height: 95 }} />
+      <View style={{ height: 125 }} />
     </ScrollView>
   );
 }

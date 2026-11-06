@@ -302,7 +302,7 @@ export default function IPORadarScreen({ onOpenMenu }) {
         onClose={() => setBiddingIPO(null)}
       />
 
-      <View style={{ height: 95 }} />
+      <View style={{ height: 125 }} />
     </ScrollView>
   );
 }
