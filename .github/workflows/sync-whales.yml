@@ -1,0 +1,31 @@
+name: PaisaBuddy Live Whale Syncer
+
+on:
+  schedule:
+    # Runs every 30 minutes from 03:30 to 10:30 UTC (9:00 AM to 4:00 PM IST, Mon-Fri)
+    # during active Indian Stock Market & Pre/Post hours
+    - cron: '*/30 3-10 * * 1-5'
+    # Also runs once a day at 15:00 UTC (8:30 PM IST) for US SEC 13F and closing market prices
+    - cron: '0 15 * * 1-5'
+  workflow_dispatch: # Allows 1-click manual sync anytime from the GitHub Actions tab
+
+jobs:
+  sync:
+    name: Sync Real-Time Market Data to Supabase
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Live Whale Syncer Engine
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://swnocdeyclhzevdgtdrz.supabase.co' }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || 'sb_publishable_r_NCnZLMgP24OLqNgdrnPg_MYzoskik' }}
+        run: |
+          python scripts/sync_whales_data.py

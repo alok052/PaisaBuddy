@@ -84,6 +84,36 @@ export async function fetchLiveWhales() {
 /**
  * Fetch live startups deals from Supabase with fallback
  */
+
+/**
+ * Subscribe to real-time whale portfolio updates from Supabase
+ */
+export function subscribeToWhales(onUpdate) {
+  if (!isSupabaseConfigured() || !supabase) {
+    return null;
+  }
+
+  try {
+    const channel = supabase
+      .channel('realtime:whales')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'whales' },
+        (payload) => {
+          if (onUpdate && payload.new) {
+            onUpdate(payload.new);
+          }
+        }
+      )
+      .subscribe();
+
+    return channel;
+  } catch (err) {
+    console.log('Error setting up Supabase Realtime subscription:', err);
+    return null;
+  }
+}
+
 export async function fetchLiveStartups() {
   if (!isSupabaseConfigured() || !supabase) {
     return mockStartups;

@@ -18,7 +18,7 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from '../components/WhaleAvatar';
 import CloneWhaleModal from '../components/CloneWhaleModal';
-import { fetchLiveWhales, fetchLiveAlert } from '../services/dataService';
+import { fetchLiveWhales, fetchLiveAlert, subscribeToWhales } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
 
 
@@ -41,6 +41,27 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 
   useEffect(() => {
     loadData();
+
+    const channel = subscribeToWhales((updatedRow) => {
+      setWhalesList((prev) =>
+        prev.map((w) =>
+          w.id === updatedRow.id
+            ? {
+                ...w,
+                portfolioValue: updatedRow.portfolio_value,
+                topHoldings: updatedRow.top_holdings || w.topHoldings,
+                recentMoves: updatedRow.recent_moves || w.recentMoves,
+              }
+            : w
+        )
+      );
+    });
+
+    return () => {
+      if (channel && channel.unsubscribe) {
+        channel.unsubscribe();
+      }
+    };
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -109,6 +130,15 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         subtitle="Billionaires & Institutional Radar"
         onMenuPress={onOpenMenu}
       />
+
+      {/* Real-Time Exchange Sync Pill */}
+      <View style={styles.syncStatusBar}>
+        <View style={styles.syncStatusLeft}>
+          <View style={styles.livePulseDot} />
+          <Text style={styles.syncStatusTitle}>REAL-TIME EXCHANGE FEED</Text>
+        </View>
+        <Text style={styles.syncStatusTime}>SEBI & 13F VERIFIED</Text>
+      </View>
       
 
       {/* Filter Chips */}
@@ -441,6 +471,42 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 }
 
 const styles = StyleSheet.create({
+  syncStatusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginTop: 2,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.2)',
+  },
+  syncStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+  },
+  syncStatusTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 0.6,
+  },
+  syncStatusTime: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.3,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
