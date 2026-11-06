@@ -7,7 +7,7 @@ export const mockWhales = [
     return1Y: "+14.2%",
     isPositive: true,
     avatar: "RJ",
-    localImage: require('../../assets/whales/rekha.jpg'),
+    localImage: require('../../assets/whales/whale_1.jpg'),
     topHoldings: [
       { name: "Titan Company", stake: "5.1%", value: "\u20b917,995 Cr" },
       { name: "Star Health", stake: "14.4%", value: "\u20b95,050 Cr" },
@@ -28,7 +28,7 @@ export const mockWhales = [
     return1Y: "+28.7%",
     isPositive: true,
     avatar: "VK",
-    localImage: require('../../assets/whales/kedia.jpg'),
+    localImage: require('../../assets/whales/whale_2.jpg'),
     topHoldings: [
       { name: "Tejas Networks", stake: "3.8%", value: "\u20b9403 Cr" },
       { name: "Sudarshan Chemical", stake: "4.2%", value: "\u20b9216 Cr" },
@@ -49,7 +49,7 @@ export const mockWhales = [
     return1Y: "+21.4%",
     isPositive: true,
     avatar: "AK",
-    localImage: require('../../assets/whales/kacholia.jpg'),
+    localImage: require('../../assets/whales/whale_3.jpg'),
     topHoldings: [
       { name: "Gravita India", stake: "3.1%", value: "\u20b9340 Cr" },
       { name: "Safari Industries", stake: "2.5%", value: "\u20b9291 Cr" },
@@ -69,7 +69,7 @@ export const mockWhales = [
     return1Y: "+18.2%",
     isPositive: true,
     avatar: "WB",
-    localImage: require('../../assets/whales/buffett.jpg'),
+    localImage: require('../../assets/whales/whale_4.jpg'),
     topHoldings: [
       { name: "Apple Inc (AAPL)", stake: "28.9%", value: "$135.0B" },
       { name: "Bank of America", stake: "11.2%", value: "$41.0B" },
@@ -90,7 +90,7 @@ export const mockWhales = [
     return1Y: "+9.8%",
     isPositive: true,
     avatar: "RD",
-    localImage: require('../../assets/whales/damani.jpg'),
+    localImage: require('../../assets/whales/whale_5.jpg'),
     topHoldings: [
       { name: "Avenue Supermarts", stake: "74.6%", value: "\u20b91,95,285 Cr" },
       { name: "VST Industries", stake: "32.1%", value: "\u20b92,119 Cr" },
@@ -110,7 +110,7 @@ export const mockWhales = [
     return1Y: "+34.5%",
     isPositive: true,
     avatar: "MA",
-    localImage: require('../../assets/whales/mukul.jpg'),
+    localImage: require('../../assets/whales/whale_6.jpg'),
     topHoldings: [
       { name: "Raymond Ltd", stake: "2.1%", value: "\u20b9268 Cr" },
       { name: "Neuland Labs", stake: "3.2%", value: "\u20b9259 Cr" },
@@ -130,7 +130,7 @@ export const mockWhales = [
     return1Y: "+26.1%",
     isPositive: true,
     avatar: "SS",
-    localImage: require('../../assets/whales/singhania.jpg'),
+    localImage: require('../../assets/whales/whale_7.jpg'),
     topHoldings: [
       { name: "Ion Exchange", stake: "3.1%", value: "\u20b9301 Cr" },
       { name: "Route Mobile", stake: "2.9%", value: "\u20b9236 Cr" },
@@ -150,7 +150,7 @@ export const mockWhales = [
     return1Y: "+19.4%",
     isPositive: true,
     avatar: "PV",
-    localImage: require('../../assets/whales/porinju.jpg'),
+    localImage: require('../../assets/whales/whale_8.jpg'),
     topHoldings: [
       { name: "Som Distilleries", stake: "1.5%", value: "\u20b937 Cr" },
       { name: "Orient Bell", stake: "3.6%", value: "\u20b931 Cr" },
@@ -169,7 +169,7 @@ export const mockWhales = [
     return1Y: "+13.6%",
     isPositive: true,
     avatar: "RD",
-    localImage: require('../../assets/whales/dalio.jpg'),
+    localImage: require('../../assets/whales/whale_9.jpg'),
     topHoldings: [
       { name: "SPDR S&P 500 ETF", stake: "Macro", value: "$1.6B" },
       { name: "iShares Core S&P 500", stake: "Macro", value: "$1.4B" },
@@ -189,7 +189,7 @@ export const mockWhales = [
     return1Y: "+22.8%",
     isPositive: true,
     avatar: "BA",
-    localImage: require('../../assets/whales/ackman.jpg'),
+    localImage: require('../../assets/whales/whale_10.jpg'),
     topHoldings: [
       { name: "Chipotle Mexican Grill", stake: "18.2%", value: "$1.9B" },
       { name: "Restaurant Brands", stake: "17.4%", value: "$1.8B" },
@@ -209,7 +209,7 @@ export const mockWhales = [
     return1Y: "+31.2%",
     isPositive: true,
     avatar: "DK",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_11.jpg'),
     topHoldings: [
       { name: "KCP Ltd", stake: "2.5%", value: "\u20b974 Cr" },
       { name: "Deepak Spinners", stake: "1.9%", value: "\u20b948 Cr" },
@@ -229,7 +229,7 @@ export const mockWhales = [
     return1Y: "+17.9%",
     isPositive: true,
     avatar: "NS",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_12.jpg'),
     topHoldings: [
       { name: "Lakshmi Machine Works", stake: "6.4%", value: "\u20b91,217 Cr" },
       { name: "Asahi India Glass", stake: "1.7%", value: "\u20b9547 Cr" },
@@ -248,7 +248,7 @@ export const mockWhales = [
     return1Y: "+16.8%",
     isPositive: true,
     avatar: "AP",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_13.jpg'),
     topHoldings: [
       { name: "Wipro Ltd", stake: "73.0%", value: "\u20b92,12,000 Cr" },
       { name: "Trent Ltd", stake: "1.1%", value: "\u20b91,080 Cr" },
@@ -267,7 +267,7 @@ export const mockWhales = [
     return1Y: "+22.5%",
     isPositive: true,
     avatar: "AB",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_14.jpg'),
     topHoldings: [
       { name: "IDFC First Bank", stake: "2.1%", value: "\u20b91,250 Cr" },
       { name: "Gujarat Fluorochem", stake: "1.8%", value: "\u20b9680 Cr" },
@@ -287,7 +287,7 @@ export const mockWhales = [
     return1Y: "+29.4%",
     isPositive: true,
     avatar: "AD",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_15.jpg'),
     topHoldings: [
       { name: "Glenmark Life Sciences", stake: "3.9%", value: "\u20b9410 Cr" },
       { name: "Quess Corp", stake: "4.2%", value: "\u20b9380 Cr" },
@@ -307,7 +307,7 @@ export const mockWhales = [
     return1Y: "+38.6%",
     isPositive: true,
     avatar: "MK",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_16.jpg'),
     topHoldings: [
       { name: "Choice International", stake: "12.5%", value: "\u20b9680 Cr" },
       { name: "Sanghvi Movers", stake: "2.8%", value: "\u20b9195 Cr" },
@@ -326,7 +326,7 @@ export const mockWhales = [
     return1Y: "+18.9%",
     isPositive: true,
     avatar: "AG",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_17.jpg'),
     topHoldings: [
       { name: "Dwarikesh Sugar", stake: "4.5%", value: "\u20b9110 Cr" },
       { name: "Uttam Sugar Mills", stake: "4.8%", value: "\u20b995 Cr" },
@@ -346,7 +346,7 @@ export const mockWhales = [
     return1Y: "+15.2%",
     isPositive: true,
     avatar: "RD",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_18.jpg'),
     topHoldings: [
       { name: "Goldiam International", stake: "1.6%", value: "\u20b948 Cr" },
       { name: "Panama Petrochem", stake: "1.3%", value: "\u20b938 Cr" },
@@ -365,7 +365,7 @@ export const mockWhales = [
     return1Y: "+33.2%",
     isPositive: true,
     avatar: "SB",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_19.jpg'),
     topHoldings: [
       { name: "Info Edge (Naukri)", stake: "34.2%", value: "\u20b916,400 Cr" },
       { name: "Zomato Ltd", stake: "Early Stk", value: "\u20b91,550 Cr" },
@@ -384,7 +384,7 @@ export const mockWhales = [
     return1Y: "+27.4%",
     isPositive: true,
     avatar: "PJ",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_20.jpg'),
     topHoldings: [
       { name: "State Bank of India", stake: "1.2%", value: "\u20b9580 Cr" },
       { name: "Larsen & Toubro", stake: "0.9%", value: "\u20b9420 Cr" },
@@ -403,7 +403,7 @@ export const mockWhales = [
     return1Y: "+23.1%",
     isPositive: true,
     avatar: "KA",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_21.jpg'),
     topHoldings: [
       { name: "Coromandel International", stake: "2.1%", value: "\u20b9320 Cr" },
       { name: "Thangamayil Jewellery", stake: "3.4%", value: "\u20b9210 Cr" },
@@ -422,7 +422,7 @@ export const mockWhales = [
     return1Y: "+36.2%",
     isPositive: true,
     avatar: "SN",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_22.jpg'),
     topHoldings: [
       { name: "Safari Industries", stake: "4.8%", value: "\u20b9560 Cr" },
       { name: "Neuland Laboratories", stake: "2.9%", value: "\u20b9480 Cr" },
@@ -441,7 +441,7 @@ export const mockWhales = [
     return1Y: "+19.8%",
     isPositive: true,
     avatar: "BT",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_23.jpg'),
     topHoldings: [
       { name: "R Systems International", stake: "28.5%", value: "\u20b9620 Cr" },
       { name: "Solara Active Pharma", stake: "3.2%", value: "\u20b9140 Cr" },
@@ -458,7 +458,7 @@ export const mockWhales = [
     return1Y: "+17.4%",
     isPositive: true,
     avatar: "SM",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_24.jpg'),
     topHoldings: [
       { name: "United Spirits (Diageo)", stake: "1.2%", value: "\u20b9490 Cr" },
       { name: "Piramal Enterprises", stake: "1.4%", value: "\u20b9280 Cr" },
@@ -475,7 +475,7 @@ export const mockWhales = [
     return1Y: "+32.1%",
     isPositive: true,
     avatar: "SS",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_25.jpg'),
     topHoldings: [
       { name: "Centum Electronics", stake: "5.2%", value: "\u20b9210 Cr" },
       { name: "Salzer Electronics", stake: "4.1%", value: "\u20b9165 Cr" },
@@ -493,7 +493,7 @@ export const mockWhales = [
     return1Y: "+21.3%",
     isPositive: true,
     avatar: "GP",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_26.jpg'),
     topHoldings: [
       { name: "Ugar Sugar Works", stake: "4.2%", value: "\u20b990 Cr" },
       { name: "Pitti Engineering", stake: "2.4%", value: "\u20b975 Cr" },
@@ -510,7 +510,7 @@ export const mockWhales = [
     return1Y: "+24.5%",
     isPositive: true,
     avatar: "US",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_27.jpg'),
     topHoldings: [
       { name: "Aptech Ltd", stake: "4.2%", value: "\u20b9220 Cr" },
       { name: "Subex Ltd", stake: "3.1%", value: "\u20b9130 Cr" },
@@ -527,7 +527,7 @@ export const mockWhales = [
     return1Y: "+25.8%",
     isPositive: true,
     avatar: "AU",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_28.jpg'),
     topHoldings: [
       { name: "Kirloskar Ferrous", stake: "2.1%", value: "\u20b9180 Cr" },
       { name: "Alicon Castalloy", stake: "3.4%", value: "\u20b9110 Cr" },
@@ -544,7 +544,7 @@ export const mockWhales = [
     return1Y: "+18.4%",
     isPositive: true,
     avatar: "BP",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_29.jpg'),
     topHoldings: [
       { name: "Rubicon Research", stake: "3.2%", value: "\u20b9120 Cr" },
       { name: "Shilpa Medicare", stake: "1.8%", value: "\u20b995 Cr" },
@@ -561,7 +561,7 @@ export const mockWhales = [
     return1Y: "+29.7%",
     isPositive: true,
     avatar: "VK",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_30.jpg'),
     topHoldings: [
       { name: "Kaynes Technology", stake: "1.4%", value: "\u20b9280 Cr" },
       { name: "Syrma SGS Tech", stake: "1.8%", value: "\u20b9210 Cr" },
@@ -578,7 +578,7 @@ export const mockWhales = [
     return1Y: "+24.1%",
     isPositive: true,
     avatar: "BM",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_31.jpg'),
     topHoldings: [
       { name: "Bajaj Finance", stake: "0.3%", value: "\u20b9140 Cr" },
       { name: "Titan Company", stake: "0.2%", value: "\u20b995 Cr" },
@@ -595,7 +595,7 @@ export const mockWhales = [
     return1Y: "+26.8%",
     isPositive: true,
     avatar: "SS",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_32.jpg'),
     topHoldings: [
       { name: "DroneAcharya Aerial", stake: "2.8%", value: "\u20b945 Cr" },
       { name: "Brightcom Group", stake: "1.2%", value: "\u20b922 Cr" },
@@ -612,7 +612,7 @@ export const mockWhales = [
     return1Y: "+28.3%",
     isPositive: true,
     avatar: "HJ",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_33.jpg'),
     topHoldings: [
       { name: "Rupa & Company", stake: "4.1%", value: "\u20b9120 Cr" },
       { name: "Linc Ltd", stake: "3.2%", value: "\u20b985 Cr" },
@@ -629,7 +629,7 @@ export const mockWhales = [
     return1Y: "+33.5%",
     isPositive: true,
     avatar: "MA",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_34.jpg'),
     topHoldings: [
       { name: "Force Motors", stake: "1.8%", value: "\u20b9140 Cr" },
       { name: "Sterling Tools", stake: "2.4%", value: "\u20b980 Cr" },
@@ -646,7 +646,7 @@ export const mockWhales = [
     return1Y: "+20.1%",
     isPositive: true,
     avatar: "JM",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_35.jpg'),
     topHoldings: [
       { name: "Sudarshan Chemical", stake: "2.1%", value: "\u20b9110 Cr" },
       { name: "Hikal Ltd", stake: "1.7%", value: "\u20b965 Cr" },
@@ -663,7 +663,7 @@ export const mockWhales = [
     return1Y: "+34.2%",
     isPositive: true,
     avatar: "MB",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_36.jpg'),
     topHoldings: [
       { name: "Alibaba Group (BABA)", stake: "16.5%", value: "$24M" },
       { name: "JD.com (JD)", stake: "14.2%", value: "$21M" },
@@ -683,7 +683,7 @@ export const mockWhales = [
     return1Y: "+28.9%",
     isPositive: true,
     avatar: "SD",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_37.jpg'),
     topHoldings: [
       { name: "NVIDIA Corp (NVDA)", stake: "14.2%", value: "$540M" },
       { name: "Microsoft Corp (MSFT)", stake: "12.8%", value: "$490M" },
@@ -703,7 +703,7 @@ export const mockWhales = [
     return1Y: "+16.5%",
     isPositive: true,
     avatar: "GS",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_38.jpg'),
     topHoldings: [
       { name: "Alphabet Inc (GOOGL)", stake: "8.4%", value: "$520M" },
       { name: "Amazon.com (AMZN)", stake: "7.2%", value: "$440M" },
@@ -721,7 +721,7 @@ export const mockWhales = [
     return1Y: "+11.2%",
     isPositive: true,
     avatar: "CI",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_39.jpg'),
     topHoldings: [
       { name: "Icahn Enterprises (IEP)", stake: "85.0%", value: "$7,200M" },
       { name: "CVR Energy (CVI)", stake: "66.2%", value: "$850M" },
@@ -739,7 +739,7 @@ export const mockWhales = [
     return1Y: "+31.4%",
     isPositive: true,
     avatar: "DT",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_40.jpg'),
     topHoldings: [
       { name: "Alibaba Group (BABA)", stake: "12.4%", value: "$840M" },
       { name: "Amazon.com (AMZN)", stake: "10.8%", value: "$730M" },
@@ -758,7 +758,7 @@ export const mockWhales = [
     return1Y: "+21.8%",
     isPositive: true,
     avatar: "KG",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_41.jpg'),
     topHoldings: [
       { name: "NVIDIA Corp", stake: "3.2%", value: "$2,100M" },
       { name: "Microsoft Corp", stake: "2.9%", value: "$1,880M" },
@@ -776,7 +776,7 @@ export const mockWhales = [
     return1Y: "+24.6%",
     isPositive: true,
     avatar: "JS",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_42.jpg'),
     topHoldings: [
       { name: "Novo Nordisk (NVO)", stake: "3.8%", value: "$1,080M" },
       { name: "Meta Platforms (META)", stake: "3.4%", value: "$960M" },
@@ -794,7 +794,7 @@ export const mockWhales = [
     return1Y: "+37.8%",
     isPositive: true,
     avatar: "CC",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_43.jpg'),
     topHoldings: [
       { name: "Meta Platforms (META)", stake: "18.4%", value: "$2,300M" },
       { name: "Microsoft Corp", stake: "15.2%", value: "$1,900M" },
@@ -813,7 +813,7 @@ export const mockWhales = [
     return1Y: "+18.2%",
     isPositive: true,
     avatar: "NP",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_44.jpg'),
     topHoldings: [
       { name: "Walt Disney Co (DIS)", stake: "32.4%", value: "$1,780M" },
       { name: "Allstate Corp", stake: "18.2%", value: "$1,000M" },
@@ -831,7 +831,7 @@ export const mockWhales = [
     return1Y: "+16.9%",
     isPositive: true,
     avatar: "HM",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_45.jpg'),
     topHoldings: [
       { name: "Torm Plc", stake: "24.2%", value: "$1,980M" },
       { name: "Vistra Energy (VST)", stake: "12.4%", value: "$1,010M" },
@@ -849,7 +849,7 @@ export const mockWhales = [
     return1Y: "+33.4%",
     isPositive: true,
     avatar: "MP",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_46.jpg'),
     topHoldings: [
       { name: "Alpha Metallurgical (AMR)", stake: "42.0%", value: "$240M" },
       { name: "Arch Resources (ARCH)", stake: "34.0%", value: "$195M" },
@@ -867,7 +867,7 @@ export const mockWhales = [
     return1Y: "+27.6%",
     isPositive: true,
     avatar: "LL",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_47.jpg'),
     topHoldings: [
       { name: "Alphabet Inc (GOOGL)", stake: "34.5%", value: "$840M" },
       { name: "Bank of America (BAC)", stake: "28.2%", value: "$690M" },
@@ -886,7 +886,7 @@ export const mockWhales = [
     return1Y: "+19.2%",
     isPositive: true,
     avatar: "SK",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_48.jpg'),
     topHoldings: [
       { name: "Liberty Global", stake: "18.4%", value: "$900M" },
       { name: "Fidelity National (FIS)", stake: "14.2%", value: "$695M" },
@@ -904,7 +904,7 @@ export const mockWhales = [
     return1Y: "+25.4%",
     isPositive: true,
     avatar: "DL",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_49.jpg'),
     topHoldings: [
       { name: "Amazon.com (AMZN)", stake: "14.8%", value: "$950M" },
       { name: "Microsoft Corp", stake: "12.5%", value: "$800M" },
@@ -922,7 +922,7 @@ export const mockWhales = [
     return1Y: "+18.6%",
     isPositive: true,
     avatar: "TS",
-    localImage: null,
+    localImage: require('../../assets/whales/whale_50.jpg'),
     topHoldings: [
       { name: "Microsoft Corp", stake: "9.2%", value: "\u00a32,280M" },
       { name: "Novo Nordisk", stake: "8.8%", value: "\u00a32,180M" },

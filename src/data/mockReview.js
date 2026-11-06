@@ -42,7 +42,7 @@ export const mockPortfolioReview = {
       type: 'PROMOTED',
       badge: 'Billionaire Conviction',
       color: '#10B981',
-      localImage: require('../../assets/whales/rekha.jpg'),
+      localImage: require('../../assets/whales/whale_1.jpg'),
       sentiment: 'Bullish — EV market leadership & JLR debt reduction on track.',
     },
     {
@@ -52,7 +52,7 @@ export const mockPortfolioReview = {
       type: 'PROMOTED',
       badge: 'Super-Investor Pick',
       color: '#3B82F6',
-      localImage: require('../../assets/whales/kedia.jpg'),
+      localImage: require('../../assets/whales/whale_2.jpg'),
       sentiment: 'Bullish — BSNL 4G/5G indigenous telecom orders ramping up.',
     },
     {
@@ -106,3 +106,4 @@ export const mockPortfolioReview = {
     totalAnnualSavings: '₹5,600 / year',
   },
 };
+
