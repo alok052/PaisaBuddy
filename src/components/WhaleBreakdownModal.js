@@ -10,7 +10,6 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
@@ -19,8 +18,7 @@ import WhaleAvatar from './WhaleAvatar';
 export default function WhaleBreakdownModal({ visible, whale, onClose }) {
   const [activeTab, setActiveTab] = useState('STOCKS'); // 'STOCKS' | 'STARTUPS'
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSector, setSelectedSector] = useState('ALL');
-  const [sortOrder, setSortOrder] = useState('WEIGHT'); // 'WEIGHT' | 'VALUE' | 'RETURN'
+  const [expandedItemId, setExpandedItemId] = useState(null);
 
   if (!whale) return null;
 
@@ -41,37 +39,16 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
         }))
       : [];
 
-  // Extract unique sectors for filter chips
-  const sectorsList = ['ALL', ...new Set(rawHoldings.map((h) => h.sector).filter(Boolean))];
-
-  // Filter & Sort Holdings
+  // Filter Holdings
   const q = searchQuery.trim().toLowerCase();
-  let holdings = rawHoldings.filter((h) => {
-    const matchesSearch =
-      !q ||
-      h.name.toLowerCase().includes(q) ||
-      (h.symbol && h.symbol.toLowerCase().includes(q)) ||
-      (h.sector && h.sector.toLowerCase().includes(q));
-
-    const matchesSector = selectedSector === 'ALL' || h.sector === selectedSector;
-    return matchesSearch && matchesSector;
-  });
-
-  // Sort holdings
-  holdings.sort((a, b) => {
-    if (sortOrder === 'WEIGHT') {
-      return (b.weightPercent || 0) - (a.weightPercent || 0);
-    }
-    if (sortOrder === 'RETURN') {
-      const retA = parseFloat((a.change1Y || '0').replace(/[^0-9.-]/g, '')) || 0;
-      const retB = parseFloat((b.change1Y || '0').replace(/[^0-9.-]/g, '')) || 0;
-      return retB - retA;
-    }
-    // VALUE sort
-    const valA = parseFloat((a.value || '0').replace(/[^0-9.]/g, '')) || 0;
-    const valB = parseFloat((b.value || '0').replace(/[^0-9.]/g, '')) || 0;
-    return valB - valA;
-  });
+  const holdings = !q
+    ? rawHoldings
+    : rawHoldings.filter(
+        (h) =>
+          h.name.toLowerCase().includes(q) ||
+          (h.symbol && h.symbol.toLowerCase().includes(q)) ||
+          (h.sector && h.sector.toLowerCase().includes(q))
+      );
 
   // 2. Process Startups
   const rawStartups = whale.startups || [];
@@ -95,40 +72,39 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
     bestStartupMultiple = `${sorted[0].multiple} (${sorted[0].name})`;
   }
 
-  // Top 4 holdings for visual allocation bar
+  // Top 4 holdings for minimal sleek progress bar
   const topAllocations = rawHoldings.slice(0, 4);
   const topAllocSum = topAllocations.reduce((sum, h) => sum + (h.weightPercent || 0), 0);
   const otherAlloc = Math.max(0, 100 - topAllocSum);
-
   const barColors = ['#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#475569'];
 
   const handleTabSwitch = (tab) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveTab(tab);
     setSearchQuery('');
-    setSelectedSector('ALL');
+    setExpandedItemId(null);
   };
 
-  const handleSortToggle = () => {
+  const handleToggleRow = (id) => {
     Haptics.selectionAsync();
-    setSortOrder((prev) => (prev === 'WEIGHT' ? 'RETURN' : prev === 'RETURN' ? 'VALUE' : 'WEIGHT'));
+    setExpandedItemId((prev) => (prev === id ? null : id));
   };
 
-  const handleStockAction = (stock) => {
-    Haptics.selectionAsync();
+  const handleTradePrompt = (stock) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert(
-      `${stock.name} (${stock.symbol || 'EQUITY'})`,
-      `Whale Holding: ${stock.stake} (${stock.value})\nCurrent Price: ${stock.cmp} (${stock.change1Y} in 1Y)\n\nExecute or research position:`,
+      `Order Console — ${stock.symbol || stock.name}`,
+      `Current Price: ${stock.cmp || 'Market Rate'}\nWhale Stake: ${stock.stake} (${stock.value})\n\nSelect execution broker:`,
       [
         {
-          text: 'Trade on Zerodha Kite',
-          onPress: () => Alert.alert('Kite Redirect', `Opening ${stock.name} in Zerodha Kite order console...`),
+          text: 'Zerodha Kite',
+          onPress: () => Alert.alert('Kite Redirect', `Opening ${stock.symbol || stock.name} in Kite...`),
         },
         {
-          text: 'View on Groww',
-          onPress: () => Alert.alert('Groww Redirect', `Opening ${stock.name} in Groww app...`),
+          text: 'Groww',
+          onPress: () => Alert.alert('Groww Redirect', `Opening ${stock.symbol || stock.name} in Groww...`),
         },
-        { text: 'Close', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
@@ -142,141 +118,136 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          {/* Top Notch / Drag Pill */}
-          <View style={styles.dragPillWrapper}>
-            <View style={styles.dragPill} />
+          {/* Subtle Top Drag Handle */}
+          <View style={styles.handleBar}>
+            <View style={styles.handleIndicator} />
           </View>
 
-          {/* Luxury Executive Header */}
-          <LinearGradient
-            colors={['#101C2B', '#09111B']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroHeader}
-          >
-            <View style={styles.heroHeaderRow}>
-              <View style={styles.avatarGlowWrapper}>
-                <WhaleAvatar
-                  imageSource={whale.localImage}
-                  avatarText={whale.avatar}
-                  gradient={whale.avatarGradient}
-                  size={54}
-                  borderColor="rgba(16, 185, 129, 0.55)"
-                />
-                <View style={styles.avatarOnlineDot} />
-              </View>
-
-              <View style={styles.heroTextCol}>
-                <View style={styles.heroTitleRow}>
-                  <Text style={styles.heroWhaleName} numberOfLines={1}>
+          {/* Clean Institutional Header */}
+          <View style={styles.header}>
+            <View style={styles.headerProfileRow}>
+              <WhaleAvatar
+                imageSource={whale.localImage}
+                avatarText={whale.avatar}
+                gradient={whale.avatarGradient}
+                size={46}
+                borderColor="rgba(255, 255, 255, 0.15)"
+              />
+              <View style={styles.headerTitleBox}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.whaleName} numberOfLines={1}>
                     {whale.name}
                   </Text>
-                  <View style={styles.verifiedTag}>
-                    <Ionicons name="shield-checkmark" size={11} color="#10B981" />
-                    <Text style={styles.verifiedTagText}>SEBI / MCA</Text>
+                  <View style={styles.sebiTag}>
+                    <Text style={styles.sebiTagText}>SEBI DISCLOSED</Text>
                   </View>
                 </View>
-
-                <Text style={styles.heroWhaleSub} numberOfLines={1}>
+                <Text style={styles.whaleTag} numberOfLines={1}>
                   {whale.tag}
                 </Text>
-
-                <View style={styles.heroMetricsStrip}>
-                  <Text style={styles.heroNetWorth}>{whale.portfolioValue}</Text>
-                  <View style={styles.heroMetricsDot} />
-                  <View style={styles.returnBubble}>
-                    <Ionicons
-                      name={whale.isPositive ? 'trending-up' : 'trending-down'}
-                      size={11}
-                      color={whale.isPositive ? '#10B981' : '#EF4444'}
-                    />
-                    <Text
-                      style={[
-                        styles.heroReturnText,
-                        { color: whale.isPositive ? '#10B981' : '#EF4444' },
-                      ]}
-                    >
-                      {whale.return1Y} 1Y
-                    </Text>
-                  </View>
-                </View>
               </View>
 
-              <TouchableOpacity style={styles.closeGlassBtn} onPress={onClose} activeOpacity={0.8}>
-                <Ionicons name="close" size={18} color="#94A3B8" />
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={onClose}
+                activeOpacity={0.7}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="close" size={20} color="#94A3B8" />
               </TouchableOpacity>
             </View>
-          </LinearGradient>
 
-          {/* Segmented Institutional Switcher */}
-          <View style={styles.segmentContainer}>
-            <View style={styles.segmentTrack}>
-              <TouchableOpacity
-                style={[styles.segmentBtn, activeTab === 'STOCKS' && styles.segmentBtnActive]}
-                onPress={() => handleTabSwitch('STOCKS')}
-                activeOpacity={0.85}
-              >
-                {activeTab === 'STOCKS' && (
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    style={StyleSheet.absoluteFillObject}
-                    borderRadius={12}
-                  />
-                )}
-                <Ionicons
-                  name="stats-chart"
-                  size={14}
-                  color={activeTab === 'STOCKS' ? '#FFFFFF' : '#94A3B8'}
-                />
+            {/* Total Net Worth & 1Y Return */}
+            <View style={styles.netWorthRow}>
+              <View>
+                <Text style={styles.netWorthLabel}>TOTAL DISCLOSED PORTFOLIO</Text>
+                <Text style={styles.netWorthValue}>{whale.portfolioValue}</Text>
+              </View>
+
+              <View style={styles.returnBadgeRight}>
                 <Text
                   style={[
-                    styles.segmentText,
-                    activeTab === 'STOCKS' && styles.segmentTextActive,
+                    styles.returnPercentText,
+                    { color: whale.isPositive ? '#10B981' : '#EF4444' },
                   ]}
                 >
-                  Listed Stocks ({rawHoldings.length})
+                  {whale.return1Y}
+                </Text>
+                <Text style={styles.returnSubLabel}>Past 1 Year</Text>
+              </View>
+            </View>
+
+            {/* 3px Sleek Allocation Line */}
+            {rawHoldings.length > 0 && (
+              <View style={styles.miniAllocLine}>
+                {topAllocations.map((item, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      flex: item.weightPercent || 10,
+                      backgroundColor: barColors[i % barColors.length],
+                      height: '100%',
+                    }}
+                  />
+                ))}
+                {otherAlloc > 0 && (
+                  <View
+                    style={{
+                      flex: otherAlloc,
+                      backgroundColor: barColors[4],
+                      height: '100%',
+                    }}
+                  />
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Apple-Style Segmented Pill Switcher */}
+          <View style={styles.switchRow}>
+            <View style={styles.segmentedControl}>
+              <TouchableOpacity
+                style={[styles.segmentTab, activeTab === 'STOCKS' && styles.segmentTabActive]}
+                onPress={() => handleTabSwitch('STOCKS')}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.segmentLabel,
+                    activeTab === 'STOCKS' && styles.segmentLabelActive,
+                  ]}
+                >
+                  Public Equities ({rawHoldings.length})
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.segmentBtn, activeTab === 'STARTUPS' && styles.segmentBtnActive]}
+                style={[styles.segmentTab, activeTab === 'STARTUPS' && styles.segmentTabActive]}
                 onPress={() => handleTabSwitch('STARTUPS')}
-                activeOpacity={0.85}
+                activeOpacity={0.8}
               >
-                {activeTab === 'STARTUPS' && (
-                  <LinearGradient
-                    colors={['#3B82F6', '#1D4ED8']}
-                    style={StyleSheet.absoluteFillObject}
-                    borderRadius={12}
-                  />
-                )}
-                <Ionicons
-                  name="rocket"
-                  size={14}
-                  color={activeTab === 'STARTUPS' ? '#FFFFFF' : '#94A3B8'}
-                />
                 <Text
                   style={[
-                    styles.segmentText,
-                    activeTab === 'STARTUPS' && styles.segmentTextActive,
+                    styles.segmentLabel,
+                    activeTab === 'STARTUPS' && styles.segmentLabelActive,
                   ]}
                 >
-                  Startups & Unlisted ({rawStartups.length})
+                  Private Startups ({rawStartups.length})
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Search & Sort Controls Bar */}
-          <View style={styles.controlsBar}>
-            <View style={styles.searchBox}>
-              <Ionicons name="search" size={14} color="#64748B" style={{ marginRight: 6 }} />
+          {/* Minimalist Search Input */}
+          <View style={styles.searchWrapper}>
+            <View style={styles.searchField}>
+              <Ionicons name="search" size={15} color="#64748B" style={{ marginRight: 8 }} />
               <TextInput
-                style={styles.searchTextInput}
+                style={styles.searchInput}
                 placeholder={
                   activeTab === 'STOCKS'
-                    ? 'Search by company, ticker or sector...'
-                    : 'Search startup name or category...'
+                    ? 'Search company or sector...'
+                    : 'Search startup or deal...'
                 }
                 placeholderTextColor="#64748B"
                 value={searchQuery}
@@ -284,403 +255,206 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                 clearButtonMode="while-editing"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                  <Ionicons name="close-circle" size={15} color="#94A3B8" />
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color="#64748B" />
                 </TouchableOpacity>
               )}
             </View>
-
-            {activeTab === 'STOCKS' && (
-              <TouchableOpacity
-                style={styles.sortToggleBtn}
-                onPress={handleSortToggle}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="swap-vertical" size={13} color="#10B981" />
-                <Text style={styles.sortToggleText}>
-                  {sortOrder === 'WEIGHT' ? 'Weight' : sortOrder === 'RETURN' ? '1Y Return' : 'Value'}
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
 
-          {/* Horizontal Sector Pills (Only for Stocks Tab) */}
-          {activeTab === 'STOCKS' && sectorsList.length > 2 && (
-            <View style={styles.sectorScrollWrapper}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.sectorScrollContent}
-              >
-                {sectorsList.map((sec, idx) => {
-                  const isSecActive = selectedSector === sec;
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      style={[styles.sectorChip, isSecActive && styles.sectorChipActive]}
-                      onPress={() => {
-                        Haptics.selectionAsync();
-                        setSelectedSector(sec);
-                      }}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.sectorChipText,
-                          isSecActive && styles.sectorChipTextActive,
-                        ]}
-                      >
-                        {sec === 'ALL' ? '🌟 All Sectors' : sec}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Scrollable Body Content */}
+          {/* Main List Body */}
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollBodyContent}
+            contentContainerStyle={styles.listContainer}
           >
             {/* ========================================= */}
-            {/* TAB 1: LISTED STOCKS                      */}
+            {/* TAB 1: PUBLIC EQUITIES (LIST VIEW)        */}
             {/* ========================================= */}
             {activeTab === 'STOCKS' && (
               <View>
-                {/* Visual Asset Allocation Bar */}
-                <View style={styles.portfolioAllocCard}>
-                  <View style={styles.allocCardHeader}>
-                    <View style={styles.allocTitleRow}>
-                      <Ionicons name="pie-chart" size={14} color="#10B981" />
-                      <Text style={styles.allocCardTitle}>PORTFOLIO WEIGHT DIVERSIFICATION</Text>
-                    </View>
-                    <Text style={styles.allocCardSub}>{rawHoldings.length} Positions Disclosed</Text>
-                  </View>
-
-                  {/* Multi-segment stacked bar */}
-                  <View style={styles.multiSegmentBar}>
-                    {topAllocations.map((item, i) => (
-                      <View
-                        key={i}
-                        style={{
-                          flex: item.weightPercent || 10,
-                          backgroundColor: barColors[i % barColors.length],
-                          height: '100%',
-                        }}
-                      />
-                    ))}
-                    {otherAlloc > 0 && (
-                      <View
-                        style={{
-                          flex: otherAlloc,
-                          backgroundColor: barColors[4],
-                          height: '100%',
-                        }}
-                      />
-                    )}
-                  </View>
-
-                  {/* Allocation Legend */}
-                  <View style={styles.allocLegendRow}>
-                    {topAllocations.map((item, i) => (
-                      <View key={i} style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: barColors[i] }]} />
-                        <Text style={styles.legendText} numberOfLines={1}>
-                          {item.name.split(' ')[0]}: <Text style={styles.legendBold}>{item.weightPercent}%</Text>
-                        </Text>
-                      </View>
-                    ))}
-                    {otherAlloc > 0 && (
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: barColors[4] }]} />
-                        <Text style={styles.legendText}>Others: <Text style={styles.legendBold}>{otherAlloc.toFixed(0)}%</Text></Text>
-                      </View>
-                    )}
-                  </View>
+                {/* Column Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={styles.colLeftHeader}>COMPANY / HOLDING</Text>
+                  <Text style={styles.colRightHeader}>STAKE / WEIGHT</Text>
                 </View>
 
-                {/* Section Subheading */}
-                <View style={styles.sectionMetaHeader}>
-                  <Text style={styles.sectionMetaTitle}>
-                    DISCLOSED SHAREHOLDINGS ({holdings.length})
-                  </Text>
-                  <Text style={styles.sectionMetaHint}>Tap any card to trade or research</Text>
-                </View>
-
-                {/* Holdings Cards List */}
                 {holdings.map((stock, idx) => {
-                  const isPositiveReturn = !(stock.change1Y || '').startsWith('-');
-                  const monogram = (stock.symbol || stock.name).slice(0, 3).toUpperCase();
-                  const isLargeWeight = (stock.weightPercent || 0) >= 10;
+                  const isExpanded = expandedItemId === (stock.symbol || stock.name);
+                  const isPositive = !(stock.change1Y || '').startsWith('-');
 
                   return (
-                    <TouchableOpacity
-                      key={idx}
-                      style={styles.holdingGlassCard}
-                      activeOpacity={0.88}
-                      onPress={() => handleStockAction(stock)}
-                    >
-                      {/* Top Header Row */}
-                      <View style={styles.cardTopRow}>
-                        {/* Company Monogram Badge */}
-                        <View
-                          style={[
-                            styles.companyMonogram,
-                            isLargeWeight && styles.companyMonogramHighConviction,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.monogramText,
-                              isLargeWeight && styles.monogramTextHighConviction,
-                            ]}
-                          >
-                            {monogram}
+                    <View key={idx} style={styles.rowWrapper}>
+                      <TouchableOpacity
+                        style={styles.rowMain}
+                        onPress={() => handleToggleRow(stock.symbol || stock.name)}
+                        activeOpacity={0.7}
+                      >
+                        {/* Left Column: Name & Sector */}
+                        <View style={styles.rowLeftCol}>
+                          <Text style={styles.stockName} numberOfLines={1}>
+                            {stock.name}
+                          </Text>
+                          <Text style={styles.stockSub} numberOfLines={1}>
+                            {stock.symbol || 'EQUITY'} • {stock.sector}
                           </Text>
                         </View>
 
-                        {/* Name & Sector */}
-                        <View style={styles.stockIdentityBlock}>
-                          <View style={styles.nameTickerRow}>
-                            <Text style={styles.stockPrimaryName} numberOfLines={1}>
-                              {stock.name}
-                            </Text>
-                            {stock.symbol && (
-                              <View style={styles.tickerPill}>
-                                <Text style={styles.tickerPillText}>{stock.symbol}</Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text style={styles.stockSectorSub} numberOfLines={1}>
-                            {stock.sector || 'Equities'}
-                          </Text>
-                        </View>
-
-                        {/* Right Weight & Value Column */}
-                        <View style={styles.weightCol}>
-                          <View
-                            style={[
-                              styles.weightPill,
-                              isLargeWeight ? styles.weightPillHigh : styles.weightPillRegular,
-                            ]}
-                          >
+                        {/* Right Column: Total Value & Weight */}
+                        <View style={styles.rowRightCol}>
+                          <Text style={styles.stockValue}>{stock.value}</Text>
+                          <View style={styles.subMetaRow}>
+                            <Text style={styles.stockWeight}>{stock.weightPercent}% wt</Text>
+                            <Text style={styles.metaDot}>•</Text>
                             <Text
                               style={[
-                                styles.weightPillText,
-                                isLargeWeight && styles.weightPillTextHigh,
+                                styles.stockReturn,
+                                { color: isPositive ? '#10B981' : '#EF4444' },
                               ]}
                             >
-                              {stock.weightPercent}% Wt
+                              {stock.change1Y}
                             </Text>
                           </View>
-                          <Text style={styles.stockTotalValue}>{stock.value}</Text>
                         </View>
-                      </View>
 
-                      {/* Weight Visual Hairline */}
-                      <View style={styles.weightHairlineTrack}>
-                        <View
-                          style={[
-                            styles.weightHairlineFill,
-                            {
-                              width: `${Math.min(100, Math.max(3, stock.weightPercent || 5))}%`,
-                              backgroundColor: isLargeWeight ? '#10B981' : '#3B82F6',
-                            },
-                          ]}
+                        <Ionicons
+                          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={14}
+                          color="#475569"
+                          style={{ marginLeft: 8 }}
                         />
-                      </View>
+                      </TouchableOpacity>
 
-                      {/* Bottom Key Stats Bar */}
-                      <View style={styles.cardStatsRow}>
-                        <View style={styles.statBox}>
-                          <Text style={styles.statLabel}>WHALE STAKE</Text>
-                          <View style={styles.stakeValRow}>
-                            <Ionicons name="pie-chart-outline" size={11} color="#10B981" />
-                            <Text style={styles.statStakeText}>{stock.stake}</Text>
+                      {/* Expandable Deep Institutional Drawer */}
+                      {isExpanded && (
+                        <View style={styles.expandedDrawer}>
+                          <View style={styles.drawerGrid}>
+                            <View style={styles.drawerItem}>
+                              <Text style={styles.drawerLabel}>Whale Stake</Text>
+                              <Text style={styles.drawerValueGreen}>{stock.stake} of company</Text>
+                            </View>
+
+                            <View style={styles.drawerItem}>
+                              <Text style={styles.drawerLabel}>Current Price</Text>
+                              <Text style={styles.drawerValue}>{stock.cmp || 'Market Rate'}</Text>
+                            </View>
+
+                            <View style={styles.drawerItem}>
+                              <Text style={styles.drawerLabel}>Filing Status</Text>
+                              <Text style={styles.drawerValue}>SEBI Q2 FY25 Filings</Text>
+                            </View>
                           </View>
-                        </View>
 
-                        <View style={styles.statBox}>
-                          <Text style={styles.statLabel}>MARKET PRICE</Text>
-                          <Text style={styles.statNormalText}>{stock.cmp || '—'}</Text>
-                        </View>
-
-                        <View style={[styles.statBox, { alignItems: 'flex-end' }]}>
-                          <Text style={styles.statLabel}>1Y STOCK RETURN</Text>
-                          <View
-                            style={[
-                              styles.returnPill,
-                              isPositiveReturn ? styles.returnPillGreen : styles.returnPillRed,
-                            ]}
+                          <TouchableOpacity
+                            style={styles.tradeActionBtn}
+                            onPress={() => handleTradePrompt(stock)}
+                            activeOpacity={0.8}
                           >
-                            <Ionicons
-                              name={isPositiveReturn ? 'arrow-up' : 'arrow-down'}
-                              size={10}
-                              color={isPositiveReturn ? '#10B981' : '#EF4444'}
-                            />
-                            <Text
-                              style={[
-                                styles.returnPillText,
-                                { color: isPositiveReturn ? '#10B981' : '#EF4444' },
-                              ]}
-                            >
-                              {stock.change1Y || '—'}
+                            <Ionicons name="flash" size={13} color="#10B981" />
+                            <Text style={styles.tradeActionText}>
+                              Execute {stock.name.split(' ')[0]} via Zerodha / Groww →
                             </Text>
-                          </View>
+                          </TouchableOpacity>
                         </View>
-                      </View>
-                    </TouchableOpacity>
+                      )}
+                    </View>
                   );
                 })}
 
                 {/* Empty State */}
                 {holdings.length === 0 && (
-                  <View style={styles.emptyStateContainer}>
-                    <View style={styles.emptyIconCircle}>
-                      <Ionicons name="search" size={28} color="#64748B" />
-                    </View>
-                    <Text style={styles.emptyHeading}>No holdings found</Text>
-                    <Text style={styles.emptySubheading}>
-                      No stock matches '{searchQuery}' in the selected sector.
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.emptyResetBtn}
-                      onPress={() => {
-                        setSearchQuery('');
-                        setSelectedSector('ALL');
-                      }}
-                    >
-                      <Text style={styles.emptyResetText}>Clear Filters</Text>
-                    </TouchableOpacity>
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>No matching holdings found</Text>
                   </View>
                 )}
               </View>
             )}
 
             {/* ========================================= */}
-            {/* TAB 2: STARTUPS & UNLISTED                */}
+            {/* TAB 2: PRIVATE STARTUPS (LIST VIEW)       */}
             {/* ========================================= */}
             {activeTab === 'STARTUPS' && (
               <View>
-                {/* Venture Metrics Banner */}
-                <LinearGradient
-                  colors={['#131F33', '#0A1220']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.ventureOverviewCard}
-                >
-                  <View style={styles.ventureStatCol}>
-                    <Text style={styles.ventureOverviewLabel}>VENTURE DEALS</Text>
-                    <Text style={styles.ventureOverviewVal}>{rawStartups.length} Companies</Text>
-                  </View>
-
-                  <View style={styles.ventureDivider} />
-
-                  <View style={styles.ventureStatCol}>
-                    <Text style={styles.ventureOverviewLabel}>TOP MULTIPLIER</Text>
-                    <Text style={styles.ventureOverviewValGreen}>{bestStartupMultiple}</Text>
-                  </View>
-
-                  <View style={styles.ventureDivider} />
-
-                  <View style={styles.ventureStatCol}>
-                    <Text style={styles.ventureOverviewLabel}>REGULATORY BASIS</Text>
-                    <Text style={styles.ventureOverviewVal}>MCA Form PAS-3</Text>
-                  </View>
-                </LinearGradient>
-
-                {/* Section Meta Title */}
-                <View style={styles.sectionMetaHeader}>
-                  <Text style={styles.sectionMetaTitle}>
-                    ANGEL, PRE-IPO & VENTURE EQUITY ({startups.length})
-                  </Text>
-                  <Text style={styles.sectionMetaHint}>RoC Shareholder filings & DRHP</Text>
+                {/* Column Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={styles.colLeftHeader}>STARTUP / ROUND</Text>
+                  <Text style={styles.colRightHeader}>VALUATION / RETURN</Text>
                 </View>
 
-                {/* Startup Cards List */}
                 {startups.map((st, idx) => {
-                  const isIpoExit =
+                  const isExpanded = expandedItemId === `startup-${idx}`;
+                  const isIpo =
                     (st.stage || '').includes('IPO') ||
                     (st.status || '').includes('Listed') ||
                     (st.stage || '').includes('Acquisition');
 
                   return (
-                    <View key={idx} style={styles.startupDealCard}>
-                      {/* Top Row: Icon + Title + Stage Badge */}
-                      <View style={styles.startupHeaderRow}>
-                        <View
-                          style={[
-                            styles.startupIconContainer,
-                            { backgroundColor: st.iconBg || '#2563EB' },
-                          ]}
-                        >
-                          <Text style={styles.startupEmojiText}>{st.iconEmoji || '🚀'}</Text>
+                    <View key={idx} style={styles.rowWrapper}>
+                      <TouchableOpacity
+                        style={styles.rowMain}
+                        onPress={() => handleToggleRow(`startup-${idx}`)}
+                        activeOpacity={0.7}
+                      >
+                        {/* Left Column: Startup Name & Category */}
+                        <View style={styles.rowLeftCol}>
+                          <View style={styles.startupNameBadgeRow}>
+                            <Text style={styles.stockName} numberOfLines={1}>
+                              {st.name}
+                            </Text>
+                            {isIpo && (
+                              <View style={styles.ipoPill}>
+                                <Text style={styles.ipoPillText}>IPO EXIT</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.stockSub} numberOfLines={1}>
+                            {st.category}
+                          </Text>
                         </View>
 
-                        <View style={styles.startupTitleCol}>
-                          <View style={styles.startupNameRow}>
-                            <Text style={styles.startupTitleText}>{st.name}</Text>
-                            <View
-                              style={[
-                                styles.dealStagePill,
-                                isIpoExit ? styles.dealStageIpo : styles.dealStageActive,
-                              ]}
-                            >
-                              <Text
-                                style={[
-                                  styles.dealStageText,
-                                  isIpoExit ? styles.dealStageTextIpo : styles.dealStageTextActive,
-                                ]}
-                              >
-                                {st.stage}
+                        {/* Right Column: Current Value & Multiple */}
+                        <View style={styles.rowRightCol}>
+                          <Text style={styles.stockValue}>{st.currentValue || st.status}</Text>
+                          <View style={styles.multipleTag}>
+                            <Text style={styles.multipleTagText}>{st.multiple} Return</Text>
+                          </View>
+                        </View>
+
+                        <Ionicons
+                          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                          size={14}
+                          color="#475569"
+                          style={{ marginLeft: 8 }}
+                        />
+                      </TouchableOpacity>
+
+                      {/* Expandable Startup Deal Drawer */}
+                      {isExpanded && (
+                        <View style={styles.expandedDrawer}>
+                          <View style={styles.drawerGrid}>
+                            <View style={styles.drawerItem}>
+                              <Text style={styles.drawerLabel}>Initial Capital</Text>
+                              <Text style={styles.drawerValue}>
+                                {st.investedValue || '—'} ({st.entryYear})
                               </Text>
                             </View>
+
+                            <View style={styles.drawerItem}>
+                              <Text style={styles.drawerLabel}>Current Status</Text>
+                              <Text style={styles.drawerValue}>{st.status}</Text>
+                            </View>
+
+                            <View style={styles.drawerItem}>
+                              <Text style={styles.drawerLabel}>Deal Stage</Text>
+                              <Text style={styles.drawerValue}>{st.stage}</Text>
+                            </View>
                           </View>
-                          <Text style={styles.startupCategorySub}>{st.category}</Text>
-                        </View>
-                      </View>
 
-                      {/* Visual Multiple & Capital Progression Track */}
-                      <LinearGradient
-                        colors={['rgba(255, 255, 255, 0.04)', 'rgba(255, 255, 255, 0.02)']}
-                        style={styles.capitalProgressionCard}
-                      >
-                        <View style={styles.capitalPoint}>
-                          <Text style={styles.capitalPointLabel}>ENTRY CAPITAL</Text>
-                          <Text style={styles.capitalPointVal}>{st.investedValue || '—'}</Text>
-                          <Text style={styles.capitalPointSub}>{st.entryYear}</Text>
-                        </View>
-
-                        {/* Middle Arrow / Multiplier Glow Badge */}
-                        <View style={styles.multiplierCenter}>
-                          <LinearGradient
-                            colors={['#10B981', '#059669']}
-                            style={styles.multiplierGlowBadge}
-                          >
-                            <Ionicons name="sparkles" size={10} color="#FFFFFF" />
-                            <Text style={styles.multiplierGlowText}>{st.multiple} Return</Text>
-                          </LinearGradient>
-                          <View style={styles.multiplierLine} />
-                        </View>
-
-                        <View style={[styles.capitalPoint, { alignItems: 'flex-end' }]}>
-                          <Text style={styles.capitalPointLabel}>CURRENT MARK / EXIT</Text>
-                          <Text style={styles.capitalPointValHigh}>{st.currentValue || '—'}</Text>
-                          <Text style={styles.capitalPointSubHigh} numberOfLines={1}>
-                            {st.status.split('(')[0]}
-                          </Text>
-                        </View>
-                      </LinearGradient>
-
-                      {/* Institutional Thesis & Filings Seal */}
-                      {st.notes && (
-                        <View style={styles.investorThesisBox}>
-                          <Ionicons name="document-text" size={13} color="#10B981" />
-                          <Text style={styles.investorThesisText}>
-                            {st.notes}
-                          </Text>
+                          {st.notes && (
+                            <View style={styles.startupNoteBox}>
+                              <Ionicons name="information-circle" size={13} color="#64748B" />
+                              <Text style={styles.startupNoteText}>{st.notes}</Text>
+                            </View>
+                          )}
                         </View>
                       )}
                     </View>
@@ -689,33 +463,22 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
 
                 {/* Empty State */}
                 {startups.length === 0 && (
-                  <View style={styles.emptyStateContainer}>
-                    <View style={styles.emptyIconCircle}>
-                      <Ionicons name="rocket-outline" size={28} color="#64748B" />
-                    </View>
-                    <Text style={styles.emptyHeading}>No startup deals match</Text>
-                    <Text style={styles.emptySubheading}>
-                      Try clearing the search query to see all venture records.
-                    </Text>
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>No private investments found</Text>
                   </View>
                 )}
-
-                {/* Compliance Seal Card */}
-                <View style={styles.mcaAuditSealCard}>
-                  <View style={styles.auditShieldIcon}>
-                    <Ionicons name="shield-checkmark" size={18} color="#10B981" />
-                  </View>
-                  <View style={styles.auditSealTextCol}>
-                    <Text style={styles.auditSealTitle}>MINISTRY OF CORPORATE AFFAIRS (MCA) AUDITED</Text>
-                    <Text style={styles.auditSealBody}>
-                      Unlisted cap table allocations are synchronized directly from Ministry of Corporate Affairs Form PAS-3 (Allotment of Shares), Form MGT-7 annual cap tables, and SEBI DRHP disclosures.
-                    </Text>
-                  </View>
-                </View>
               </View>
             )}
 
-            <View style={{ height: 50 }} />
+            {/* Subtle Regulatory Footer */}
+            <View style={styles.footerNote}>
+              <Ionicons name="shield-checkmark-outline" size={13} color="#475569" />
+              <Text style={styles.footerNoteText}>
+                Data synchronized from SEBI Quarterly Disclosures & Ministry of Corporate Affairs Form PAS-3 filings.
+              </Text>
+            </View>
+
+            <View style={{ height: 40 }} />
           </ScrollView>
         </View>
       </View>
@@ -726,735 +489,364 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.82)',
+    backgroundColor: 'rgba(0, 0, 0, 0.78)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#07090E',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: '#0A0E17',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    maxHeight: '94%',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    maxHeight: '92%',
     overflow: 'hidden',
   },
-  dragPillWrapper: {
+  handleBar: {
     alignItems: 'center',
-    paddingVertical: 10,
-    backgroundColor: '#101C2B',
+    paddingTop: 10,
+    paddingBottom: 4,
   },
-  dragPill: {
-    width: 42,
+  handleIndicator: {
+    width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  heroHeader: {
-    paddingHorizontal: 18,
-    paddingBottom: 16,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
   },
-  heroHeaderRow: {
+  headerProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatarGlowWrapper: {
-    position: 'relative',
-    marginRight: 14,
-  },
-  avatarOnlineDot: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: '#07090E',
-  },
-  heroTextCol: {
+  headerTitleBox: {
     flex: 1,
+    marginLeft: 12,
   },
-  heroTitleRow: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  heroWhaleName: {
-    fontSize: 18,
-    fontWeight: '900',
+  whaleName: {
+    fontSize: 17,
+    fontWeight: '800',
     color: '#F8FAFC',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
-  verifiedTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+  sebiTag: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    gap: 3,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
-  verifiedTagText: {
+  sebiTagText: {
     fontSize: 8,
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#10B981',
     letterSpacing: 0.5,
   },
-  heroWhaleSub: {
+  whaleTag: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginTop: 2,
-    fontWeight: '500',
   },
-  heroMetricsStrip: {
-    flexDirection: 'row',
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
-    marginTop: 6,
-    gap: 8,
+    justifyContent: 'center',
   },
-  heroNetWorth: {
-    fontSize: 15,
+  netWorthRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 14,
+  },
+  netWorthLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+  },
+  netWorthValue: {
+    fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: -0.2,
+    marginTop: 2,
+    letterSpacing: -0.5,
   },
-  heroMetricsDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#475569',
+  returnBadgeRight: {
+    alignItems: 'flex-end',
   },
-  returnBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 3,
-  },
-  heroReturnText: {
-    fontSize: 11,
+  returnPercentText: {
+    fontSize: 15,
     fontWeight: '800',
   },
-  closeGlassBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+  returnSubLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
   },
-  segmentContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
-  segmentTrack: {
+  miniAllocLine: {
+    height: 3,
+    borderRadius: 1.5,
     flexDirection: 'row',
-    backgroundColor: '#0F172A',
-    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    marginTop: 12,
+  },
+  switchRow: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 8,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#111827',
+    borderRadius: 10,
     padding: 3,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  segmentBtn: {
+  segmentTab: {
     flex: 1,
-    flexDirection: 'row',
+    paddingVertical: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: 11,
-    gap: 6,
-    position: 'relative',
-    overflow: 'hidden',
+    borderRadius: 8,
   },
-  segmentBtnActive: {},
-  segmentText: {
+  segmentTabActive: {
+    backgroundColor: '#1F2937',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentLabel: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#94A3B8',
   },
-  segmentTextActive: {
+  segmentLabelActive: {
     color: '#FFFFFF',
-    fontWeight: '900',
+    fontWeight: '800',
   },
-  controlsBar: {
+  searchWrapper: {
+    paddingHorizontal: 20,
+    paddingBottom: 6,
+  },
+  searchField: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0E1726',
-    borderRadius: 12,
+    backgroundColor: '#0F1622',
+    borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: Platform.OS === 'ios' ? 8 : 6,
+    paddingVertical: Platform.OS === 'ios' ? 7 : 5,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  searchTextInput: {
+  searchInput: {
     flex: 1,
     fontSize: 12,
     color: '#F8FAFC',
     fontWeight: '500',
     paddingVertical: 0,
   },
-  sortToggleBtn: {
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  colLeftHeader: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.6,
+  },
+  colRightHeader: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.6,
+  },
+  rowWrapper: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  rowMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    paddingVertical: 12,
+  },
+  rowLeftCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  stockName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  stockSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  rowRightCol: {
+    alignItems: 'flex-end',
+  },
+  stockValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  subMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
     gap: 4,
   },
-  sortToggleText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-  sectorScrollWrapper: {
-    paddingBottom: 6,
-  },
-  sectorScrollContent: {
-    paddingHorizontal: 16,
-    gap: 6,
-  },
-  sectorChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  sectorChipActive: {
-    backgroundColor: '#1E293B',
-    borderColor: '#10B981',
-  },
-  sectorChipText: {
+  stockWeight: {
     fontSize: 11,
     fontWeight: '600',
     color: '#94A3B8',
   },
-  sectorChipTextActive: {
-    color: '#F8FAFC',
-    fontWeight: '800',
-  },
-  scrollBodyContent: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-  },
-  portfolioAllocCard: {
-    backgroundColor: '#0F1926',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 12,
-  },
-  allocCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  allocTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  allocCardTitle: {
+  metaDot: {
     fontSize: 10,
-    fontWeight: '900',
-    color: '#94A3B8',
-    letterSpacing: 0.6,
+    color: '#475569',
   },
-  allocCardSub: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  multiSegmentBar: {
-    height: 8,
-    borderRadius: 4,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    backgroundColor: '#1E293B',
-    marginBottom: 10,
-  },
-  allocLegendRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  legendText: {
-    fontSize: 10,
-    color: '#94A3B8',
-  },
-  legendBold: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  sectionMetaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 2,
-  },
-  sectionMetaTitle: {
+  stockReturn: {
     fontSize: 11,
-    fontWeight: '900',
-    color: '#94A3B8',
-    letterSpacing: 0.6,
+    fontWeight: '700',
   },
-  sectionMetaHint: {
-    fontSize: 10,
-    color: '#64748B',
-    fontWeight: '500',
-  },
-  holdingGlassCard: {
-    backgroundColor: '#0D1420',
-    borderRadius: 16,
-    padding: 13,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  companyMonogram: {
-    width: 38,
-    height: 38,
+  expandedDrawer: {
+    backgroundColor: '#0F1622',
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  companyMonogramHighConviction: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  monogramText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#94A3B8',
-  },
-  monogramTextHighConviction: {
-    color: '#10B981',
-  },
-  stockIdentityBlock: {
-    flex: 1,
-  },
-  nameTickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  stockPrimaryName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    flexShrink: 1,
-  },
-  tickerPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  tickerPillText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  stockSectorSub: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  weightCol: {
-    alignItems: 'flex-end',
-  },
-  weightPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  weightPillHigh: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-  },
-  weightPillRegular: {
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-  },
-  weightPillText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#60A5FA',
-  },
-  weightPillTextHigh: {
-    color: '#10B981',
-  },
-  stockTotalValue: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 3,
-  },
-  weightHairlineTrack: {
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 1.5,
-    marginVertical: 10,
-    overflow: 'hidden',
-  },
-  weightHairlineFill: {
-    height: '100%',
-    borderRadius: 1.5,
-  },
-  cardStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 2,
-  },
-  statBox: {
-    flex: 1,
-  },
-  statLabel: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  stakeValRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statStakeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-  statNormalText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#F8FAFC',
-  },
-  returnPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 5,
-    gap: 2,
-  },
-  returnPillGreen: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-  },
-  returnPillRed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-  },
-  returnPillText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  ventureOverviewCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 12,
-  },
-  ventureStatCol: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  ventureDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  ventureOverviewLabel: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.5,
-    marginBottom: 3,
-  },
-  ventureOverviewVal: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  ventureOverviewValGreen: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#10B981',
-  },
-  startupDealCard: {
-    backgroundColor: '#0D1420',
-    borderRadius: 16,
-    padding: 14,
+    padding: 12,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-  },
-  startupHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  startupIconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-  startupEmojiText: {
-    fontSize: 20,
-  },
-  startupTitleCol: {
-    flex: 1,
-  },
-  startupNameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  startupTitleText: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#F8FAFC',
-  },
-  dealStagePill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  dealStageIpo: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-  },
-  dealStageActive: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    borderColor: 'rgba(59, 130, 246, 0.4)',
-  },
-  dealStageText: {
-    fontSize: 9,
-    fontWeight: '900',
-  },
-  dealStageTextIpo: {
-    color: '#10B981',
-  },
-  dealStageTextActive: {
-    color: '#60A5FA',
-  },
-  startupCategorySub: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-    fontWeight: '500',
-  },
-  capitalProgressionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.025)',
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  capitalPoint: {
+  drawerGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  drawerItem: {
     flex: 1,
   },
-  capitalPointLabel: {
-    fontSize: 8,
-    fontWeight: '800',
+  drawerLabel: {
+    fontSize: 9,
+    fontWeight: '700',
     color: '#64748B',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    textTransform: 'uppercase',
   },
-  capitalPointVal: {
-    fontSize: 13,
-    fontWeight: '800',
+  drawerValue: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#F8FAFC',
+    marginTop: 2,
   },
-  capitalPointSub: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 1,
-  },
-  capitalPointValHigh: {
-    fontSize: 13,
-    fontWeight: '900',
+  drawerValueGreen: {
+    fontSize: 11,
+    fontWeight: '800',
     color: '#10B981',
+    marginTop: 2,
   },
-  capitalPointSubHigh: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 1,
-  },
-  multiplierCenter: {
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  multiplierGlowBadge: {
+  tradeActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    gap: 3,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  multiplierGlowText: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  multiplierLine: {
-    width: 30,
-    height: 1,
-    backgroundColor: 'rgba(16, 185, 129, 0.3)',
-    marginTop: 3,
-  },
-  investorThesisBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.06)',
-    padding: 9,
-    borderRadius: 10,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 8,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     gap: 6,
   },
-  investorThesisText: {
-    fontSize: 10,
-    color: '#94A3B8',
-    flex: 1,
-    lineHeight: 14,
-    fontWeight: '500',
+  tradeActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#10B981',
   },
-  mcaAuditSealCard: {
+  startupNameBadgeRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-    marginTop: 6,
-    marginBottom: 10,
-    gap: 10,
-  },
-  auditShieldIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
   },
-  auditSealTextCol: {
-    flex: 1,
+  ipoPill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
   },
-  auditSealTitle: {
-    fontSize: 9,
+  ipoPillText: {
+    fontSize: 8,
     fontWeight: '900',
     color: '#10B981',
-    letterSpacing: 0.5,
-    marginBottom: 2,
   },
-  auditSealBody: {
+  multipleTag: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 2,
+  },
+  multipleTagText: {
     fontSize: 10,
-    color: '#94A3B8',
-    lineHeight: 14,
-  },
-  emptyStateContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  emptyHeading: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#F8FAFC',
-  },
-  emptySubheading: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-  },
-  emptyResetBtn: {
-    marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#10B981',
-  },
-  emptyResetText: {
-    fontSize: 12,
     fontWeight: '800',
     color: '#10B981',
+  },
+  startupNoteBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 8,
+    gap: 6,
+  },
+  startupNoteText: {
+    fontSize: 10,
+    color: '#94A3B8',
+    flex: 1,
+    lineHeight: 14,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  emptyText: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  footerNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 6,
+  },
+  footerNoteText: {
+    fontSize: 9,
+    color: '#475569',
+    textAlign: 'center',
+    maxWidth: '85%',
   },
 });
