@@ -87,45 +87,6 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
         onMenuPress={onOpenMenu}
       />
 
-      {/* Premium Breaking Venture Round Banner (Matching Home Page Box Style) */}
-      <View style={styles.alertCardWrapper}>
-        <LinearGradient
-          colors={['#16152B', '#0E0D1E']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.alertCard}
-        >
-          {/* Top Row: Live Radar Indicator + Source/Time */}
-          <View style={styles.alertHeader}>
-            <View style={styles.liveTagContainer}>
-              <View style={styles.livePulseRing}>
-                <View style={styles.livePulseDot} />
-              </View>
-              <Text style={styles.liveTagText}>BREAKING VENTURE ROUND</Text>
-            </View>
-
-            <View style={styles.sourcePill}>
-              <Text style={styles.sourcePillText}>Valuation: $5B • 1h ago</Text>
-            </View>
-          </View>
-
-          {/* Clean Title */}
-          <Text style={styles.alertTitle}>
-            Zepto raised <Text style={{ color: colors.accentPurple, fontWeight: '700' }}>₹5,000 Cr ($600M)</Text> at $5B valuation!
-          </Text>
-
-          {/* Subtitle Detail Pill */}
-          <View style={styles.alertDetailRow}>
-            <View style={styles.detailPill}>
-              <Text style={styles.detailPillText}>
-                Key Investors: StepStone, Nexus VP, Glade Brook
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={14} color={colors.accentPurple} />
-          </View>
-        </LinearGradient>
-      </View>
-
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
         {filters.map((f) => {

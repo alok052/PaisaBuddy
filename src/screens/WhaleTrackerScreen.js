@@ -114,49 +114,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         onMenuPress={onOpenMenu}
       />
 
-      {/* Premium Live Market Alert Banner */}
-      <View style={styles.alertCardWrapper}>
-        <LinearGradient
-          colors={['#101C2B', '#0B1320']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.alertCard}
-        >
-          {/* Top Row: Live Radar Indicator + Source/Time */}
-          <View style={styles.alertHeader}>
-            <View style={styles.liveTagContainer}>
-              <View style={styles.livePulseRing}>
-                <View style={styles.livePulseDot} />
-              </View>
-              <Text style={styles.liveTagText}>LIVE MARKET ALERT</Text>
-            </View>
-
-            <View style={styles.sourcePill}>
-              <Text style={styles.sourcePillText}>
-                {liveAlert?.source || 'BSE / NSE Disclosed'} • {liveAlert?.timeAgo || 'Just now'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Clean Title (No Rocket Icon) */}
-          <Text style={styles.alertTitle}>
-            {typeof liveAlert?.title === 'string'
-              ? liveAlert.title.replace(/^🚀\s*/, '')
-              : 'Ashish Kacholia increased stake in Gravita India by 1.2%!'}
-          </Text>
-
-          {/* Subtitle Detail Pill */}
-          <View style={styles.alertDetailRow}>
-            <View style={styles.detailPill}>
-              <Text style={styles.detailPillText}>
-                {liveAlert?.subtitle || 'Bulk Deal: 3,50,000 shares @ ₹2,145'}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-          </View>
-        </LinearGradient>
-      </View>
-
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
         {filters.map((f) => {
