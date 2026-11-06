@@ -64,10 +64,10 @@ export default function ToolsScreen({ onOpenMenu }) {
       description:
         'Calculate how stepping up your SIP by 10-25% every year can 3x your final corpus over 15-20 years using disciplined annual increments.',
       icon: 'trending-up',
-      accentColor: colors.accentPurple,
-      gradientColors: ['#150E24', '#0D0818'],
+      accentColor: colors.accentBlue,
+      gradientColors: ['#0E1726', '#080F1A'],
       tag: 'COMING SOON',
-      tagColor: colors.accentPurple,
+      tagColor: colors.accentBlue,
       available: false,
       stats: '3x Wealth Multiplier',
     },
@@ -245,7 +245,7 @@ export default function ToolsScreen({ onOpenMenu }) {
                 <View style={styles.toolFooter}>
                   <View style={styles.toolHighlightBadge}>
                     <Ionicons
-                      name="sparkles"
+                      name="stats-chart-outline"
                       size={12}
                       color={colors.primary}
                     />

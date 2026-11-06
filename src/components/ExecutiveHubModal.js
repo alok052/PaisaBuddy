@@ -36,68 +36,62 @@ export default function ExecutiveHubModal({
     {
       id: 'ipos',
       title: 'IPO & GMP Radar',
-      subtitle: 'Live Grey Market Premiums & Institutional Bids',
-      icon: 'flame',
-      gradient: ['#2A1708', '#140A04'],
-      borderColor: 'rgba(245, 158, 11, 0.45)',
-      iconColor: '#F59E0B',
-      badge: 'LIVE GMP',
-      badgeColor: '#F59E0B',
+      subtitle: 'Live Grey Market Premiums & Bids',
+      icon: 'trending-up-outline',
+      gradient: ['#131B2E', '#090E17'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#38BDF8',
+      category: 'PRIMARY',
     },
     {
       id: 'whales',
       title: 'Whale Portfolios',
-      subtitle: '10+ Super-Investors & Bulk Deals Radar',
-      icon: 'fish',
-      gradient: ['#0C2038', '#06101E'],
-      borderColor: 'rgba(59, 130, 246, 0.45)',
-      iconColor: '#3B82F6',
-      badge: 'BSE / NSE',
-      badgeColor: '#3B82F6',
+      subtitle: 'Institutional Super-Investors Radar',
+      icon: 'layers-outline',
+      gradient: ['#0E1726', '#080E1A'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#60A5FA',
+      category: 'EQUITY',
     },
     {
       id: 'startups',
       title: 'Startups Syndicate',
-      subtitle: 'Pre-IPO Allocations & Angel Equity Deals',
-      icon: 'rocket',
-      gradient: ['#220F38', '#10071C'],
-      borderColor: 'rgba(168, 85, 247, 0.45)',
-      iconColor: '#A855F7',
-      badge: 'HOT DEALS',
-      badgeColor: '#A855F7',
+      subtitle: 'Pre-IPO Allocations & Angel Deals',
+      icon: 'rocket-outline',
+      gradient: ['#0D1A24', '#061017'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#2DD4BF',
+      category: 'VENTURE',
     },
     {
       id: 'sip',
       title: 'SIP Doctor',
-      subtitle: '0% Commission Direct Plan Switcher',
-      icon: 'medkit',
-      gradient: ['#082C22', '#041712'],
-      borderColor: 'rgba(16, 185, 129, 0.45)',
+      subtitle: 'Direct Mutual Fund Switcher',
+      icon: 'pulse-outline',
+      gradient: ['#0A1D1A', '#051210'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#10B981',
-      badge: 'SAVE 1.5%',
-      badgeColor: '#10B981',
+      category: 'FUNDS',
     },
     {
       id: 'review',
-      title: 'AI Portfolio Audit',
-      subtitle: 'Instant Overlap Check & 3-Page PDF Report',
-      icon: 'sparkles',
-      gradient: ['#300F26', '#170612'],
-      borderColor: 'rgba(236, 72, 153, 0.45)',
-      iconColor: '#EC4899',
-      badge: 'AI AUDIT',
-      badgeColor: '#EC4899',
+      title: 'Portfolio Audit',
+      subtitle: 'Overlap Analysis & Risk Health',
+      icon: 'shield-checkmark-outline',
+      gradient: ['#141926', '#0B0F1A'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#94A3B8',
+      category: 'AUDIT',
     },
     {
       id: 'notifications',
       title: 'Market Alerts',
-      subtitle: 'Real-Time Disclosures & Block Deals Feed',
-      icon: 'notifications',
-      gradient: ['#201A0A', '#100C04'],
-      borderColor: 'rgba(234, 179, 8, 0.45)',
-      iconColor: '#EAB308',
-      badge: 'REALTIME',
-      badgeColor: '#EAB308',
+      subtitle: 'Disclosures & Block Deals Feed',
+      icon: 'notifications-outline',
+      gradient: ['#171B24', '#0D1017'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#F59E0B',
+      category: 'ALERTS',
     },
   ];
 
@@ -154,30 +148,24 @@ export default function ExecutiveHubModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* VIP Status Gold & Emerald Banner */}
+            {/* Executive Status Banner */}
             <View style={styles.vipBannerWrapper}>
-              <LinearGradient
-                colors={['#064E3B', '#022C22', '#041F18']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.vipBanner}
-              >
+              <View style={styles.vipBanner}>
                 <View style={styles.vipBannerLeft}>
                   <View style={styles.crownCircle}>
-                    <Ionicons name="sparkles" size={16} color="#F59E0B" />
+                    <Ionicons name="apps-outline" size={16} color="#10B981" />
                   </View>
                   <View style={styles.vipTextGroup}>
-                    <Text style={styles.vipTitle}>EXECUTIVE ALL-PAGES DESK</Text>
+                    <Text style={styles.vipTitle}>INSTITUTIONAL DIRECTORY</Text>
                     <Text style={styles.vipSubtitle}>
-                      Institutional Radars • High-Conviction Engines
+                      Curated Terminals & Financial Engines
                     </Text>
                   </View>
                 </View>
-                <View style={styles.livePulseBadge}>
-                  <View style={styles.pulseDot} />
-                  <Text style={styles.livePulseText}>LIVE</Text>
+                <View style={styles.vipTag}>
+                  <Text style={styles.vipTagText}>SUITE</Text>
                 </View>
-              </LinearGradient>
+              </View>
             </View>
 
             {/* FEATURED HERO TILE: FINANCIAL POWER TOOLS & CALCULATORS */}
@@ -198,25 +186,21 @@ export default function ExecutiveHubModal({
                 onPress={() => handleItemPress('tools')}
               >
                 <LinearGradient
-                  colors={['#063C2E', '#032018', '#01120D']}
+                  colors={['#081914', '#040F0C']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.heroToolGradient}
                 >
                   <View style={styles.heroTopRow}>
                     <View style={styles.heroIconBox}>
-                      <LinearGradient
-                        colors={['#10B981', '#059669']}
-                        style={styles.heroIconInner}
-                      >
-                        <Ionicons name="construct" size={24} color="#FFFFFF" />
-                      </LinearGradient>
+                      <View style={styles.heroIconInner}>
+                        <Ionicons name="calculator-outline" size={22} color="#10B981" />
+                      </View>
                     </View>
 
                     <View style={styles.heroBadgeBox}>
                       <View style={styles.taxSavePill}>
-                        <Ionicons name="shield-checkmark" size={11} color="#10B981" />
-                        <Text style={styles.taxSavePillText}>SAVE ₹15,625 TAX</Text>
+                        <Text style={styles.taxSavePillText}>6 TOOLS INSIDE</Text>
                       </View>
                     </View>
                   </View>
@@ -230,14 +214,14 @@ export default function ExecutiveHubModal({
 
                   <View style={styles.heroFooter}>
                     <View style={styles.heroToolsCount}>
-                      <Ionicons name="layers-outline" size={14} color="#34D399" />
+                      <Ionicons name="layers-outline" size={14} color="#64748B" />
                       <Text style={styles.heroToolsCountText}>
-                        6 Specialized Calculators Inside
+                        Calculators & Capital Planners
                       </Text>
                     </View>
                     <View style={styles.launchButton}>
                       <Text style={styles.launchButtonText}>Open Tools</Text>
-                      <Ionicons name="arrow-forward" size={14} color="#041F18" />
+                      <Ionicons name="arrow-forward" size={13} color="#041F18" />
                     </View>
                   </View>
                 </LinearGradient>
@@ -261,7 +245,7 @@ export default function ExecutiveHubModal({
                       key={item.id}
                       style={[
                         styles.bentoCard,
-                        isActive && { borderColor: item.iconColor },
+                        isActive && { borderColor: 'rgba(16, 185, 129, 0.4)' },
                       ]}
                       activeOpacity={0.8}
                       onPress={() => handleItemPress(item.id)}
@@ -276,33 +260,18 @@ export default function ExecutiveHubModal({
                           <View
                             style={[
                               styles.bentoIconBox,
-                              { backgroundColor: `${item.iconColor}22` },
+                              { backgroundColor: `${item.iconColor}14` },
                             ]}
                           >
                             <Ionicons
                               name={item.icon}
-                              size={20}
+                              size={18}
                               color={item.iconColor}
                             />
                           </View>
-                          <View
-                            style={[
-                              styles.bentoBadge,
-                              {
-                                backgroundColor: `${item.badgeColor}18`,
-                                borderColor: `${item.badgeColor}50`,
-                              },
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.bentoBadgeText,
-                                { color: item.badgeColor },
-                              ]}
-                            >
-                              {item.badge}
-                            </Text>
-                          </View>
+                          <Text style={styles.bentoCategoryText}>
+                            {item.category}
+                          </Text>
                         </View>
 
                         <Text style={styles.bentoTitle} numberOfLines={1}>
@@ -316,15 +285,15 @@ export default function ExecutiveHubModal({
                           <Text
                             style={[
                               styles.bentoActionText,
-                              { color: item.iconColor },
+                              { color: isActive ? '#10B981' : '#94A3B8' },
                             ]}
                           >
-                            {isActive ? 'Current Page' : 'Enter Desk'}
+                            {isActive ? 'Current Desk' : 'Open Desk'}
                           </Text>
                           <Ionicons
-                            name={isActive ? 'checkmark' : 'chevron-forward'}
-                            size={14}
-                            color={item.iconColor}
+                            name={isActive ? 'checkmark-outline' : 'chevron-forward'}
+                            size={13}
+                            color={isActive ? '#10B981' : '#64748B'}
                           />
                         </View>
                       </LinearGradient>
@@ -338,17 +307,15 @@ export default function ExecutiveHubModal({
             <View style={styles.pipelineSection}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionHeading}>EXPANDABLE PIPELINE</Text>
-                <Text style={styles.sectionSubCount}>Coming in Next Update</Text>
+                <Text style={styles.sectionSubCount}>Next Release</Text>
               </View>
 
               <View style={styles.pipelinePillsContainer}>
                 {pipelinePills.map((pill) => (
                   <View key={pill.id} style={styles.pipelinePill}>
-                    <Ionicons name={pill.icon} size={14} color="#94A3B8" />
+                    <Ionicons name={pill.icon} size={15} color="#64748B" />
                     <Text style={styles.pipelinePillText}>{pill.label}</Text>
-                    <View style={styles.pipelineSoonTag}>
-                      <Text style={styles.pipelineSoonText}>SOON</Text>
-                    </View>
+                    <Ionicons name="chevron-forward" size={13} color="#334155" />
                   </View>
                 ))}
               </View>
@@ -459,18 +426,14 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   vipBanner: {
-    borderRadius: 16,
-    padding: 13,
+    borderRadius: 14,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#0C111C',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   vipBannerLeft: {
     flexDirection: 'row',
@@ -480,10 +443,10 @@ const styles = StyleSheet.create({
   crownCircle: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderRadius: 9,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -493,39 +456,30 @@ const styles = StyleSheet.create({
   },
   vipTitle: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 11.5,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   vipSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#94A3B8',
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '400',
     marginTop: 2,
   },
-  livePulseBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+  vipTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: '#10B981',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
     paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingVertical: 2.5,
     marginLeft: 8,
   },
-  pulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#10B981',
-    marginRight: 4,
-  },
-  livePulseText: {
-    color: '#10B981',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+  vipTagText: {
+    color: '#94A3B8',
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -546,9 +500,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   activeTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 1,
@@ -556,26 +510,21 @@ const styles = StyleSheet.create({
   activeTagText: {
     color: '#10B981',
     fontSize: 9,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.4,
   },
   heroSection: {
     marginBottom: 20,
   },
   heroToolCard: {
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#10B981',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    backgroundColor: '#0A120E',
   },
   heroToolCardActive: {
-    borderColor: '#34D399',
-    borderWidth: 2,
+    borderColor: '#10B981',
   },
   heroToolGradient: {
     padding: 16,
@@ -587,12 +536,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroIconBox: {
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   heroIconInner: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -601,33 +554,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   taxSavePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
-    borderColor: '#10B981',
-    borderRadius: 8,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 6,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   taxSavePillText: {
-    color: '#10B981',
-    fontSize: 9.5,
-    fontWeight: '900',
-    marginLeft: 4,
-    letterSpacing: 0.4,
+    color: '#94A3B8',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   heroTitle: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '900',
-    letterSpacing: 0.3,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
     marginBottom: 6,
   },
   heroDescription: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    lineHeight: 18,
+    color: '#94A3B8',
+    fontSize: 11.5,
+    lineHeight: 17,
     fontWeight: '400',
     marginBottom: 14,
   },
@@ -637,16 +587,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
   },
   heroToolsCount: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   heroToolsCountText: {
-    color: '#34D399',
+    color: '#64748B',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
     marginLeft: 5,
   },
   launchButton: {
@@ -655,12 +605,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   launchButtonText: {
     color: '#041F18',
-    fontSize: 11.5,
-    fontWeight: '900',
+    fontSize: 11,
+    fontWeight: '800',
     marginRight: 4,
   },
   bentoSection: {
@@ -673,15 +623,15 @@ const styles = StyleSheet.create({
   },
   bentoCard: {
     width: (SCREEN_WIDTH - 42) / 2,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
-    borderWidth: 1.2,
+    borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: 10,
   },
   bentoGradient: {
     padding: 12,
-    minHeight: 132,
+    minHeight: 124,
     justifyContent: 'space-between',
   },
   bentoTop: {
@@ -693,25 +643,20 @@ const styles = StyleSheet.create({
   bentoIconBox: {
     width: 32,
     height: 32,
-    borderRadius: 9,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bentoBadge: {
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  bentoBadgeText: {
-    fontSize: 7.5,
-    fontWeight: '900',
-    letterSpacing: 0.3,
+  bentoCategoryText: {
+    color: '#64748B',
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   bentoTitle: {
     color: '#FFFFFF',
     fontSize: 12.5,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 2,
   },
   bentoSubtitle: {
@@ -731,7 +676,7 @@ const styles = StyleSheet.create({
   },
   bentoActionText: {
     fontSize: 9.5,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   pipelineSection: {
     marginBottom: 20,
@@ -742,30 +687,19 @@ const styles = StyleSheet.create({
   pipelinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: '#0D121D',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 10,
   },
   pipelinePillText: {
     color: '#CBD5E1',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     flex: 1,
     marginLeft: 8,
-  },
-  pipelineSoonTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-  },
-  pipelineSoonText: {
-    color: '#64748B',
-    fontSize: 8,
-    fontWeight: '800',
   },
   footerContainer: {
     alignItems: 'center',

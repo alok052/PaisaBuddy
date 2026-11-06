@@ -95,9 +95,6 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
               <View style={styles.whaleHeaderText}>
                 <View style={styles.nameRow}>
                   <Text style={styles.whaleName}>{whale.name}</Text>
-                  <View style={styles.proBadge}>
-                    <Text style={styles.proBadgeText}>CLONE</Text>
-                  </View>
                 </View>
                 <Text style={styles.whaleSubtitle}>
                   {whale.tag} • {whale.portfolioValue}

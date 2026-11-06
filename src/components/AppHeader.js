@@ -37,15 +37,11 @@ export default function AppHeader({
             </LinearGradient>
           </View>
 
-          {/* Brand Name & Short Sweet Premium Subheading */}
+          {/* Brand Name & Executive Subtitle */}
           <View style={styles.brandTextGroup}>
             <View style={styles.brandNameRow}>
               <Text style={styles.brandPaisa}>PAISA</Text>
               <Text style={styles.brandBuddy}>BUDDY</Text>
-              <View style={styles.proBadge}>
-                <Ionicons name="sparkles" size={8} color="#F59E0B" style={styles.proSparkle} />
-                <Text style={styles.proBadgeText}>PRO</Text>
-              </View>
             </View>
             {subtitle ? (
               <Text style={styles.brandSubtitle} numberOfLines={1}>
@@ -55,7 +51,7 @@ export default function AppHeader({
           </View>
         </View>
 
-        {/* Right: Custom Action Button or Executive 3-Line Menu */}
+        {/* Right: Custom Action Button or Executive Menu */}
         <View style={styles.brandRight}>
           {rightAction ? (
             rightAction
@@ -68,8 +64,7 @@ export default function AppHeader({
               }}
               activeOpacity={0.75}
             >
-              <Ionicons name="reorder-three" size={26} color="#10B981" />
-              <View style={styles.menuLiveDot} />
+              <Ionicons name="reorder-two-outline" size={24} color="#F8FAFC" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -156,29 +151,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: 0.8,
   },
-  proBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 6,
-  },
-  proSparkle: {
-    marginRight: 2,
-  },
-  proBadgeText: {
-    color: colors.warning,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
   brandSubtitle: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     color: colors.textSecondary,
     letterSpacing: 0.3,
     marginTop: 2,
@@ -189,30 +164,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   menuButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.45)',
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#0E131F',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  menuLiveDot: {
-    position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#10B981',
-    borderWidth: 1.5,
-    borderColor: '#070A12',
   },
 });

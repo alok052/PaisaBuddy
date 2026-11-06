@@ -143,7 +143,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
           <View style={styles.consensusHeaderBox}>
             <View style={styles.consensusBadgeRow}>
               <View style={styles.consensusTag}>
-                <Ionicons name="sparkles" size={13} color={colors.warning} />
+                <Ionicons name="layers-outline" size={13} color={colors.accentBlue} />
                 <Text style={styles.consensusTagText}>INSTITUTIONAL RADAR</Text>
               </View>
               <Text style={styles.consensusCountText}>{mockConsensusStocks.length} Verified Overlaps</Text>
@@ -419,7 +419,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         colors={['rgba(245, 158, 11, 0.15)', 'rgba(217, 119, 6, 0.25)']}
         style={styles.proCta}
       >
-        <Ionicons name="sparkles" size={28} color={colors.warning} />
+        <Ionicons name="notifications-outline" size={26} color={colors.warning} />
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.proTitle}>Real-Time Whale SMS Alerts</Text>
           <Text style={styles.proSub}>
@@ -515,20 +515,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  livePulseRing: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
   },
   liveTagText: {
     color: colors.primary,

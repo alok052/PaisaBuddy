@@ -165,8 +165,8 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
               activeOpacity={0.8}
               onPress={() => startAIScan('Parsing Zerodha P&L Excel / CSV file...')}
             >
-              <View style={[styles.altIconCircle, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-                <Ionicons name="stats-chart" size={20} color={colors.accentPurple} />
+              <View style={[styles.altIconCircle, { backgroundColor: 'rgba(37, 99, 235, 0.15)' }]}>
+                <Ionicons name="stats-chart" size={20} color={colors.accentBlue} />
               </View>
               <Text style={styles.altTitle}>Broker P&L File</Text>
               <Text style={styles.altSub}>Zerodha / Groww CSV</Text>
@@ -666,20 +666,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  livePulseRing: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
   },
   liveTagText: {
     color: colors.primary,

@@ -74,10 +74,8 @@ export default function IPORadarScreen({ onOpenMenu }) {
           {/* Top Row: Live Radar Indicator + Exchange Quotes */}
           <View style={styles.alertHeader}>
             <View style={styles.liveTagContainer}>
-              <View style={styles.livePulseRing}>
-                <View style={styles.livePulseDot} />
-              </View>
-              <Text style={styles.liveTagText}>LIVE GREY MARKET RADAR</Text>
+              <Ionicons name="pulse-outline" size={14} color={colors.warning} style={{ marginRight: 6 }} />
+              <Text style={styles.liveTagText}>GREY MARKET RADAR</Text>
             </View>
 
             <View style={styles.sourcePill}>
@@ -338,21 +336,6 @@ const styles = StyleSheet.create({
   liveTagContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  livePulseRing: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.warning,
   },
   liveTagText: {
     fontSize: 10,

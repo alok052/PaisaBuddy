@@ -96,7 +96,7 @@ export const mockIPOs = [
     listingDate: 'Oct 29, 2024',
     status: 'LISTED (+68%)',
     verdict: 'HIGH ALPHA SME',
-    verdictColor: '#8B5CF6',
+    verdictColor: '#2563EB',
     verdictReason: 'National power grid modernization capex driving 3.2x multi-year revenue expansion and order book visibility.',
   },
   {

@@ -120,7 +120,7 @@ export const mockStartups = [
     progressPercent: 85,
     daysLeft: 9,
     investorCount: 740,
-    iconBg: '#8B5CF6',
+    iconBg: '#059669',
     iconEmoji: '🧠',
     investors: ['Lightspeed India', 'Peak XV Partners', 'Khosla Ventures'],
     growthMetric: 'OpenHathi Indian Language Model',

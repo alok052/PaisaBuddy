@@ -94,7 +94,7 @@ export const mockWhales = [
     return1Y: '+9.8%',
     isPositive: true,
     avatar: 'RD',
-    avatarGradient: ['#8B5CF6', '#7C3AED'],
+    avatarGradient: ['#1E293B', '#0F172A'],
     localImage: require('../../assets/whales/damani.jpg'),
     topHoldings: [
       { name: 'Avenue Supermarts', stake: '74.6%', value: '₹1,95,000 Cr' },
@@ -244,7 +244,7 @@ export const mockWhales = [
     return1Y: '+17.9%',
     isPositive: true,
     avatar: 'NS',
-    avatarGradient: ['#A855F7', '#7E22CE'],
+    avatarGradient: ['#334155', '#1E293B'],
     localImage: null,
     topHoldings: [
       { name: 'Lakshmi Machine Works', stake: '6.4%', value: '₹1,280 Cr' },

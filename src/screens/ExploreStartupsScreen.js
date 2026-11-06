@@ -76,8 +76,8 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={colors.accentPurple}
-          colors={[colors.accentPurple, colors.primary]}
+          tintColor={colors.primary}
+          colors={[colors.primary, colors.accentBlue]}
         />
       }
     >
@@ -234,7 +234,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
             <Text style={styles.ecoSub}>Deals Closed</Text>
           </View>
           <View style={styles.ecoItem}>
-            <Text style={[styles.ecoVal, { color: colors.accentPurple }]}>3</Text>
+            <Text style={[styles.ecoVal, { color: colors.warning }]}>3</Text>
             <Text style={styles.ecoSub}>New Unicorns</Text>
           </View>
         </View>
@@ -304,8 +304,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(139, 92, 246, 0.28)',
     borderLeftWidth: 4,
-    borderLeftColor: colors.accentPurple,
-    shadowColor: '#8B5CF6',
+    // borderLeftColor
+    // shadowColor
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
@@ -325,22 +325,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  livePulseRing: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.accentPurple,
-  },
   liveTagText: {
-    color: colors.accentPurple,
+    color: colors.primary,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.8,

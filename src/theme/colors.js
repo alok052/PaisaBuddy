@@ -1,18 +1,20 @@
 export const colors = {
-  background: '#080C14',
-  card: '#101726',
-  cardSecondary: '#162035',
-  cardBorder: '#1E293B',
-  primary: '#10B981', // Emerald Green for wealth
+  background: '#07090E', // Deepest Obsidian
+  card: '#0D111A', // Titanium Slate Card
+  cardSecondary: '#131926', // Elevated Card
+  cardBorder: 'rgba(255, 255, 255, 0.08)', // Precision 1px Border
+  cardBorderHover: 'rgba(255, 255, 255, 0.16)',
+  primary: '#10B981', // Institutional Emerald (Wealth/Growth)
   primaryDark: '#059669',
-  accentBlue: '#3B82F6',
-  accentPurple: '#8B5CF6',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  text: '#F8FAFC',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
+  primaryMuted: 'rgba(16, 185, 129, 0.12)',
+  accentBlue: '#2563EB', // Classic Institutional Authority
+  accentSlate: '#475569',
+  warning: '#D97706', // Muted Warm Amber
+  danger: '#DC2626', // Financial Red
+  text: '#F8FAFC', // High-Contrast Off-White
+  textSecondary: '#94A3B8', // Professional Slate
+  textMuted: '#64748B', // Muted Slate
   white: '#FFFFFF',
-  surfaceLight: 'rgba(255, 255, 255, 0.05)',
-  surfaceHighlight: 'rgba(16, 185, 129, 0.1)',
+  surfaceLight: 'rgba(255, 255, 255, 0.04)',
+  surfaceHighlight: 'rgba(16, 185, 129, 0.08)',
 };

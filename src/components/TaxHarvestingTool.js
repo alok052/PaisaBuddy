@@ -270,7 +270,7 @@ export default function TaxHarvestingTool({ onClose }) {
             </Text>
           </View>
           <View style={styles.freeTaxBadge}>
-            <Ionicons name="checkmark-shield" size={13} color={colors.primary} style={{ marginRight: 4 }} />
+            <Ionicons name="shield-checkmark" size={13} color={colors.primary} style={{ marginRight: 4 }} />
             <Text style={styles.freeTaxBadgeText}>100% TAX FREE</Text>
           </View>
         </View>

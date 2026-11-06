@@ -141,7 +141,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
 
             {/* Syndicate Lead Info */}
             <View style={styles.leadBox}>
-              <Ionicons name="shield-checkmark" size={18} color={colors.accentPurple} />
+              <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={styles.leadTitle}>Backed by Institutional Lead Investors</Text>
                 <Text style={styles.leadSub}>
@@ -190,7 +190,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
             disabled={isSubmitting}
           >
             <LinearGradient
-              colors={[colors.accentPurple, '#6D28D9']}
+              colors={[colors.primary, '#059669']}
               style={styles.confirmBtnGrad}
             >
               <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   stageText: {
-    color: colors.accentPurple,
+    color: colors.primary,
     fontSize: 10,
     fontWeight: '800',
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.accentPurple,
+    backgroundColor: colors.primary,
     borderRadius: 3,
   },
   sectionTitle: {
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ticketCardActive: {
-    borderColor: colors.accentPurple,
+    borderColor: colors.primary,
     backgroundColor: 'rgba(168, 85, 247, 0.12)',
   },
   ticketAmt: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   ticketAmtActive: {
-    color: colors.accentPurple,
+    color: colors.primary,
   },
   ticketDesc: {
     fontSize: 10.5,
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   leadTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.accentPurple,
+    color: colors.primary,
   },
   leadSub: {
     fontSize: 11,
@@ -416,8 +416,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxActive: {
-    backgroundColor: colors.accentPurple,
-    borderColor: colors.accentPurple,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   termsText: {
     flex: 1,
