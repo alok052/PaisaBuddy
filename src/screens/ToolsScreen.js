@@ -11,7 +11,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
-import AppHeader from '../components/AppHeader';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 
 export default function ToolsScreen({ onOpenMenu }) {
@@ -142,7 +141,6 @@ export default function ToolsScreen({ onOpenMenu }) {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Clean Premium Brand Header */}
-      <AppHeader subtitle="Financial Power Tools & Calculators" onMenuPress={onOpenMenu} />
 
       {/* Category Filter Chips */}
       <ScrollView
@@ -357,7 +355,7 @@ export default function ToolsScreen({ onOpenMenu }) {
         onClose={() => setTaxModalVisible(false)}
       />
 
-      <View style={{ height: 90 }} />
+      <View style={{ height: 95 }} />
     </ScrollView>
   );
 }

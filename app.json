@@ -6,8 +6,18 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#07090E",
     "splash": {
-      "backgroundColor": "#0A0E1A"
+      "backgroundColor": "#07090E"
+    },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#07090E",
+      "translucent": true
+    },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#07090E"
     },
     "ios": {
       "supportsTablet": true,
@@ -17,7 +27,7 @@
       "package": "com.paisabuddy.fintech",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#0A0E1A",
+        "backgroundColor": "#07090E",
         "foregroundImage": "./assets/android-icon-foreground.png"
       }
     },

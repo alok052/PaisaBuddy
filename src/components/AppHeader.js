@@ -13,31 +13,24 @@ export default function AppHeader({
   return (
     <View style={styles.headerContainer}>
       <View style={styles.brandBar}>
-        {/* Left: Enhanced Attraction Logo + Typography + Sweet Micro Subheading */}
+        {/* Left: Brand Logo & Executive Subtitle */}
         <View style={styles.brandLeft}>
-          {/* Logo Squircle with Gradient Ring & Embedded Trending Glyph */}
+          {/* Logo Squircle with Clean Hairline Border (Flicker-Free, No Heavy GPU Shadow) */}
           <View style={styles.logoWrapper}>
             <LinearGradient
-              colors={['#10B981', '#34D399', '#059669']}
+              colors={['#064E3B', '#022C22']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.logoOuterRing}
+              style={styles.logoInnerChamber}
             >
-              <LinearGradient
-                colors={['#064E3B', '#022C22', '#041F18']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.logoInnerChamber}
-              >
-                <Text style={styles.logoRupee}>₹</Text>
-                <View style={styles.logoArrowBadge}>
-                  <Ionicons name="trending-up" size={10} color="#10B981" />
-                </View>
-              </LinearGradient>
+              <Text style={styles.logoRupee}>₹</Text>
+              <View style={styles.logoArrowBadge}>
+                <Ionicons name="trending-up" size={9} color="#10B981" />
+              </View>
             </LinearGradient>
           </View>
 
-          {/* Brand Name & Executive Subtitle */}
+          {/* Brand Name & Dynamic Executive Subtitle */}
           <View style={styles.brandTextGroup}>
             <View style={styles.brandNameRow}>
               <Text style={styles.brandPaisa}>PAISA</Text>
@@ -51,7 +44,7 @@ export default function AppHeader({
           </View>
         </View>
 
-        {/* Right: Custom Action Button or Executive Menu */}
+        {/* Right: Custom Action Button or Executive 3-Line Menu */}
         <View style={styles.brandRight}>
           {rightAction ? (
             rightAction
@@ -75,9 +68,12 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingTop: 10,
-    paddingBottom: 14,
-    marginBottom: 6,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 11,
+    backgroundColor: '#07090E',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.07)',
   },
   brandBar: {
     flexDirection: 'row',
@@ -88,31 +84,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 14,
+    marginRight: 12,
   },
   logoWrapper: {
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  logoOuterRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    padding: 1.5,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    overflow: 'hidden',
+    backgroundColor: '#041F18',
   },
   logoInnerChamber: {
     flex: 1,
-    borderRadius: 12.5,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    overflow: 'hidden',
   },
   logoRupee: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: '#FFFFFF',
     marginTop: -2,
@@ -122,9 +112,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 15,
-    height: 15,
-    borderRadius: 8,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: 'rgba(16, 185, 129, 0.25)',
     borderWidth: 1,
     borderColor: '#10B981',
@@ -132,7 +122,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   brandTextGroup: {
-    marginLeft: 11,
+    marginLeft: 10,
     flex: 1,
   },
   brandNameRow: {
@@ -140,13 +130,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandPaisa: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.8,
   },
   brandBuddy: {
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: '900',
     color: colors.primary,
     letterSpacing: 0.8,
@@ -156,7 +146,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     letterSpacing: 0.3,
-    marginTop: 2,
+    marginTop: 1.5,
   },
   brandRight: {
     flexDirection: 'row',
@@ -164,12 +154,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   menuButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 11,
     backgroundColor: '#0E131F',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },

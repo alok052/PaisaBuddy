@@ -11,7 +11,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
-import AppHeader from '../components/AppHeader';
 import IPODetailModal from '../components/IPODetailModal';
 import { mockIPOs } from '../data/mockIPOs';
 
@@ -61,7 +60,6 @@ export default function IPORadarScreen({ onOpenMenu }) {
       }
     >
       {/* Premium Brand Header */}
-      <AppHeader subtitle="Institutional IPO & Grey Market Radar" onMenuPress={onOpenMenu} />
 
       {/* Featured Grey Market Intelligence Banner (Matches Home & Startups Architecture) */}
       <View style={styles.alertCardWrapper}>
@@ -298,7 +296,7 @@ export default function IPORadarScreen({ onOpenMenu }) {
         onClose={() => setBiddingIPO(null)}
       />
 
-      <View style={{ height: 90 }} />
+      <View style={{ height: 95 }} />
     </ScrollView>
   );
 }

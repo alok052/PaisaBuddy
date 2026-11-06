@@ -12,6 +12,7 @@ import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from './src/theme/colors';
+import AppHeader from './src/components/AppHeader';
 import WhaleTrackerScreen from './src/screens/WhaleTrackerScreen';
 import ExploreStartupsScreen from './src/screens/ExploreStartupsScreen';
 import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
@@ -20,6 +21,15 @@ import ToolsScreen from './src/screens/ToolsScreen';
 import IPORadarScreen from './src/screens/IPORadarScreen';
 import ExecutiveHubModal from './src/components/ExecutiveHubModal';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
+
+const TAB_SUBTITLES = {
+  whales: 'Smart Money & Billionaire Radar',
+  startups: 'Pre-IPO & Early-Stage Rounds',
+  sip: 'Mutual Fund Replacement Tool',
+  review: 'Portfolio Health & Audit',
+  tools: 'Financial Power Tools & Calculators',
+  ipos: 'Institutional IPO & Grey Market Radar',
+};
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('whales');
@@ -34,22 +44,26 @@ function MainApp() {
     {
       id: 'whales',
       label: 'Whales',
-      iconName: 'fish',
+      iconName: 'layers-outline',
+      activeIcon: 'layers',
     },
     {
       id: 'startups',
       label: 'Startups',
-      iconName: 'rocket',
+      iconName: 'rocket-outline',
+      activeIcon: 'rocket',
     },
     {
       id: 'sip',
       label: 'SIP Doctor',
-      iconName: 'medkit',
+      iconName: 'pulse-outline',
+      activeIcon: 'pulse',
     },
     {
       id: 'review',
       label: 'AI Audit',
-      iconName: 'sparkles',
+      iconName: 'shield-checkmark-outline',
+      activeIcon: 'shield-checkmark',
     },
   ];
 
@@ -63,15 +77,29 @@ function MainApp() {
     setIsDrawerOpen(true);
   };
 
-  // Ensure bottom padding sits completely clear above Android system navigation buttons
-  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 28 : 14) + 8;
-  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0);
+  // Top padding calculated to sit below translucent status bar without double-spacing
+  const topPadding = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : insets.top;
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
 
   return (
-    <View style={[styles.mainContainer, { paddingTop: topPadding }]}>
+    <View style={styles.mainContainer}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#07090E"
+        translucent={true}
+      />
       <ExpoStatusBar style="light" />
 
-      {/* Screen Content */}
+      {/* Top Safe Area Offset for Full Screen View */}
+      <View style={{ height: topPadding, backgroundColor: '#07090E' }} />
+
+      {/* Persistent, Rock-Solid Header: Never unmounts, never blinks */}
+      <AppHeader
+        subtitle={TAB_SUBTITLES[activeTab] || 'Smart Money & Venture Radar'}
+        onMenuPress={openDrawer}
+      />
+
+      {/* Edge-to-Edge Full-Screen Canvas */}
       <View style={styles.screenContainer}>
         {activeTab === 'whales' && <WhaleTrackerScreen onOpenMenu={openDrawer} />}
         {activeTab === 'startups' && <ExploreStartupsScreen onOpenMenu={openDrawer} />}
@@ -91,8 +119,8 @@ function MainApp() {
         }}
       />
 
-      {/* Bottom Floating Navigation Bar */}
-      <View style={[styles.navBarWrapper, { paddingBottom: bottomPadding }]}>
+      {/* Sleek Floating Dock Navigation (True Full-Screen Immersive UI) */}
+      <View style={[styles.navBarWrapper, { paddingBottom: bottomInset }]}>
         <View style={styles.navBar}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -104,8 +132,8 @@ function MainApp() {
                 activeOpacity={0.8}
               >
                 <Ionicons
-                  name={tab.iconName}
-                  size={21}
+                  name={isActive ? tab.activeIcon : tab.iconName}
+                  size={20}
                   color={isActive ? colors.primary : colors.textMuted}
                 />
                 <Text
@@ -136,49 +164,42 @@ export default function App() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#07090E',
   },
   screenContainer: {
     flex: 1,
   },
   navBarWrapper: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(7, 9, 14, 0.94)',
+    paddingHorizontal: 16,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   navBar: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: 22,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+    paddingVertical: 4,
   },
   navItem: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 2,
+    paddingVertical: 5,
+    paddingHorizontal: 16,
     borderRadius: 14,
   },
   navItemActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   navLabel: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '700',
     marginTop: 3,
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });

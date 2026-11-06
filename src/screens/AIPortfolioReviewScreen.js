@@ -15,7 +15,6 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { mockPortfolioReview } from '../data/mockReview';
 import WhaleAvatar from '../components/WhaleAvatar';
-import AppHeader from '../components/AppHeader';
 import { generateAndShareAuditPdf } from '../services/pdfService';
 
 export default function AIPortfolioReviewScreen({ onOpenMenu }) {
@@ -85,19 +84,15 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Premium Brand Header */}
-      <AppHeader
-        subtitle="Instant Health & Overlap Audit"
-        onMenuPress={onOpenMenu}
-        rightAction={
-          hasReviewed ? (
-            <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
-              <Ionicons name="refresh" size={14} color={colors.primary} />
-              <Text style={styles.resetBtnText}>New Scan</Text>
-            </TouchableOpacity>
-          ) : undefined
-        }
-      />
+      {hasReviewed && (
+        <View style={styles.resetHeaderRow}>
+          <Text style={styles.resetHeaderTitle}>DIAGNOSTIC REPORT</Text>
+          <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
+            <Ionicons name="refresh-outline" size={13} color={colors.primary} style={{ marginRight: 4 }} />
+            <Text style={styles.resetBtnText}>New Scan</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Scanning Loader State */}
       {isScanning && (
@@ -542,7 +537,7 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
         </View>
       )}
 
-      <View style={{ height: 90 }} />
+      <View style={{ height: 95 }} />
     </ScrollView>
   );
 }
@@ -568,6 +563,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  resetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  resetHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.8,
   },
   resetBtn: {
     flexDirection: 'row',

@@ -12,7 +12,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
-import AppHeader from '../components/AppHeader';
 import InvestStartupModal from '../components/InvestStartupModal';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 import { fetchLiveStartups } from '../services/dataService';
@@ -82,10 +81,6 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       }
     >
       {/* Premium Brand Header */}
-      <AppHeader
-        subtitle="Pre-IPO & Early-Stage Rounds"
-        onMenuPress={onOpenMenu}
-      />
 
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -253,7 +248,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
         onClose={() => setTaxModalVisible(false)}
       />
 
-      <View style={{ height: 90 }} />
+      <View style={{ height: 95 }} />
     </ScrollView>
   );
 }

@@ -13,7 +13,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
-import AppHeader from '../components/AppHeader';
 import SIPMigrationModal from '../components/SIPMigrationModal';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 import { mockSIPFundsDatabase, resolveFundAudit } from '../data/mockSIPFunds';
@@ -127,17 +126,13 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Clean Premium Brand Header (Zero top alert boxes) */}
-      <AppHeader
-        subtitle="Mutual Fund Replacement Tool"
-        onMenuPress={onOpenMenu}
-      />
 
       {!hasAnalyzed ? (
         /* TOOL INPUT MODE */
         <View style={styles.toolCard}>
           <View style={styles.toolHeader}>
             <View style={styles.toolIconAperture}>
-              <Ionicons name="sparkles" size={18} color={colors.primary} />
+              <Ionicons name="pulse-outline" size={18} color={colors.primary} />
             </View>
             <View style={{ flex: 1, marginLeft: 10 }}>
               <Text style={styles.toolMainTitle}>Mutual Fund Diagnostic Engine</Text>
@@ -736,7 +731,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                   activeOpacity={0.8}
                   onPress={() => handleCustomFundSelect(modalSearchText)}
                 >
-                  <Ionicons name="sparkles" size={18} color={colors.warning} />
+                  <Ionicons name="trending-up-outline" size={18} color={colors.warning} />
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.customFundTitle}>
                       Select & Audit: "{modalSearchText.trim()}"
@@ -760,7 +755,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         onClose={() => setMigratingFund(null)}
       />
 
-      <View style={{ height: 90 }} />
+      <View style={{ height: 95 }} />
     </ScrollView>
   );
 }

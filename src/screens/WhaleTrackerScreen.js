@@ -16,7 +16,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from '../components/WhaleAvatar';
-import AppHeader from '../components/AppHeader';
 import CloneWhaleModal from '../components/CloneWhaleModal';
 import { fetchLiveWhales, fetchLiveAlert } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
@@ -109,10 +108,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
       }
     >
       {/* Premium Brand Header */}
-      <AppHeader
-        subtitle="Smart Money & Billionaire Radar"
-        onMenuPress={onOpenMenu}
-      />
 
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -438,7 +433,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         onClose={() => setCloningWhale(null)}
       />
 
-      <View style={{ height: 90 }} />
+      <View style={{ height: 95 }} />
     </ScrollView>
   );
 }
