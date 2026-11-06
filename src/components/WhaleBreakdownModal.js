@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -22,68 +22,56 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
   if (!whale) return null;
 
   // Stocks data (full holdings or fallback to topHoldings)
-  const allHoldings = useMemo(() => {
-    if (whale.allHoldings && whale.allHoldings.length > 0) {
-      return whale.allHoldings;
-    }
-    if (whale.topHoldings && whale.topHoldings.length > 0) {
-      return whale.topHoldings.map((h, i) => ({
-        name: h.name,
-        symbol: h.symbol || h.name.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 8),
-        sector: h.sector || 'Equities & Holdings',
-        stake: h.stake,
-        value: h.value,
-        cmp: h.cmp || '₹' + (1200 + i * 450),
-        change1Y: h.change1Y || '+24.5%',
-        weightPercent: h.weightPercent || Math.max(5, 35 - i * 8),
-      }));
-    }
-    return [];
-  }, [whale]);
+  const allHoldings =
+    whale.allHoldings && whale.allHoldings.length > 0
+      ? whale.allHoldings
+      : whale.topHoldings && whale.topHoldings.length > 0
+      ? whale.topHoldings.map((h, i) => ({
+          name: h.name,
+          symbol: h.symbol || h.name.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 8),
+          sector: h.sector || 'Equities & Holdings',
+          stake: h.stake,
+          value: h.value,
+          cmp: h.cmp || '₹' + (1200 + i * 450),
+          change1Y: h.change1Y || '+24.5%',
+          weightPercent: h.weightPercent || Math.max(5, 35 - i * 8),
+        }))
+      : [];
 
   // Startups / Unlisted data
   const startups = whale.startups || [];
 
   // Filtered stocks based on search query
-  const filteredHoldings = useMemo(() => {
-    if (!searchQuery.trim()) return allHoldings;
-    const q = searchQuery.toLowerCase();
-    return allHoldings.filter(
-      (h) =>
-        h.name.toLowerCase().includes(q) ||
-        (h.symbol && h.symbol.toLowerCase().includes(q)) ||
-        (h.sector && h.sector.toLowerCase().includes(q))
-    );
-  }, [allHoldings, searchQuery]);
+  const q = searchQuery.trim().toLowerCase();
+  const filteredHoldings = !q
+    ? allHoldings
+    : allHoldings.filter(
+        (h) =>
+          h.name.toLowerCase().includes(q) ||
+          (h.symbol && h.symbol.toLowerCase().includes(q)) ||
+          (h.sector && h.sector.toLowerCase().includes(q))
+      );
 
   // Filtered startups based on search query
-  const filteredStartups = useMemo(() => {
-    if (!searchQuery.trim()) return startups;
-    const q = searchQuery.toLowerCase();
-    return startups.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.category.toLowerCase().includes(q) ||
-        (s.status && s.status.toLowerCase().includes(q))
-    );
-  }, [startups, searchQuery]);
-
-  // Calculate sector breakdown for summary
-  const sectorCount = useMemo(() => {
-    const set = new Set(allHoldings.map((h) => h.sector).filter(Boolean));
-    return set.size;
-  }, [allHoldings]);
+  const filteredStartups = !q
+    ? startups
+    : startups.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q) ||
+          (s.status && s.status.toLowerCase().includes(q))
+      );
 
   // Calculate best multiple for startups
-  const bestStartupMultiple = useMemo(() => {
-    if (!startups || startups.length === 0) return 'N/A';
+  let bestStartupMultiple = 'N/A';
+  if (startups && startups.length > 0) {
     const sorted = [...startups].sort((a, b) => {
       const numA = parseFloat((a.multiple || '0').replace('x', ''));
       const numB = parseFloat((b.multiple || '0').replace('x', ''));
       return numB - numA;
     });
-    return `${sorted[0].multiple} (${sorted[0].name})`;
-  }, [startups]);
+    bestStartupMultiple = `${sorted[0].multiple} (${sorted[0].name})`;
+  }
 
   const handleTabSwitch = (tab) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

@@ -492,18 +492,22 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
       </LinearGradient>
 
       {/* Clone Whale Portfolio Modal */}
-      <CloneWhaleModal
-        visible={!!cloningWhale}
-        whale={cloningWhale}
-        onClose={() => setCloningWhale(null)}
-      />
+      {cloningWhale && (
+        <CloneWhaleModal
+          visible={!!cloningWhale}
+          whale={cloningWhale}
+          onClose={() => setCloningWhale(null)}
+        />
+      )}
 
       {/* Complete Holdings & Startups Research Breakdown Modal */}
-      <WhaleBreakdownModal
-        visible={!!viewingBreakdownWhale}
-        whale={viewingBreakdownWhale}
-        onClose={() => setViewingBreakdownWhale(null)}
-      />
+      {viewingBreakdownWhale && (
+        <WhaleBreakdownModal
+          visible={!!viewingBreakdownWhale}
+          whale={viewingBreakdownWhale}
+          onClose={() => setViewingBreakdownWhale(null)}
+        />
+      )}
 
       <View style={{ height: 125 }} />
     </ScrollView>
