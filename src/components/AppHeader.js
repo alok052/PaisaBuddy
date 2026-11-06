@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 
 export default function AppHeader({
   subtitle = 'Smart Money & Venture Radar',
   rightAction,
+  onMenuPress,
 }) {
   return (
     <View style={styles.headerContainer}>
@@ -51,8 +53,28 @@ export default function AppHeader({
           </View>
         </View>
 
-        {/* Right: Action Button / Badge */}
-        <View style={styles.brandRight}>{rightAction}</View>
+        {/* Right: Custom Action Button or Executive 3-Line Menu */}
+        <View style={styles.brandRight}>
+          {rightAction ? (
+            rightAction
+          ) : onMenuPress ? (
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onMenuPress();
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.menuBarsContainer}>
+                <View style={styles.menuBarTop} />
+                <View style={styles.menuBarMid} />
+                <View style={styles.menuBarBot} />
+              </View>
+              <View style={styles.menuLiveDot} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
     </View>
   );
@@ -165,5 +187,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 8,
+  },
+  menuButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(16, 23, 38, 0.95)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  menuBarsContainer: {
+    width: 19,
+    height: 13,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  menuBarTop: {
+    width: 19,
+    height: 2.2,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  menuBarMid: {
+    width: 13,
+    height: 2.2,
+    borderRadius: 2,
+    backgroundColor: '#10B981',
+  },
+  menuBarBot: {
+    width: 17,
+    height: 2.2,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  menuLiveDot: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    borderWidth: 1,
+    borderColor: '#101726',
   },
 });

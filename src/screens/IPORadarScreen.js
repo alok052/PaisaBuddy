@@ -15,7 +15,7 @@ import AppHeader from '../components/AppHeader';
 import IPODetailModal from '../components/IPODetailModal';
 import { mockIPOs } from '../data/mockIPOs';
 
-export default function IPORadarScreen() {
+export default function IPORadarScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [refreshing, setRefreshing] = useState(false);
   const [biddingIPO, setBiddingIPO] = useState(null);
@@ -61,7 +61,7 @@ export default function IPORadarScreen() {
       }
     >
       {/* Premium Brand Header */}
-      <AppHeader subtitle="Institutional IPO & Grey Market Radar" />
+      <AppHeader subtitle="Institutional IPO & Grey Market Radar" onMenuPress={onOpenMenu} />
 
       {/* Featured Grey Market Intelligence Banner (Matches Home & Startups Architecture) */}
       <View style={styles.alertCardWrapper}>

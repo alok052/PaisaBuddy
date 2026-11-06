@@ -17,10 +17,13 @@ import ExploreStartupsScreen from './src/screens/ExploreStartupsScreen';
 import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
 import AIPortfolioReviewScreen from './src/screens/AIPortfolioReviewScreen';
 import ToolsScreen from './src/screens/ToolsScreen';
+import IPORadarScreen from './src/screens/IPORadarScreen';
+import ExecutiveMenuDrawer from './src/components/ExecutiveMenuDrawer';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('whales');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -60,6 +63,11 @@ function MainApp() {
     setActiveTab(tabId);
   };
 
+  const openDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsDrawerOpen(true);
+  };
+
   // Ensure bottom padding sits completely clear above Android system navigation buttons
   const bottomPadding = Math.max(insets.bottom, Platform.OS === 'android' ? 28 : 14) + 8;
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0);
@@ -70,14 +78,25 @@ function MainApp() {
 
       {/* Screen Content */}
       <View style={styles.screenContainer}>
-        {activeTab === 'whales' && <WhaleTrackerScreen />}
-        {activeTab === 'startups' && <ExploreStartupsScreen />}
-        {activeTab === 'sip' && <SIPDoctorScreen />}
-        {activeTab === 'tools' && <ToolsScreen />}
-        {activeTab === 'review' && <AIPortfolioReviewScreen />}
+        {activeTab === 'whales' && <WhaleTrackerScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'startups' && <ExploreStartupsScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'sip' && <SIPDoctorScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'tools' && <ToolsScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'review' && <AIPortfolioReviewScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'ipos' && <IPORadarScreen onOpenMenu={openDrawer} />}
       </View>
 
-      {/* Bottom Floating Navigation Bar (Clean Minimalist Zero-Badge) */}
+      {/* Executive 3-Line Menu Drawer (Pages & Hubs Directory) */}
+      <ExecutiveMenuDrawer
+        visible={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        activePage={activeTab}
+        onSelectPage={(pageId) => {
+          setActiveTab(pageId);
+        }}
+      />
+
+      {/* Bottom Floating Navigation Bar */}
       <View style={[styles.navBarWrapper, { paddingBottom: bottomPadding }]}>
         <View style={styles.navBar}>
           {tabs.map((tab) => {

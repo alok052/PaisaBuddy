@@ -25,7 +25,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-export default function WhaleTrackerScreen() {
+export default function WhaleTrackerScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState('1'); // first one expanded by default
   const [whalesList, setWhalesList] = useState([]);
@@ -111,12 +111,7 @@ export default function WhaleTrackerScreen() {
       {/* Premium Brand Header */}
       <AppHeader
         subtitle="Smart Money & Billionaire Radar"
-        rightAction={
-          <TouchableOpacity style={styles.bellButton} activeOpacity={0.8}>
-            <Ionicons name="notifications" size={18} color={colors.warning} />
-            <View style={styles.liveIndicatorDot} />
-          </TouchableOpacity>
-        }
+        onMenuPress={onOpenMenu}
       />
 
       {/* Premium Live Market Alert Banner */}

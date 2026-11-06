@@ -18,7 +18,7 @@ import WhaleAvatar from '../components/WhaleAvatar';
 import AppHeader from '../components/AppHeader';
 import { generateAndShareAuditPdf } from '../services/pdfService';
 
-export default function AIPortfolioReviewScreen() {
+export default function AIPortfolioReviewScreen({ onOpenMenu }) {
   const [hasReviewed, setHasReviewed] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState('');
@@ -88,13 +88,14 @@ export default function AIPortfolioReviewScreen() {
       {/* Premium Brand Header */}
       <AppHeader
         subtitle="Instant Health & Overlap Audit"
+        onMenuPress={onOpenMenu}
         rightAction={
           hasReviewed ? (
             <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.8}>
               <Ionicons name="refresh" size={14} color={colors.primary} />
               <Text style={styles.resetBtnText}>New Scan</Text>
             </TouchableOpacity>
-          ) : null
+          ) : undefined
         }
       />
 

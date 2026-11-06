@@ -14,7 +14,7 @@ import { colors } from '../theme/colors';
 import AppHeader from '../components/AppHeader';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 
-export default function ToolsScreen() {
+export default function ToolsScreen({ onOpenMenu }) {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [taxModalVisible, setTaxModalVisible] = useState(false);
 
@@ -142,7 +142,7 @@ export default function ToolsScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Clean Premium Brand Header */}
-      <AppHeader subtitle="Financial Power Tools & Calculators" />
+      <AppHeader subtitle="Financial Power Tools & Calculators" onMenuPress={onOpenMenu} />
 
       {/* Category Filter Chips */}
       <ScrollView

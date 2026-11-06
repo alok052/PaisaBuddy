@@ -18,7 +18,7 @@ import SIPMigrationModal from '../components/SIPMigrationModal';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 import { mockSIPFundsDatabase, resolveFundAudit } from '../data/mockSIPFunds';
 
-export default function SIPDoctorScreen() {
+export default function SIPDoctorScreen({ onOpenMenu }) {
   const [selectedFund, setSelectedFund] = useState(mockSIPFundsDatabase[0]);
   const [sipAmount, setSipAmount] = useState(10000);
   const [sipYears, setSipYears] = useState(15);

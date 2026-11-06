@@ -17,7 +17,7 @@ import InvestStartupModal from '../components/InvestStartupModal';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 import { fetchLiveStartups } from '../services/dataService';
 
-export default function ExploreStartupsScreen() {
+export default function ExploreStartupsScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [startupsList, setStartupsList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
