@@ -18,6 +18,26 @@ const localWhaleImages = {
   '12': null,
 };
 
+
+const LUXURY_PALETTES = [
+  ['#059669', '#047857'], // Emerald
+  ['#2563EB', '#1D4ED8'], // Sapphire
+  ['#D97706', '#B45309'], // Amber
+  ['#DC2626', '#B91C1C'], // Ruby
+  ['#0891B2', '#0E7490'], // Cyan
+  ['#4F46E5', '#4338CA'], // Indigo
+  ['#0D9488', '#0F766E'], // Teal
+  ['#475569', '#334155'], // Slate
+  ['#7C3AED', '#6D28D9'], // Violet
+  ['#E11D48', '#BE123C'], // Rose
+];
+
+const getWhaleGradient = (id) => {
+  if (localWhaleGradients[id]) return localWhaleGradients[id];
+  const num = parseInt(id || '1', 10);
+  return LUXURY_PALETTES[num % LUXURY_PALETTES.length];
+};
+
 const localWhaleGradients = {
   '1': ['#F97316', '#EF4444'],
   '2': ['#3B82F6', '#6366F1'],
@@ -61,7 +81,7 @@ export async function fetchLiveWhales() {
       return1Y: item.return_1y,
       isPositive: item.is_positive,
       avatar: item.avatar,
-      avatarGradient: localWhaleGradients[item.id] || ['#3B82F6', '#1D4ED8'],
+      avatarGradient: getWhaleGradient(item.id),
       localImage: localWhaleImages[item.id],
       topHoldings: item.top_holdings || [],
       recentMoves: item.recent_moves || [],
@@ -74,6 +94,8 @@ export async function fetchLiveWhales() {
       }
     });
 
+    // Sort numerically by ID so 1..50 appear in clean order
+    mergedList.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
     return mergedList;
   } catch (err) {
     console.log('Error fetching whales from Supabase:', err);

@@ -11,6 +11,7 @@ import {
   UIManager,
   RefreshControl,
   Alert,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   const [liveAlert, setLiveAlert] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [cloningWhale, setCloningWhale] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadData = async () => {
     const [whalesData, alertData] = await Promise.all([
@@ -72,10 +74,10 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   }, []);
 
   const filters = [
-    { id: 'ALL', label: '🌟 All Whales' },
+    { id: 'ALL', label: '🌟 All 50 Whales' },
     { id: 'CONSENSUS', label: '💎 Whale Consensus' },
-    { id: 'IN', label: '🇮🇳 India' },
-    { id: 'US', label: '🇺🇸 US / Global' },
+    { id: 'IN', label: '🇮🇳 India (35)' },
+    { id: 'US', label: '🇺🇸 Global (15)' },
     { id: 'BUYS', label: '🟢 Recent Buys' },
   ];
 
@@ -104,11 +106,20 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   };
 
   const filteredWhales = (whalesList || []).filter((w) => {
-    if (selectedFilter === 'IN') return w.tag.includes('🇮🇳');
-    if (selectedFilter === 'US') return w.tag.includes('🇺🇸');
-    if (selectedFilter === 'BUYS') {
-      return w.recentMoves.some((m) => m.type === 'BUY');
+    // 1. Category / Origin Filter
+    if (selectedFilter === 'IN' && !w.tag.includes('🇮🇳')) return false;
+    if (selectedFilter === 'US' && !w.tag.includes('🇺🇸') && !w.tag.includes('🇬🇧')) return false;
+    if (selectedFilter === 'BUYS' && !w.recentMoves.some((m) => m.type === 'BUY')) return false;
+
+    // 2. Search Query Filter (Investor Name, Tag, or Held Stock Name)
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesName = w.name.toLowerCase().includes(q);
+      const matchesTag = w.tag.toLowerCase().includes(q);
+      const matchesStock = (w.topHoldings || []).some((h) => h.name.toLowerCase().includes(q));
+      return matchesName || matchesTag || matchesStock;
     }
+
     return true;
   });
 
@@ -140,6 +151,26 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         <Text style={styles.syncStatusTime}>SEBI & 13F VERIFIED</Text>
       </View>
       
+
+      {/* Sleek Search Bar for 50 Whales */}
+      <View style={styles.searchBarWrapper}>
+        <Ionicons name="search" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.searchTextInput}
+          placeholder="Search 50 whales, stocks (e.g. Kedia, Titan, Apple)..."
+          placeholderTextColor={colors.textMuted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingRight: 16 }}>
@@ -471,6 +502,25 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 }
 
 const styles = StyleSheet.create({
+  searchBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0E1624',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 7,
+    marginTop: 4,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  searchTextInput: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+    paddingVertical: 0,
+  },
   syncStatusBar: {
     flexDirection: 'row',
     alignItems: 'center',
