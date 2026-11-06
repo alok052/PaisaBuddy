@@ -18,7 +18,7 @@ import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
 import AIPortfolioReviewScreen from './src/screens/AIPortfolioReviewScreen';
 import ToolsScreen from './src/screens/ToolsScreen';
 import IPORadarScreen from './src/screens/IPORadarScreen';
-import ExecutiveMenuDrawer from './src/components/ExecutiveMenuDrawer';
+import ExecutiveHubModal from './src/components/ExecutiveHubModal';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
 
 function MainApp() {
@@ -86,8 +86,8 @@ function MainApp() {
         {activeTab === 'ipos' && <IPORadarScreen onOpenMenu={openDrawer} />}
       </View>
 
-      {/* Executive 3-Line Menu Drawer (Pages & Hubs Directory) */}
-      <ExecutiveMenuDrawer
+      {/* Executive All-Pages Hub & Launchpad */}
+      <ExecutiveHubModal
         visible={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
         activePage={activeTab}

@@ -64,13 +64,9 @@ export default function AppHeader({
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 onMenuPress();
               }}
-              activeOpacity={0.8}
+              activeOpacity={0.75}
             >
-              <View style={styles.menuBarsContainer}>
-                <View style={styles.menuBarTop} />
-                <View style={styles.menuBarMid} />
-                <View style={styles.menuBarBot} />
-              </View>
+              <Ionicons name="reorder-three" size={26} color="#10B981" />
               <View style={styles.menuLiveDot} />
             </TouchableOpacity>
           ) : null}
@@ -189,44 +185,20 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   menuButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(16, 23, 38, 0.95)',
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 1.5,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: 'rgba(16, 185, 129, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
-  },
-  menuBarsContainer: {
-    width: 19,
-    height: 13,
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  menuBarTop: {
-    width: 19,
-    height: 2.2,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  menuBarMid: {
-    width: 13,
-    height: 2.2,
-    borderRadius: 2,
-    backgroundColor: '#10B981',
-  },
-  menuBarBot: {
-    width: 17,
-    height: 2.2,
-    borderRadius: 2,
-    backgroundColor: '#FFFFFF',
   },
   menuLiveDot: {
     position: 'absolute',
@@ -236,7 +208,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: '#10B981',
-    borderWidth: 1,
-    borderColor: '#101726',
+    borderWidth: 1.2,
+    borderColor: '#070A12',
   },
 });
