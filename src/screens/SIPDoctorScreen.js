@@ -771,12 +771,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   toolCard: {
     backgroundColor: colors.card,
     borderRadius: 20,
-    padding: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     marginTop: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,

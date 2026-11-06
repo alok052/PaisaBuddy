@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   headerTaxPill: {
     flexDirection: 'row',
@@ -401,8 +401,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
