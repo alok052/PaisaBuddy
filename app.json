@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "PaisaBuddy - AI Finance & Whale Tracker",
+    "slug": "paisabuddy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A0E1A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.paisabuddy.fintech"
+    },
+    "android": {
+      "package": "com.paisabuddy.fintech",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0E1A",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
