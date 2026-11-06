@@ -47,11 +47,6 @@ function MainApp() {
       iconName: 'medkit',
     },
     {
-      id: 'tools',
-      label: 'Tools',
-      iconName: 'construct',
-    },
-    {
       id: 'review',
       label: 'AI Audit',
       iconName: 'sparkles',

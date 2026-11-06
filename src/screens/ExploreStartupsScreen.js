@@ -84,19 +84,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       {/* Premium Brand Header */}
       <AppHeader
         subtitle="Pre-IPO & Early-Stage Rounds"
-        rightAction={
-          <TouchableOpacity
-            style={styles.headerTaxPill}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setTaxModalVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="calculator-outline" size={13} color={colors.primary} />
-            <Text style={styles.headerTaxPillText}>₹1.25L Free</Text>
-          </TouchableOpacity>
-        }
+        onMenuPress={onOpenMenu}
       />
 
       {/* Premium Breaking Venture Round Banner (Matching Home Page Box Style) */}

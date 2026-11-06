@@ -129,19 +129,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
       {/* Clean Premium Brand Header (Zero top alert boxes) */}
       <AppHeader
         subtitle="Mutual Fund Replacement Tool"
-        rightAction={
-          <TouchableOpacity
-            style={styles.headerTaxPill}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setTaxModalVisible(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="calculator-outline" size={13} color={colors.primary} />
-            <Text style={styles.headerTaxPillText}>₹1.25L Free</Text>
-          </TouchableOpacity>
-        }
+        onMenuPress={onOpenMenu}
       />
 
       {!hasAnalyzed ? (
