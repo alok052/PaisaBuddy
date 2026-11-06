@@ -20,9 +20,6 @@ import CloneWhaleModal from '../components/CloneWhaleModal';
 import { fetchLiveWhales, fetchLiveAlert } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 export default function WhaleTrackerScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
@@ -62,7 +59,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 
   const handleToggleExpand = (id) => {
     Haptics.selectionAsync();
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedId(expandedId === id ? null : id);
   };
 

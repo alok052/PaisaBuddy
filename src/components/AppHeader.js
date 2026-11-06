@@ -9,13 +9,14 @@ export default function AppHeader({
   subtitle = 'Smart Money & Venture Radar',
   rightAction,
   onMenuPress,
+  topInset = 0,
 }) {
   return (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, { paddingTop: topInset + 6 }]}>
       <View style={styles.brandBar}>
         {/* Left: Brand Logo & Executive Subtitle */}
         <View style={styles.brandLeft}>
-          {/* Logo Squircle with Clean Hairline Border (Flicker-Free, No Heavy GPU Shadow) */}
+          {/* Logo Squircle with Solid Hairline Border (100% Flicker-Free, No GPU Alpha Jitter) */}
           <View style={styles.logoWrapper}>
             <LinearGradient
               colors={['#064E3B', '#022C22']}
@@ -57,7 +58,7 @@ export default function AppHeader({
               }}
               activeOpacity={0.75}
             >
-              <Ionicons name="reorder-two-outline" size={24} color="#F8FAFC" />
+              <Ionicons name="reorder-three-outline" size={26} color="#FFFFFF" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -69,11 +70,9 @@ export default function AppHeader({
 const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 11,
+    paddingBottom: 10,
     backgroundColor: '#07090E',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.07)',
+    // Zero alpha borders to eliminate all subpixel blinking/dithering on Android
   },
   brandBar: {
     flexDirection: 'row',
@@ -91,7 +90,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.4)',
+    borderColor: '#065F46',
     overflow: 'hidden',
     backgroundColor: '#041F18',
   },
@@ -115,7 +114,7 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+    backgroundColor: '#064E3B',
     borderWidth: 1,
     borderColor: '#10B981',
     alignItems: 'center',
@@ -156,10 +155,10 @@ const styles = StyleSheet.create({
   menuButton: {
     width: 40,
     height: 40,
-    borderRadius: 11,
+    borderRadius: 12,
     backgroundColor: '#0E131F',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: '#1E293B',
     alignItems: 'center',
     justifyContent: 'center',
   },

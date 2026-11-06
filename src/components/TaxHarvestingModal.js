@@ -3,9 +3,9 @@ import {
   Modal,
   View,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import TaxHarvestingTool from './TaxHarvestingTool';
 import { colors } from '../theme/colors';
 
@@ -39,12 +39,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0A0F1D',
+    flex: 1,
+    backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    height: '94%',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
     overflow: 'hidden',
   },
 });

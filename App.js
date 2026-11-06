@@ -8,7 +8,6 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from './src/theme/colors';
@@ -77,7 +76,7 @@ function MainApp() {
     setIsDrawerOpen(true);
   };
 
-  // Top padding calculated to sit below translucent status bar without double-spacing
+  // Status Bar Top Padding for true edge-to-edge Android
   const topPadding = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : insets.top;
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
 
@@ -88,15 +87,12 @@ function MainApp() {
         backgroundColor="#07090E"
         translucent={true}
       />
-      <ExpoStatusBar style="light" />
 
-      {/* Top Safe Area Offset for Full Screen View */}
-      <View style={{ height: topPadding, backgroundColor: '#07090E' }} />
-
-      {/* Persistent, Rock-Solid Header: Never unmounts, never blinks */}
+      {/* Persistent, Rock-Solid Top Header: Top inset embedded seamlessly with ZERO gap seam or blinking lines */}
       <AppHeader
         subtitle={TAB_SUBTITLES[activeTab] || 'Smart Money & Venture Radar'}
         onMenuPress={openDrawer}
+        topInset={topPadding}
       />
 
       {/* Edge-to-Edge Full-Screen Canvas */}
@@ -178,7 +174,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: '#1E293B',
   },
   navBar: {
     flexDirection: 'row',
