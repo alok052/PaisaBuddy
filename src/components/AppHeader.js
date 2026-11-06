@@ -62,6 +62,22 @@ export default function AppHeader({
           ) : null}
         </View>
       </View>
+
+      {/* Luxury Metallic/Emerald Divider Line: Separates Header & Body with Zero Flicker */}
+      <View style={styles.dividerWrapper}>
+        <LinearGradient
+          colors={[
+            'rgba(16, 185, 129, 0.05)',
+            'rgba(16, 185, 129, 0.55)',
+            'rgba(52, 211, 153, 0.95)',
+            'rgba(16, 185, 129, 0.55)',
+            'rgba(16, 185, 129, 0.05)',
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.premiumDivider}
+        />
+      </View>
     </View>
   );
 }
@@ -69,8 +85,8 @@ export default function AppHeader({
 const styles = StyleSheet.create({
   headerContainer: {
     paddingTop: 10,
-    paddingBottom: 14,
-    marginBottom: 6,
+    paddingBottom: 4,
+    marginBottom: 8,
   },
   brandBar: {
     flexDirection: 'row',
@@ -160,5 +176,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(16, 185, 129, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dividerWrapper: {
+    marginTop: 14,
+    height: 1.5,
+    width: '100%',
+    overflow: 'hidden',
+  },
+  premiumDivider: {
+    height: 1.5,
+    width: '100%',
   },
 });
