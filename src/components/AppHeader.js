@@ -48,7 +48,9 @@ export default function AppHeader({
               </View>
             </View>
             {subtitle ? (
-              <Text style={styles.brandSubtitle}>{subtitle}</Text>
+              <Text style={styles.brandSubtitle} numberOfLines={1}>
+                {subtitle}
+              </Text>
             ) : null}
           </View>
         </View>
@@ -78,8 +80,9 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingTop: 10,
+    paddingBottom: 14,
+    marginBottom: 6,
   },
   brandBar: {
     flexDirection: 'row',
@@ -90,6 +93,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    marginRight: 14,
   },
   logoWrapper: {
     shadowColor: '#10B981',
@@ -182,12 +186,12 @@ const styles = StyleSheet.create({
   brandRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 8,
+    justifyContent: 'flex-end',
   },
   menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 1.5,
     borderColor: 'rgba(16, 185, 129, 0.45)',
@@ -195,20 +199,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   menuLiveDot: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    top: 7,
+    right: 7,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: '#10B981',
-    borderWidth: 1.2,
+    borderWidth: 1.5,
     borderColor: '#070A12',
   },
 });

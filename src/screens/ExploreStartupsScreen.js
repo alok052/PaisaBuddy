@@ -384,6 +384,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterScroll: {
+    marginTop: 6,
     marginBottom: 16,
   },
   filterChip: {
