@@ -771,7 +771,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   toolCard: {
     backgroundColor: colors.card,
@@ -1105,8 +1105,8 @@ const styles = StyleSheet.create({
   },
   diagnosticCard: {
     backgroundColor: colors.card,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 22,
+    padding: 18,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   diagFundName: {
-    fontSize: 17,
+    fontSize: 18.5,
     fontWeight: '800',
     color: colors.text,
     marginTop: 1,
@@ -1163,9 +1163,11 @@ const styles = StyleSheet.create({
   diagMetricsRow: {
     flexDirection: 'row',
     backgroundColor: '#0F172A',
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   diagCol: {
     flex: 1,
@@ -1179,7 +1181,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   diagColVal: {
-    fontSize: 14,
+    fontSize: 15.5,
     fontWeight: '900',
     color: colors.text,
     marginTop: 2,
@@ -1203,8 +1205,8 @@ const styles = StyleSheet.create({
   },
   battleCard: {
     backgroundColor: colors.card,
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 22,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.25)',
   },
@@ -1216,8 +1218,8 @@ const styles = StyleSheet.create({
   sideCol: {
     flex: 1,
     backgroundColor: '#141E2E',
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: 14,
+    padding: 12,
   },
   sideColWinner: {
     borderWidth: 1.5,

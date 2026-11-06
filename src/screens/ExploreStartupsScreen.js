@@ -89,7 +89,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       
 
       {/* Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingRight: 16 }}>
         {filters.map((f) => {
           const isActive = selectedFilter === f.id;
           return (
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   headerTaxPill: {
     flexDirection: 'row',
@@ -373,6 +373,8 @@ const styles = StyleSheet.create({
   filterScroll: {
     marginTop: 6,
     marginBottom: 16,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
   },
   filterChip: {
     paddingHorizontal: 14,
@@ -397,12 +399,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cardsList: {
-    gap: 14,
+    gap: 15,
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 22,
+    paddingVertical: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -412,9 +414,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -431,8 +433,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   startupName: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17.5,
+    fontWeight: '800',
     color: colors.text,
   },
   unicornBadge: {
@@ -461,11 +463,14 @@ const styles = StyleSheet.create({
   },
   metricsGrid: {
     flexDirection: 'row',
-    backgroundColor: colors.cardSecondary,
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 12,
+    backgroundColor: '#0E1726',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginTop: 14,
     justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   metricItem: {
     alignItems: 'center',

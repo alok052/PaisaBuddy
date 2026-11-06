@@ -143,7 +143,7 @@ export default function ToolsScreen({ onOpenMenu }) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Premium Brand Header */}
       <AppHeader
-        subtitle="Financial Power Tools & Calculators"
+        subtitle="Financial Calculators & Tools"
         onMenuPress={onOpenMenu}
       />
 
@@ -371,12 +371,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
 
   /* Category Filter Chips */
   categoryScroll: {
     marginVertical: 12,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
   },
   categoryChip: {
     paddingHorizontal: 14,
@@ -433,9 +435,9 @@ const styles = StyleSheet.create({
 
   /* Active Tool Card */
   toolCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: 14,
+    marginBottom: 15,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
   },

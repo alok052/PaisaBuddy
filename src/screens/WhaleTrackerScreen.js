@@ -106,13 +106,13 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
     >
       {/* Premium Brand Header */}
       <AppHeader
-        subtitle="Smart Money & Billionaire Radar"
+        subtitle="Billionaires & Institutional Radar"
         onMenuPress={onOpenMenu}
       />
       
 
       {/* Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingRight: 16 }}>
         {filters.map((f) => {
           const isActive = selectedFilter === f.id;
           return (
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   header: {
     flexDirection: 'row',
@@ -560,6 +560,8 @@ const styles = StyleSheet.create({
   filterScroll: {
     marginTop: 6,
     marginBottom: 16,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
   },
   filterChip: {
     paddingHorizontal: 14,
@@ -584,12 +586,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cardsList: {
-    gap: 12,
+    gap: 15,
   },
   whaleCard: {
     backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 22,
+    paddingVertical: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -667,8 +669,8 @@ const styles = StyleSheet.create({
   },
   holdingPill: {
     backgroundColor: colors.cardSecondary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6.5,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
@@ -680,8 +682,8 @@ const styles = StyleSheet.create({
   },
   morePill: {
     backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 6.5,
     borderRadius: 8,
   },
   morePillText: {
@@ -845,8 +847,8 @@ const styles = StyleSheet.create({
   },
   consensusCard: {
     backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingVertical: 18,
+    borderRadius: 22,
+    paddingVertical: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -960,7 +962,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#1E293B',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 8,
     justifyContent: 'space-between',
   },
@@ -1020,7 +1022,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 6,
   },
   cTradeBtnText: {
@@ -1033,7 +1035,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceHighlight,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 12,
     gap: 5,
     borderWidth: 1,

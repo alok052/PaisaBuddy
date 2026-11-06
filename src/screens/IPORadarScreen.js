@@ -62,7 +62,7 @@ export default function IPORadarScreen({ onOpenMenu }) {
     >
       {/* Premium Brand Header */}
       <AppHeader
-        subtitle="Institutional IPO & Grey Market Radar"
+        subtitle="IPO GMP & Institutional Radar"
         onMenuPress={onOpenMenu}
       />
       
@@ -105,7 +105,7 @@ export default function IPORadarScreen({ onOpenMenu }) {
       </View>
 
       {/* Segment Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingRight: 16 }}>
         {filters.map((f) => {
           const isActive = selectedFilter === f.id;
           return (
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   alertCardWrapper: {
     borderRadius: 18,
@@ -384,6 +384,8 @@ const styles = StyleSheet.create({
   },
   filterScroll: {
     marginBottom: 16,
+    marginHorizontal: -8,
+    paddingHorizontal: 8,
   },
   filterChip: {
     paddingHorizontal: 14,

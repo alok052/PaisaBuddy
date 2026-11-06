@@ -67,8 +67,8 @@ function MainApp() {
     setIsDrawerOpen(true);
   };
 
-  // Status Bar Top Padding for true edge-to-edge Android
-  const topPadding = Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : insets.top;
+  // Status Bar Top Padding for true edge-to-edge Android (punch-hole & notch safe)
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0, 26);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
 
   return (
@@ -150,23 +150,23 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(7, 9, 14, 0.96)',
-    paddingHorizontal: 16,
+    backgroundColor: 'rgba(7, 9, 14, 0.97)',
+    paddingHorizontal: 6,
     paddingTop: 3,
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
   },
   navBar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 2,
   },
   navItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 3,
-    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderRadius: 12,
   },
   navItemActive: {

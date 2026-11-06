@@ -87,7 +87,7 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Premium Brand Header */}
       <AppHeader
-        subtitle="Portfolio Health & Direct Plan Audit"
+        subtitle="Portfolio Health & Direct Audit"
         onMenuPress={onOpenMenu}
       />
 
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   header: {
     flexDirection: 'row',
@@ -742,9 +742,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scannerAperture: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     borderWidth: 1.5,
     borderColor: 'rgba(16, 185, 129, 0.4)',
