@@ -303,7 +303,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                         <View style={styles.rowRightCol}>
                           <Text style={styles.stockValue}>{stock.value}</Text>
                           <View style={styles.subMetaRow}>
-                            <Text style={styles.stockWeight}>{stock.weightPercent}% wt</Text>
+                            <Text style={styles.stockWeight}>{stock.weightPercent}% of portfolio</Text>
                             <Text style={styles.metaDot}>•</Text>
                             <Text
                               style={[
