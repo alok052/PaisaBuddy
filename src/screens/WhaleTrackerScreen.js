@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from '../components/WhaleAvatar';
 import CloneWhaleModal from '../components/CloneWhaleModal';
+import WhaleBreakdownModal from '../components/WhaleBreakdownModal';
 import { fetchLiveWhales, fetchLiveAlert, subscribeToWhales } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
 
@@ -30,6 +31,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   const [liveAlert, setLiveAlert] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [cloningWhale, setCloningWhale] = useState(null);
+  const [viewingBreakdownWhale, setViewingBreakdownWhale] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadData = async () => {
@@ -459,7 +461,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                       activeOpacity={0.8}
                       onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setCloningWhale(whale);
+                        setViewingBreakdownWhale(whale);
                       }}
                     >
                       <Text style={styles.viewFullText}>Full Holdings & Weights Breakdown →</Text>
@@ -494,6 +496,13 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         visible={!!cloningWhale}
         whale={cloningWhale}
         onClose={() => setCloningWhale(null)}
+      />
+
+      {/* Complete Holdings & Startups Research Breakdown Modal */}
+      <WhaleBreakdownModal
+        visible={!!viewingBreakdownWhale}
+        whale={viewingBreakdownWhale}
+        onClose={() => setViewingBreakdownWhale(null)}
       />
 
       <View style={{ height: 125 }} />

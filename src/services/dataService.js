@@ -111,19 +111,24 @@ export async function fetchLiveWhales() {
 
     // Merge Supabase data with any missing local whales so user gets the full 12 whales
     const supabaseIds = new Set(data.map((d) => d.id));
-    const mergedList = data.map((item) => ({
-      id: item.id,
-      name: item.name,
-      tag: item.tag,
-      portfolioValue: item.portfolio_value,
-      return1Y: item.return_1y,
-      isPositive: item.is_positive,
-      avatar: item.avatar,
-      avatarGradient: getWhaleGradient(item.id),
-      localImage: localWhaleImages[item.id],
-      topHoldings: item.top_holdings || [],
-      recentMoves: item.recent_moves || [],
-    }));
+    const mergedList = data.map((item) => {
+      const localWhale = mockWhales.find((w) => w.id === item.id) || {};
+      return {
+        id: item.id,
+        name: item.name,
+        tag: item.tag,
+        portfolioValue: item.portfolio_value,
+        return1Y: item.return_1y,
+        isPositive: item.is_positive,
+        avatar: item.avatar,
+        avatarGradient: getWhaleGradient(item.id),
+        localImage: localWhaleImages[item.id],
+        topHoldings: item.top_holdings || localWhale.topHoldings || [],
+        allHoldings: item.all_holdings || localWhale.allHoldings || localWhale.topHoldings || [],
+        startups: item.startups || localWhale.startups || [],
+        recentMoves: item.recent_moves || localWhale.recentMoves || [],
+      };
+    });
 
     // Add any remaining whales from mockWhales not yet in Supabase
     mockWhales.forEach((w) => {
