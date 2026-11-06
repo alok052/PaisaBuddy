@@ -9,43 +9,42 @@ export default function AppHeader({
   subtitle = 'Smart Money & Venture Radar',
   rightAction,
   onMenuPress,
-  topInset = 0,
 }) {
   return (
-    <View style={[styles.headerContainer, { paddingTop: topInset + 6 }]}>
+    <View style={styles.headerContainer}>
       <View style={styles.brandBar}>
-        {/* Left: Brand Logo & Executive Subtitle */}
+        {/* Left: Brand Attraction Logo + Typography + Subtitle */}
         <View style={styles.brandLeft}>
-          {/* Logo Squircle with Solid Hairline Border (100% Flicker-Free, No GPU Alpha Jitter) */}
-          <View style={styles.logoWrapper}>
+          {/* Logo Squircle: Clean Hardware-Stable Architecture (Zero Internal Blink) */}
+          <View style={styles.logoOuterSquircle}>
             <LinearGradient
-              colors={['#064E3B', '#022C22']}
+              colors={['#064E3B', '#022C22', '#041F18']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.logoInnerChamber}
             >
               <Text style={styles.logoRupee}>₹</Text>
               <View style={styles.logoArrowBadge}>
-                <Ionicons name="trending-up" size={9} color="#10B981" />
+                <Ionicons name="trending-up" size={10} color="#10B981" />
               </View>
             </LinearGradient>
           </View>
 
-          {/* Brand Name & Dynamic Executive Subtitle */}
+          {/* Brand Name & Dynamic Subtitle */}
           <View style={styles.brandTextGroup}>
             <View style={styles.brandNameRow}>
               <Text style={styles.brandPaisa}>PAISA</Text>
               <Text style={styles.brandBuddy}>BUDDY</Text>
             </View>
             {subtitle ? (
-              <Text style={styles.brandSubtitle} numberOfLines={1}>
+              <Text style={styles.brandSubtitle} numberOfLines={1} ellipsizeMode="tail">
                 {subtitle}
               </Text>
             ) : null}
           </View>
         </View>
 
-        {/* Right: Custom Action Button or Executive 3-Line Menu */}
+        {/* Right: Custom Action Button or 3-Line Menu Button */}
         <View style={styles.brandRight}>
           {rightAction ? (
             rightAction
@@ -58,7 +57,7 @@ export default function AppHeader({
               }}
               activeOpacity={0.75}
             >
-              <Ionicons name="reorder-three-outline" size={26} color="#FFFFFF" />
+              <Ionicons name="reorder-three" size={26} color="#10B981" />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -69,10 +68,9 @@ export default function AppHeader({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    backgroundColor: '#07090E',
-    // Zero alpha borders to eliminate all subpixel blinking/dithering on Android
+    paddingTop: 10,
+    paddingBottom: 14,
+    marginBottom: 6,
   },
   brandBar: {
     flexDirection: 'row',
@@ -83,25 +81,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 12,
+    marginRight: 14,
   },
-  logoWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#065F46',
-    overflow: 'hidden',
-    backgroundColor: '#041F18',
+  logoOuterSquircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    padding: 1.5,
+    backgroundColor: '#064E3B',
+    borderWidth: 1.5,
+    borderColor: '#10B981',
   },
   logoInnerChamber: {
     flex: 1,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   logoRupee: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
     marginTop: -2,
@@ -109,19 +108,19 @@ const styles = StyleSheet.create({
   },
   logoArrowBadge: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#064E3B',
+    bottom: 1,
+    right: 1,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.25)',
     borderWidth: 1,
     borderColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandTextGroup: {
-    marginLeft: 10,
+    marginLeft: 11,
     flex: 1,
   },
   brandNameRow: {
@@ -129,23 +128,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandPaisa: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.8,
   },
   brandBuddy: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '900',
     color: colors.primary,
     letterSpacing: 0.8,
   },
   brandSubtitle: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
     color: colors.textSecondary,
     letterSpacing: 0.3,
-    marginTop: 1.5,
+    marginTop: 2,
   },
   brandRight: {
     flexDirection: 'row',
@@ -153,12 +152,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   menuButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#0E131F',
-    borderWidth: 1,
-    borderColor: '#1E293B',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },

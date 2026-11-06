@@ -1,3 +1,4 @@
+import AppHeader from '../components/AppHeader';
 import React, { useState } from 'react';
 import {
   View,
@@ -140,6 +141,12 @@ export default function ToolsScreen({ onOpenMenu }) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Premium Brand Header */}
+      <AppHeader
+        subtitle="Financial Power Tools & Calculators"
+        onMenuPress={onOpenMenu}
+      />
+
       {/* Clean Premium Brand Header */}
 
       {/* Category Filter Chips */}

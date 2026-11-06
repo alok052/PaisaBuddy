@@ -1,3 +1,4 @@
+import AppHeader from '../components/AppHeader';
 import React, { useState } from 'react';
 import {
   View,
@@ -84,6 +85,12 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Premium Brand Header */}
+      <AppHeader
+        subtitle="Portfolio Health & Direct Plan Audit"
+        onMenuPress={onOpenMenu}
+      />
+
       {hasReviewed && (
         <View style={styles.resetHeaderRow}>
           <Text style={styles.resetHeaderTitle}>DIAGNOSTIC REPORT</Text>

@@ -1,3 +1,4 @@
+import AppHeader from '../components/AppHeader';
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -60,6 +61,11 @@ export default function IPORadarScreen({ onOpenMenu }) {
       }
     >
       {/* Premium Brand Header */}
+      <AppHeader
+        subtitle="Institutional IPO & Grey Market Radar"
+        onMenuPress={onOpenMenu}
+      />
+      
 
       {/* Featured Grey Market Intelligence Banner (Matches Home & Startups Architecture) */}
       <View style={styles.alertCardWrapper}>

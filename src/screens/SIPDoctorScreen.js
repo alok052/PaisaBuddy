@@ -1,3 +1,4 @@
+import AppHeader from '../components/AppHeader';
 import React, { useState } from 'react';
 import {
   View,
@@ -125,6 +126,12 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Premium Brand Header */}
+      <AppHeader
+        subtitle="Mutual Fund Replacement Tool"
+        onMenuPress={onOpenMenu}
+      />
+
       {/* Clean Premium Brand Header (Zero top alert boxes) */}
 
       {!hasAnalyzed ? (

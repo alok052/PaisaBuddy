@@ -1,3 +1,4 @@
+import AppHeader from '../components/AppHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -104,6 +105,11 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
       }
     >
       {/* Premium Brand Header */}
+      <AppHeader
+        subtitle="Smart Money & Billionaire Radar"
+        onMenuPress={onOpenMenu}
+      />
+      
 
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>

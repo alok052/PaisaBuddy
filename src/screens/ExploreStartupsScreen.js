@@ -1,3 +1,4 @@
+import AppHeader from '../components/AppHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -81,6 +82,11 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       }
     >
       {/* Premium Brand Header */}
+      <AppHeader
+        subtitle="Pre-IPO & Early-Stage Rounds"
+        onMenuPress={onOpenMenu}
+      />
+      
 
       {/* Filter Chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>

@@ -8,10 +8,10 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from './src/theme/colors';
-import AppHeader from './src/components/AppHeader';
 import WhaleTrackerScreen from './src/screens/WhaleTrackerScreen';
 import ExploreStartupsScreen from './src/screens/ExploreStartupsScreen';
 import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
@@ -20,15 +20,6 @@ import ToolsScreen from './src/screens/ToolsScreen';
 import IPORadarScreen from './src/screens/IPORadarScreen';
 import ExecutiveHubModal from './src/components/ExecutiveHubModal';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
-
-const TAB_SUBTITLES = {
-  whales: 'Smart Money & Billionaire Radar',
-  startups: 'Pre-IPO & Early-Stage Rounds',
-  sip: 'Mutual Fund Replacement Tool',
-  review: 'Portfolio Health & Audit',
-  tools: 'Financial Power Tools & Calculators',
-  ipos: 'Institutional IPO & Grey Market Radar',
-};
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('whales');
@@ -81,21 +72,10 @@ function MainApp() {
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#07090E"
-        translucent={true}
-      />
+    <View style={[styles.mainContainer, { paddingTop: topPadding }]}>
+      <ExpoStatusBar style="light" />
 
-      {/* Persistent, Rock-Solid Top Header: Top inset embedded seamlessly with ZERO gap seam or blinking lines */}
-      <AppHeader
-        subtitle={TAB_SUBTITLES[activeTab] || 'Smart Money & Venture Radar'}
-        onMenuPress={openDrawer}
-        topInset={topPadding}
-      />
-
-      {/* Edge-to-Edge Full-Screen Canvas */}
+      {/* Screen Content */}
       <View style={styles.screenContainer}>
         {activeTab === 'whales' && <WhaleTrackerScreen onOpenMenu={openDrawer} />}
         {activeTab === 'startups' && <ExploreStartupsScreen onOpenMenu={openDrawer} />}
