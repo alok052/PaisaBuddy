@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -17,17 +17,25 @@ import { colors } from '../theme/colors';
 export default function InvestStartupModal({ visible, startup, onClose }) {
   if (!startup) return null;
 
+  // Extract base minimum amount
+  const minNumeric = parseInt((startup.minInvestment || '₹10,000').replace(/[^\d]/g, ''), 10) || 10000;
+
   const tickets = [
-    { label: '₹5,000', value: 5000, desc: 'Micro Ticket' },
-    { label: '₹25,000', value: 25000, desc: 'Syndicate Tier' },
-    { label: '₹50,000', value: 50000, desc: 'Growth Ticket' },
-    { label: '₹1,00,000', value: 100000, desc: 'Lead Angel' },
+    { label: `₹${minNumeric.toLocaleString('en-IN')}`, value: minNumeric, desc: 'Minimum Cheque' },
+    { label: `₹${(minNumeric * 2).toLocaleString('en-IN')}`, value: minNumeric * 2, desc: 'Syndicate Tier' },
+    { label: `₹${(minNumeric * 5).toLocaleString('en-IN')}`, value: minNumeric * 5, desc: 'Growth Ticket' },
+    { label: `₹${(minNumeric * 10).toLocaleString('en-IN')}`, value: minNumeric * 10, desc: 'Lead Angel' },
   ];
 
   const [selectedTicket, setSelectedTicket] = useState(tickets[0]);
+  const [dematId, setDematId] = useState('');
   const [upiId, setUpiId] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setSelectedTicket(tickets[0]);
+  }, [startup]);
 
   const handleConfirmInvestment = () => {
     if (!agreedTerms) {
@@ -43,7 +51,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
       setIsSubmitting(false);
       Alert.alert(
         'Allocation Request Confirmed! 🚀',
-        `Your allocation request of ₹${selectedTicket.value.toLocaleString('en-IN')} for ${startup.name} has been placed into the SEBI-regulated Escrow account.\n\nDematerialized CCPS / Equity shares will be credited to your Demat within 7 working days following round closing.`,
+        `Your allocation request of ₹${selectedTicket.value.toLocaleString('en-IN')} for ${startup.name} has been placed into the SEBI-regulated Escrow account (${startup.escrowBank || 'ICICI Bank Escrow'}).\n\nDematerialized CCPS shares will be credited to your Demat (${dematId.trim() || 'CDSL BO-ID On File'}) within 7 working days following round closing.`,
         [
           {
             text: 'View Syndicate Dashboard',
@@ -65,6 +73,11 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
     >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
+          {/* Drag Indicator */}
+          <View style={styles.handleBar}>
+            <View style={styles.handleIndicator} />
+          </View>
+
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
@@ -73,28 +86,40 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               </View>
               <Text style={styles.title}>Co-Invest in {startup.name}</Text>
               <Text style={styles.subtitle}>
-                Valuation: {startup.valuation} • Target: {startup.target}
+                Valuation: {startup.valuation} • Cheque from {startup.minInvestment}
               </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
-              <Ionicons name="close" size={22} color={colors.textSecondary} />
+              <Ionicons name="close" size={20} color="#94A3B8" />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
+            {/* Whale Backer Spotlight */}
+            {startup.whaleBacker && (
+              <View style={styles.whaleCoInvestBox}>
+                <Ionicons name="shield-checkmark" size={15} color="#10B981" />
+                <Text style={styles.whaleCoInvestText}>
+                  Co-investing on matching terms with <Text style={{ color: '#10B981', fontWeight: '800' }}>{startup.whaleBacker}</Text>
+                </Text>
+              </View>
+            )}
+
             {/* Round Status Banner */}
             <View style={styles.statusBanner}>
               <View style={styles.statusRow}>
                 <Text style={styles.statusLabel}>Round Progress</Text>
-                <Text style={styles.statusValue}>{startup.raised} ({startup.percentFilled}% Filled)</Text>
+                <Text style={styles.statusValue}>
+                  {startup.raisedSoFar} of {startup.targetAmount} ({startup.progressPercent}% Filled)
+                </Text>
               </View>
               <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${Math.min(startup.percentFilled || 75, 100)}%` }]} />
+                <View style={[styles.progressBarFill, { width: `${Math.min(startup.progressPercent || 85, 100)}%` }]} />
               </View>
             </View>
 
             {/* Ticket Selector */}
-            <Text style={styles.sectionTitle}>Select Investment Commitment</Text>
+            <Text style={styles.sectionTitle}>SELECT INVESTMENT COMMITMENT</Text>
             <View style={styles.ticketGrid}>
               {tickets.map((t) => {
                 const isSelected = selectedTicket.value === t.value;
@@ -119,7 +144,35 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               })}
             </View>
 
-            {/* Financial Details Box */}
+            {/* Demat Input Box */}
+            <Text style={styles.sectionTitle}>CDSL / NSDL DEMAT ACCOUNT</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="wallet-outline" size={17} color="#64748B" style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="16-Digit Demat BO-ID (e.g. 12081600...)"
+                placeholderTextColor="#64748B"
+                value={dematId}
+                onChangeText={setDematId}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            {/* UPI ID / Payment Option */}
+            <Text style={styles.sectionTitle}>UPI ESCROW PAYMENT MANDATE</Text>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="card-outline" size={17} color="#64748B" style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.textInput}
+                placeholder="UPI ID (e.g. mobile@okaxis)"
+                placeholderTextColor="#64748B"
+                value={upiId}
+                onChangeText={setUpiId}
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Summary Card */}
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Total Investment Amount</Text>
@@ -127,41 +180,16 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Instrument Type</Text>
-                <Text style={styles.summaryValue}>Compulsorily Convertible (CCPS)</Text>
+                <Text style={styles.summaryValue}>{startup.instrument || 'Compulsorily Convertible (CCPS)'}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Syndicate Escrow Fee</Text>
-                <Text style={[styles.summaryValue, { color: colors.primary }]}>₹0 (Waived for Pro Members)</Text>
+                <Text style={styles.summaryLabel}>Escrow Trustee</Text>
+                <Text style={styles.summaryValue}>{startup.escrowBank || 'ICICI Bank / Axis Trustee'}</Text>
               </View>
               <View style={[styles.summaryRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.summaryLabel}>Allotment Depository</Text>
-                <Text style={styles.summaryValue}>CDSL / NSDL Direct Demat</Text>
+                <Text style={styles.summaryLabel}>Syndicate Platform Fee</Text>
+                <Text style={[styles.summaryValue, { color: '#10B981' }]}>₹0 (Waived for Pro Members)</Text>
               </View>
-            </View>
-
-            {/* Syndicate Lead Info */}
-            <View style={styles.leadBox}>
-              <Ionicons name="shield-checkmark" size={18} color={colors.primary} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.leadTitle}>Backed by Institutional Lead Investors</Text>
-                <Text style={styles.leadSub}>
-                  Co-invest on matching commercial terms with: {startup.leadInvestors ? startup.leadInvestors.join(', ') : 'Marquee Angel Network & VCs'}
-                </Text>
-              </View>
-            </View>
-
-            {/* UPI ID / Payment Option */}
-            <Text style={styles.sectionTitle}>UPI Payment Mandate</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="card-outline" size={18} color={colors.textSecondary} style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.textInput}
-                placeholder="Enter UPI ID (e.g. mobile@okhdfcbank)"
-                placeholderTextColor={colors.textMuted}
-                value={upiId}
-                onChangeText={setUpiId}
-                autoCapitalize="none"
-              />
             </View>
 
             {/* SEBI Compliance Undertaking */}
@@ -174,12 +202,14 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               activeOpacity={0.8}
             >
               <View style={[styles.checkbox, agreedTerms && styles.checkboxActive]}>
-                {agreedTerms && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+                {agreedTerms && <Ionicons name="checkmark" size={13} color="#052E16" />}
               </View>
               <Text style={styles.termsText}>
-                I confirm that I understand startup investments carry equity risk, illiquidity, and I agree to the SEBI Angel Syndicate Terms & Conditions.
+                I confirm that I understand startup investments carry equity risk, illiquidity, and I agree to the SEBI Angel Syndicate Terms & Escrow Conditions.
               </Text>
             </TouchableOpacity>
+
+            <View style={{ height: 20 }} />
           </ScrollView>
 
           {/* Action Button */}
@@ -190,12 +220,12 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
             disabled={isSubmitting}
           >
             <LinearGradient
-              colors={[colors.primary, '#059669']}
+              colors={['#10B981', '#059669']}
               style={styles.confirmBtnGrad}
             >
-              <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Ionicons name="lock-closed" size={15} color="#052E16" style={{ marginRight: 6 }} />
               <Text style={styles.confirmBtnText}>
-                {isSubmitting ? 'Securing Allocation...' : `Confirm & Commit ₹${selectedTicket.value.toLocaleString('en-IN')}`}
+                {isSubmitting ? 'Securing Escrow Allocation...' : `Commit ₹${selectedTicket.value.toLocaleString('en-IN')} via Escrow`}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -208,65 +238,96 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.78)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#0F172A',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    maxHeight: '90%',
+    backgroundColor: '#0A0E17',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    maxHeight: '92%',
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  handleBar: {
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  handleIndicator: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
   stageTag: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(168, 85, 247, 0.18)',
-    paddingHorizontal: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 6,
+    borderRadius: 4,
+    marginBottom: 4,
   },
   stageText: {
-    color: colors.primary,
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
+    color: '#60A5FA',
   },
   title: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: '#64748B',
     marginTop: 2,
   },
   closeBtn: {
-    padding: 6,
-    backgroundColor: colors.surfaceHighlight,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollArea: {
-    marginTop: 14,
-    marginBottom: 14,
+    paddingTop: 12,
+  },
+  whaleCoInvestBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 8,
+    padding: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginBottom: 12,
+    gap: 6,
+  },
+  whaleCoInvestText: {
+    fontSize: 11,
+    color: '#CBD5E1',
+    flex: 1,
   },
   statusBanner: {
-    backgroundColor: '#1E293B',
-    padding: 12,
+    backgroundColor: '#0F1622',
     borderRadius: 12,
-    marginBottom: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    marginBottom: 14,
   },
   statusRow: {
     flexDirection: 'row',
@@ -274,171 +335,150 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  statusValue: {
-    fontSize: 12,
-    color: colors.text,
+    fontSize: 10.5,
+    color: '#64748B',
     fontWeight: '700',
   },
+  statusValue: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#10B981',
+  },
   progressBarBg: {
-    height: 6,
-    backgroundColor: '#334155',
+    height: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: '#10B981',
     borderRadius: 3,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginTop: 6,
   },
   ticketGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 12,
   },
   ticketCard: {
-    width: '48%',
-    backgroundColor: '#1E293B',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-    alignItems: 'center',
-  },
-  ticketCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: 'rgba(168, 85, 247, 0.12)',
-  },
-  ticketAmt: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: colors.text,
-  },
-  ticketAmtActive: {
-    color: colors.primary,
-  },
-  ticketDesc: {
-    fontSize: 10.5,
-    color: colors.textMuted,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  ticketDescActive: {
-    color: colors.text,
-  },
-  summaryCard: {
-    backgroundColor: '#141E2E',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 14,
+    width: '48.5%',
+    backgroundColor: '#0F1622',
+    borderRadius: 10,
+    padding: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  ticketCardActive: {
+    borderColor: '#10B981',
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
   },
-  summaryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
+  ticketAmt: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
-  summaryValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.text,
+  ticketAmtActive: {
+    color: '#10B981',
   },
-  leadBox: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(168, 85, 247, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.25)',
-    marginBottom: 16,
-  },
-  leadTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  leadSub: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    lineHeight: 15,
+  ticketDesc: {
+    fontSize: 9.5,
+    color: '#64748B',
     marginTop: 2,
+  },
+  ticketDescActive: {
+    color: '#10B981',
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    marginBottom: 16,
+    backgroundColor: '#0F1622',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: 12,
   },
   textInput: {
     flex: 1,
-    color: colors.text,
-    fontSize: 13,
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    paddingVertical: 0,
+  },
+  summaryCard: {
+    backgroundColor: '#0F1622',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    marginBottom: 14,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  summaryLabel: {
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  summaryValue: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F8FAFC',
   },
   termsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 10,
-    gap: 10,
+    gap: 8,
+    marginBottom: 14,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
+    width: 18,
+    height: 18,
+    borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: colors.textMuted,
+    borderColor: '#64748B',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   checkboxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
   },
   termsText: {
+    fontSize: 10,
+    color: '#94A3B8',
     flex: 1,
-    fontSize: 11,
-    color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   confirmBtn: {
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: 'hidden',
-    marginTop: 4,
   },
   confirmBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 13,
   },
   confirmBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: '800',
+    color: '#052E16',
   },
 });

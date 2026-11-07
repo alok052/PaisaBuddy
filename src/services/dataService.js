@@ -195,27 +195,39 @@ export async function fetchLiveStartups() {
     }
 
     const supabaseIds = new Set(data.map((d) => d.id));
-    const mergedList = data.map((item) => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      city: item.city,
-      stage: item.stage,
-      isUnicorn: item.is_unicorn,
-      valuation: item.valuation,
-      totalRaised: item.total_raised,
-      minInvestment: item.min_investment,
-      investStatus: item.invest_status,
-      raisedSoFar: item.raised_so_far,
-      targetAmount: item.target_amount,
-      progressPercent: item.progress_percent,
-      daysLeft: item.days_left,
-      investorCount: item.investor_count,
-      iconBg: item.icon_bg,
-      iconEmoji: item.icon_emoji,
-      investors: item.investors || [],
-      growthMetric: item.growth_metric,
-    }));
+    const mergedList = data.map((item) => {
+      const local = mockStartups.find((m) => m.id === item.id) || {};
+      return {
+        ...local,
+        id: item.id,
+        name: item.name,
+        category: item.category || local.category,
+        city: item.city || local.city,
+        stage: item.stage || local.stage,
+        isUnicorn: item.is_unicorn !== undefined ? item.is_unicorn : local.isUnicorn,
+        valuation: item.valuation || local.valuation,
+        totalRaised: item.total_raised || local.totalRaised,
+        minInvestment: item.min_investment || local.minInvestment,
+        investStatus: item.invest_status || local.investStatus,
+        raisedSoFar: item.raised_so_far || local.raisedSoFar,
+        targetAmount: item.target_amount || local.targetAmount,
+        progressPercent: item.progress_percent || local.progressPercent,
+        daysLeft: item.days_left || local.daysLeft,
+        investorCount: item.investor_count || local.investorCount,
+        iconBg: item.icon_bg || local.iconBg,
+        iconEmoji: item.icon_emoji || local.iconEmoji,
+        investors: item.investors || local.investors || [],
+        growthMetric: item.growth_metric || local.growthMetric,
+        whaleBacker: local.whaleBacker,
+        founders: local.founders,
+        arrRevenue: local.arrRevenue,
+        grossMargin: local.grossMargin,
+        targetExit: local.targetExit,
+        pitchThesis: local.pitchThesis,
+        escrowBank: local.escrowBank || 'ICICI Bank Escrow / Axis Trustee',
+        instrument: local.instrument || 'CCPS in CDSL/NSDL Demat',
+      };
+    });
 
     // Add remaining startups not yet in Supabase
     mockStartups.forEach((s) => {

@@ -1,4 +1,3 @@
-import AppHeader from '../components/AppHeader';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -6,23 +5,25 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  TextInput,
   RefreshControl,
+  Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
+import AppHeader from '../components/AppHeader';
 import InvestStartupModal from '../components/InvestStartupModal';
-import TaxHarvestingModal from '../components/TaxHarvestingModal';
+import StartupPitchRoomModal from '../components/StartupPitchRoomModal';
 import { fetchLiveStartups } from '../services/dataService';
 
 export default function ExploreStartupsScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
   const [startupsList, setStartupsList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [investingStartup, setInvestingStartup] = useState(null);
-  const [taxModalVisible, setTaxModalVisible] = useState(false);
+  const [pitchRoomStartup, setPitchRoomStartup] = useState(null);
 
   const loadData = async () => {
     const data = await fetchLiveStartups();
@@ -40,32 +41,49 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
     setRefreshing(false);
   }, []);
 
+  // Filter Counts
+  const allCount = startupsList.length;
+  const whaleCount = startupsList.filter((s) => Boolean(s.whaleBacker)).length;
+  const preIpoCount = startupsList.filter((s) => (s.stage || '').includes('Pre-IPO') || (s.stage || '').includes('DRHP')).length;
+  const microCount = startupsList.filter((s) => (s.minInvestment || '').includes('5,000')).length;
+  const unicornCount = startupsList.filter((s) => s.isUnicorn).length;
+
   const filters = [
-    { id: 'ALL', label: '🔥 All Deals' },
-    { id: 'UNICORNS', label: '🦄 Unicorns' },
-    { id: 'EARLY', label: '🌱 ₹5,000 Entry' },
-    { id: 'GROWTH', label: '⚡ Growth Stage' },
+    { id: 'ALL', label: `🔥 All Deals (${allCount})` },
+    { id: 'WHALES', label: `🐋 Whale-Backed (${whaleCount})` },
+    { id: 'PRE_IPO', label: `🚀 Pre-IPO Stage (${preIpoCount})` },
+    { id: 'MICRO', label: `🌱 ₹5K Entry (${microCount})` },
+    { id: 'UNICORNS', label: `🦄 Unicorns (${unicornCount})` },
   ];
 
-  const handleInvestPress = (startup) => {
+  const handleOpenPitchRoom = (startup) => {
+    Haptics.selectionAsync();
+    setPitchRoomStartup(startup);
+  };
+
+  const handleOpenInvest = (startup) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setInvestingStartup(startup);
   };
 
-  const handlePitchDeckPress = (startup) => {
-    Haptics.selectionAsync();
-    Alert.alert(
-      `${startup.name} • Pitch Deck`,
-      `Sector: ${startup.sector}\nStage: ${startup.stage}\nValuation: ${startup.valuation}\nTarget: ${startup.target}\n\nKey Highlights:\n• Backed by: ${startup.leadInvestors ? startup.leadInvestors.join(', ') : 'Marquee Investors'}\n• 12-Month ARR Growth: +140% YoY\n• Gross Margins: 64%\n\nFull 24-page PDF Pitch Deck downloaded to your device viewer.`,
-      [{ text: 'View Pitch Deck PDF' }, { text: 'Done', style: 'cancel' }]
-    );
-  };
+  const q = searchQuery.trim().toLowerCase();
 
   const filteredStartups = (startupsList || []).filter((s) => {
-    if (selectedFilter === 'UNICORNS') return s.isUnicorn;
-    if (selectedFilter === 'EARLY') return s.minInvestment === '₹5,000';
-    if (selectedFilter === 'GROWTH') return s.stage.includes('Growth') || s.stage.includes('Series G');
-    return true;
+    // 1. Tag filter
+    if (selectedFilter === 'WHALES' && !s.whaleBacker) return false;
+    if (selectedFilter === 'PRE_IPO' && !((s.stage || '').includes('Pre-IPO') || (s.stage || '').includes('DRHP'))) return false;
+    if (selectedFilter === 'MICRO' && !(s.minInvestment || '').includes('5,000')) return false;
+    if (selectedFilter === 'UNICORNS' && !s.isUnicorn) return false;
+
+    // 2. Search query filter
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.category && s.category.toLowerCase().includes(q)) ||
+      (s.whaleBacker && s.whaleBacker.toLowerCase().includes(q)) ||
+      (s.founders && s.founders.toLowerCase().includes(q)) ||
+      (s.city && s.city.toLowerCase().includes(q))
+    );
   });
 
   return (
@@ -83,13 +101,55 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
     >
       {/* Premium Brand Header */}
       <AppHeader
-        subtitle="Pre-IPO & Early-Stage Rounds"
+        subtitle="Pre-IPO & Angel Syndicates"
         onMenuPress={onOpenMenu}
       />
-      
 
-      {/* Filter Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingRight: 16 }}>
+      {/* Trust & Guarantee Banner */}
+      <View style={styles.trustBanner}>
+        <View style={styles.trustItem}>
+          <Ionicons name="shield-checkmark" size={13} color="#10B981" />
+          <Text style={styles.trustText}>SEBI AIF Escrow</Text>
+        </View>
+        <Text style={styles.trustDot}>•</Text>
+        <View style={styles.trustItem}>
+          <Ionicons name="wallet-outline" size={13} color="#3B82F6" />
+          <Text style={styles.trustText}>CDSL / NSDL Demat</Text>
+        </View>
+        <Text style={styles.trustDot}>•</Text>
+        <View style={styles.trustItem}>
+          <Ionicons name="sparkles" size={13} color="#F59E0B" />
+          <Text style={styles.trustText}>From ₹5,000 Cheque</Text>
+        </View>
+      </View>
+
+      {/* Sleek Search Bar */}
+      <View style={styles.searchBarWrapper}>
+        <Ionicons name="search" size={16} color="#64748B" style={{ marginRight: 8 }} />
+        <TextInput
+          style={styles.searchTextInput}
+          placeholder="Search startups, sectors, or whale backers..."
+          placeholderTextColor="#64748B"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close-circle" size={16} color="#64748B" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Filter Chips Bar */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterScroll}
+        contentContainerStyle={{ paddingRight: 16 }}
+      >
         {filters.map((f) => {
           const isActive = selectedFilter === f.id;
           return (
@@ -110,148 +170,207 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
         })}
       </ScrollView>
 
-      {/* Startup Cards */}
-      <View style={styles.cardsList}>
-        {filteredStartups.map((startup) => (
-          <View key={startup.id} style={styles.card}>
-            {/* Card Top */}
-            <View style={styles.cardTop}>
-              <View style={[styles.iconBox, { backgroundColor: startup.iconBg }]}>
-                <Text style={styles.iconEmoji}>{startup.iconEmoji}</Text>
-              </View>
+      {/* Section Heading */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionHeaderTitle}>
+          VERIFIED SYNDICATE DEALS ({filteredStartups.length})
+        </Text>
+        <Text style={styles.sectionHeaderSub}>Live rounds open for allocation</Text>
+      </View>
 
-              <View style={styles.cardHeaderInfo}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.startupName}>{startup.name}</Text>
-                  {startup.isUnicorn && (
-                    <View style={styles.unicornBadge}>
-                      <Text style={styles.unicornText}>🦄 Unicorn</Text>
-                    </View>
+      {/* Startup Cards List */}
+      <View style={styles.cardsList}>
+        {filteredStartups.map((startup, idx) => (
+          <View key={startup.id} style={styles.card}>
+            {/* Card Top: Rank + Avatar + Name + Urgency Tag */}
+            <View style={styles.cardTopRow}>
+              <View style={styles.cardHeaderLeft}>
+                <View style={styles.rankCircle}>
+                  <Text style={styles.rankText}>{idx + 1}</Text>
+                </View>
+
+                <View style={[styles.iconBox, { backgroundColor: startup.iconBg || '#10B981' }]}>
+                  <Text style={styles.iconEmoji}>{startup.iconEmoji || '🚀'}</Text>
+                </View>
+
+                <View style={styles.headerInfo}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.startupName} numberOfLines={1}>
+                      {startup.name}
+                    </Text>
+                    {startup.isUnicorn && (
+                      <View style={styles.unicornBadge}>
+                        <Text style={styles.unicornText}>🦄 Unicorn</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.categoryText} numberOfLines={1}>
+                    {startup.category}
+                  </Text>
+                  {startup.founders && (
+                    <Text style={styles.founderText} numberOfLines={1}>
+                      {startup.founders} • {startup.city}
+                    </Text>
                   )}
                 </View>
-                <Text style={styles.categoryText}>{startup.category}</Text>
-                <Text style={styles.growthText}>📈 {startup.growthMetric}</Text>
+              </View>
+
+              <View style={styles.urgencyPill}>
+                <View style={styles.pulseDot} />
+                <Text style={styles.urgencyText}>{startup.daysLeft}d left</Text>
               </View>
             </View>
 
-            {/* Metrics Grid */}
+            {/* Whale Backer Highlight Box (Crucial Moat!) */}
+            {startup.whaleBacker && (
+              <View style={styles.whaleBackerPill}>
+                <Ionicons name="shield-checkmark" size={13} color="#10B981" />
+                <Text style={styles.whaleBackerText} numberOfLines={1}>
+                  Co-Invest with <Text style={{ color: '#10B981', fontWeight: '800' }}>{startup.whaleBacker}</Text>
+                </Text>
+              </View>
+            )}
+
+            {/* 4 Core Financial Metrics Grid */}
             <View style={styles.metricsGrid}>
               <View style={styles.metricItem}>
                 <Text style={styles.metricLabel}>Valuation</Text>
                 <Text style={styles.metricValue}>{startup.valuation}</Text>
               </View>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Total Raised</Text>
-                <Text style={styles.metricValue}>{startup.totalRaised}</Text>
-              </View>
+
               <View style={styles.metricItem}>
                 <Text style={styles.metricLabel}>Min. Entry</Text>
-                <Text style={[styles.metricValue, { color: colors.primary }]}>
+                <Text style={[styles.metricValue, { color: '#10B981' }]}>
                   {startup.minInvestment}
+                </Text>
+              </View>
+
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Growth / ARR</Text>
+                <Text style={styles.metricValue} numberOfLines={1}>
+                  {startup.arrRevenue || startup.growthMetric}
+                </Text>
+              </View>
+
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>Target Exit</Text>
+                <Text style={[styles.metricValue, { color: '#F59E0B' }]} numberOfLines={1}>
+                  {startup.targetExit || startup.stage}
                 </Text>
               </View>
             </View>
 
-            {/* Funding Progress Bar */}
+            {/* Progress Bar & Funding Status */}
             <View style={styles.progressContainer}>
               <View style={styles.progressLabels}>
                 <Text style={styles.progressLeft}>
-                  {startup.raisedSoFar} <Text style={{ color: colors.textMuted }}>raised</Text>
+                  {startup.raisedSoFar} <Text style={{ color: '#64748B' }}>raised of {startup.targetAmount}</Text>
                 </Text>
-                <Text style={styles.progressRight}>Target: {startup.targetAmount}</Text>
+                <Text style={styles.progressRight}>{startup.progressPercent}% Filled</Text>
               </View>
+
               <View style={styles.progressBarBg}>
                 <View
                   style={[
                     styles.progressBarFill,
                     {
-                      width: `${startup.progressPercent}%`,
-                      backgroundColor:
-                        startup.progressPercent > 90
-                          ? colors.primary
-                          : startup.progressPercent > 70
-                          ? colors.accentBlue
-                          : colors.warning,
+                      width: `${Math.min(startup.progressPercent || 85, 100)}%`,
+                      backgroundColor: startup.progressPercent >= 90 ? '#10B981' : '#3B82F6',
                     },
                   ]}
                 />
               </View>
+
               <View style={styles.progressFooter}>
-                <Text style={styles.investorsCount}>👥 {startup.investorCount} Backers</Text>
-                <Text style={styles.daysLeftText}>⏰ {startup.daysLeft} days left</Text>
+                <View style={styles.backerRow}>
+                  <Ionicons name="people-outline" size={12} color="#64748B" />
+                  <Text style={styles.investorsCount}>{startup.investorCount} Backers In Round</Text>
+                </View>
+                <Text style={styles.escrowNote}>• Verified Escrow</Text>
               </View>
             </View>
 
-            {/* Key Backers */}
-            <View style={styles.backersRow}>
-              <Text style={styles.backersLabel}>Key Investors:</Text>
-              <View style={styles.backersTags}>
-                {startup.investors.map((inv, idx) => (
-                  <View key={idx} style={styles.backerPill}>
-                    <Text style={styles.backerText}>{inv}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Actions */}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.investButton}
-                activeOpacity={0.8}
-                onPress={() => handleInvestPress(startup)}
-              >
-                <LinearGradient
-                  colors={[colors.primary, colors.primaryDark]}
-                  style={styles.investGradient}
-                >
-                  <Text style={styles.investBtnText}>
-                    💰 Invest from {startup.minInvestment}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
+            {/* Dual Action Buttons */}
+            <View style={styles.actionButtonsRow}>
               <TouchableOpacity
                 style={styles.pitchDeckBtn}
                 activeOpacity={0.8}
-                onPress={() => handlePitchDeckPress(startup)}
+                onPress={() => handleOpenPitchRoom(startup)}
               >
-                <Text style={styles.pitchDeckText}>Pitch Deck</Text>
+                <Ionicons name="document-text-outline" size={13} color="#60A5FA" />
+                <Text style={styles.pitchDeckText}>Pitch Room & Thesis →</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.investButton}
+                activeOpacity={0.85}
+                onPress={() => handleOpenInvest(startup)}
+              >
+                <Ionicons name="flash" size={13} color="#052E16" />
+                <Text style={styles.investBtnText}>
+                  Co-Invest from {startup.minInvestment}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
         ))}
+
+        {filteredStartups.length === 0 && (
+          <View style={styles.emptyState}>
+            <Ionicons name="rocket-outline" size={32} color="#64748B" style={{ marginBottom: 8 }} />
+            <Text style={styles.emptyTitle}>No Matching Startups Found</Text>
+            <Text style={styles.emptySubtitle}>Try clearing your search query or switching filters.</Text>
+          </View>
+        )}
       </View>
 
       {/* Monthly Ecosystem Overview */}
       <View style={styles.ecoCard}>
-        <Text style={styles.ecoTitle}>📊 India Startup Funding This Month</Text>
+        <View style={styles.ecoHeaderRow}>
+          <Ionicons name="analytics" size={16} color="#10B981" />
+          <Text style={styles.ecoTitle}>India Venture Capital & Syndicate Pulse</Text>
+        </View>
         <View style={styles.ecoGrid}>
           <View style={styles.ecoItem}>
-            <Text style={[styles.ecoVal, { color: colors.primary }]}>₹8,400 Cr</Text>
-            <Text style={styles.ecoSub}>Total Inflow</Text>
+            <Text style={[styles.ecoVal, { color: '#10B981' }]}>₹8,400 Cr</Text>
+            <Text style={styles.ecoSub}>Monthly Inflow</Text>
           </View>
           <View style={styles.ecoItem}>
-            <Text style={[styles.ecoVal, { color: colors.accentBlue }]}>47</Text>
-            <Text style={styles.ecoSub}>Deals Closed</Text>
+            <Text style={[styles.ecoVal, { color: '#60A5FA' }]}>47 Deals</Text>
+            <Text style={styles.ecoSub}>Syndicates Closed</Text>
           </View>
           <View style={styles.ecoItem}>
-            <Text style={[styles.ecoVal, { color: colors.warning }]}>3</Text>
+            <Text style={[styles.ecoVal, { color: '#F59E0B' }]}>3 Unicorns</Text>
             <Text style={styles.ecoSub}>New Unicorns</Text>
           </View>
         </View>
       </View>
 
-      {/* Startup Syndicate Investment Modal */}
+      {/* Regulatory Transparency Footer */}
+      <View style={styles.regulatoryNote}>
+        <Ionicons name="shield-checkmark-outline" size={13} color="#475569" />
+        <Text style={styles.regulatoryNoteText}>
+          All syndicate investments are conducted under SEBI Alternative Investment Funds (AIF) Regulations, 2012. Shares are credited as CCPS directly to your Demat.
+        </Text>
+      </View>
+
+      {/* Modals */}
+      <StartupPitchRoomModal
+        visible={!!pitchRoomStartup}
+        startup={pitchRoomStartup}
+        onClose={() => setPitchRoomStartup(null)}
+        onCoInvestPress={(st) => {
+          setPitchRoomStartup(null);
+          setTimeout(() => {
+            setInvestingStartup(st);
+          }, 200);
+        }}
+      />
+
       <InvestStartupModal
         visible={!!investingStartup}
         startup={investingStartup}
         onClose={() => setInvestingStartup(null)}
-      />
-
-      {/* Tax Harvesting & ₹1.25L Tax-Free LTCG Modal */}
-      <TaxHarvestingModal
-        visible={taxModalVisible}
-        onClose={() => setTaxModalVisible(false)}
       />
 
       <View style={{ height: 125 }} />
@@ -262,228 +381,234 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0A0E17',
     paddingHorizontal: 8,
   },
-  headerTaxPill: {
+  trustBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginTop: 2,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    gap: 8,
+  },
+  trustItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
   },
-  headerTaxPillText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  alertCardWrapper: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    marginTop: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.28)',
-    borderLeftWidth: 4,
-    // borderLeftColor
-    // shadowColor
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  alertCard: {
-    padding: 14,
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  liveTagContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  liveTagText: {
-    color: colors.primary,
+  trustText: {
     fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  sourcePill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  sourcePillText: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '600',
-  },
-  alertTitle: {
-    fontSize: 14,
     fontWeight: '700',
-    color: colors.text,
-    lineHeight: 20,
-    marginBottom: 10,
+    color: '#94A3B8',
   },
-  alertDetailRow: {
+  trustDot: {
+    fontSize: 8,
+    color: '#475569',
+  },
+  searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
+    backgroundColor: '#0F1622',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 9 : 6,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  detailPill: {
+  searchTextInput: {
     flex: 1,
-    marginRight: 6,
-  },
-  detailPillText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    fontSize: 12.5,
+    color: '#FFFFFF',
+    fontWeight: '500',
+    paddingVertical: 0,
   },
   filterScroll: {
-    marginTop: 6,
-    marginBottom: 16,
-    marginHorizontal: -8,
-    paddingHorizontal: 8,
+    marginBottom: 12,
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#0F1622',
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginRight: 8,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    marginRight: 6,
   },
   filterChipActive: {
-    backgroundColor: colors.accentBlue,
-    borderColor: colors.accentBlue,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
   },
   filterText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
   },
   filterTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: '#10B981',
+    fontWeight: '800',
+  },
+  sectionHeaderRow: {
+    paddingHorizontal: 4,
+    marginBottom: 10,
+  },
+  sectionHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+  },
+  sectionHeaderSub: {
+    fontSize: 10,
+    color: '#475569',
+    marginTop: 1,
   },
   cardsList: {
-    gap: 15,
+    gap: 12,
   },
   card: {
-    backgroundColor: colors.card,
-    borderRadius: 22,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    backgroundColor: '#0F1622',
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
-  cardTop: {
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  cardHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
   },
-  iconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+  rankCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 8,
+  },
+  rankText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  iconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   iconEmoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
-  cardHeaderInfo: {
+  headerInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
   },
   startupName: {
-    fontSize: 17.5,
+    fontSize: 15,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   unicornBadge: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
   },
   unicornText: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
   },
   categoryText: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: '#94A3B8',
     marginTop: 2,
   },
-  growthText: {
+  founderText: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  urgencyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  pulseDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#F59E0B',
+  },
+  urgencyText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#F59E0B',
+  },
+  whaleBackerPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.22)',
+    gap: 6,
+  },
+  whaleBackerText: {
     fontSize: 11,
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: 2,
+    color: '#E2E8F0',
+    flex: 1,
   },
   metricsGrid: {
     flexDirection: 'row',
-    backgroundColor: '#0E1726',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginTop: 14,
-    justifyContent: 'space-around',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
   },
   metricItem: {
-    alignItems: 'center',
+    flex: 1,
   },
   metricLabel: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '500',
+    fontSize: 9.5,
+    color: '#64748B',
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   metricValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#F8FAFC',
     marginTop: 2,
   },
   progressContainer: {
@@ -495,128 +620,145 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   progressLeft: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: colors.text,
+    color: '#F8FAFC',
   },
   progressRight: {
-    fontSize: 11,
-    color: colors.textMuted,
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#10B981',
   },
   progressBarBg: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.cardSecondary,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 2,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 2,
   },
   progressFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 6,
   },
-  investorsCount: {
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  daysLeftText: {
-    fontSize: 11,
-    color: colors.warning,
-    fontWeight: '700',
-  },
-  backersRow: {
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  backersLabel: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '600',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-  },
-  backersTags: {
+  backerRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  backerPill: {
-    backgroundColor: colors.surfaceLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  backerText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 14,
-  },
-  investButton: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  investGradient: {
-    paddingVertical: 12,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
   },
-  investBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
+  investorsCount: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  escrowNote: {
+    fontSize: 10,
+    color: '#475569',
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
   },
   pitchDeckBtn: {
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.cardSecondary,
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderRadius: 10,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.25)',
+    gap: 6,
   },
   pitchDeckText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#60A5FA',
+  },
+  investButton: {
+    flex: 1.3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    paddingVertical: 9,
+    gap: 6,
+  },
+  investBtnText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#052E16',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  emptySubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 4,
   },
   ecoCard: {
-    backgroundColor: colors.card,
-    borderRadius: 18,
-    padding: 16,
-    marginTop: 20,
+    backgroundColor: '#0F1622',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    marginTop: 18,
+  },
+  ecoHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
   },
   ecoTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F8FAFC',
   },
   ecoGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
   },
   ecoItem: {
-    alignItems: 'center',
+    flex: 1,
   },
   ecoVal: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '900',
   },
   ecoSub: {
-    fontSize: 11,
-    color: colors.textMuted,
+    fontSize: 9.5,
+    color: '#64748B',
     marginTop: 2,
+  },
+  regulatoryNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 6,
+  },
+  regulatoryNoteText: {
+    fontSize: 9,
+    color: '#475569',
+    textAlign: 'center',
+    maxWidth: '88%',
+    lineHeight: 13,
   },
 });
