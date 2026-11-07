@@ -109,6 +109,68 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
     );
   };
 
+  const handleStartupBuyPrompt = (st, type) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const shortName = st.name.split(' ')[0];
+
+    if (type === 'LISTED') {
+      Alert.alert(
+        `Execute Order — ${st.name}`,
+        `Current Status: Active on NSE / BSE\nWhale Multiple: ${st.multiple || 'Multibagger'}\n\nSelect execution broker:`,
+        [
+          {
+            text: 'Zerodha Kite',
+            onPress: () => Alert.alert('Kite Redirect', `Opening ${st.name} order console on Zerodha Kite...`),
+          },
+          {
+            text: 'Groww',
+            onPress: () => Alert.alert('Groww Redirect', `Opening ${st.name} order console on Groww...`),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    } else if (type === 'PRE_IPO') {
+      Alert.alert(
+        `Pre-IPO Access — ${st.name}`,
+        `Current Status: Pre-IPO / DRHP Filings\nDisclosed Valuation: ${st.currentValue || 'High Growth'}\n\nSelect an option to participate:`,
+        [
+          {
+            text: 'Request Pre-IPO Shares',
+            onPress: () => Alert.alert('Order Registered', `Pre-IPO allocation request placed for ${shortName}. Our unlisted partner desk will contact you with lot size.`),
+          },
+          {
+            text: 'Set IPO Alert 🔔',
+            onPress: () => Alert.alert('Alert Set', `You will receive instant SMS & WhatsApp notification when ${shortName} opens for IPO bidding.`),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    } else if (type === 'ACQUIRED') {
+      Alert.alert(
+        `${st.name} — Strategic Exit`,
+        `This startup was acquired by a parent corporation (Strategic Buyout). Fresh secondary equity lots are not open.`,
+        [{ text: 'Understood', style: 'cancel' }]
+      );
+    } else {
+      // PRIVATE VENTURE
+      Alert.alert(
+        `Venture Syndicate — ${st.name}`,
+        `Current Status: Private Startup (${st.stage})\nInitial Round: ${st.entryYear}\n\nParticipate via SEBI-compliant Angel & Venture syndicates:`,
+        [
+          {
+            text: 'Join Syndicate Waitlist',
+            onPress: () => Alert.alert('Waitlist Joined', `You are on the priority waitlist for ${shortName}'s next secondary lot open.`),
+          },
+          {
+            text: 'View Venture Pitch',
+            onPress: () => Alert.alert('Venture Intelligence', `Valuation: ${st.currentValue || 'Active'}\nMultiple: ${st.multiple || 'Active'}\nCategory: ${st.category}`),
+          },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -395,28 +457,78 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                   // Stage & Exit Categorization
                   let stageBadgeText = 'VENTURE';
                   let isExit = false;
+                  let startupFormDesc = 'Private startup hai (Unlisted growth round)';
+                  let startupFormIcon = 'cube-outline';
+                  let startupFormColor = '#60A5FA';
+                  let buyActionType = 'PRIVATE';
+                  let buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Syndicate Desk →`;
+                  let buyActionIcon = 'briefcase-outline';
+                  let buyActionColor = '#3B82F6';
+
                   const rawStage = (st.stage || '').toUpperCase();
                   const rawStatus = (st.status || '').toUpperCase();
 
                   if (rawStage.includes('IPO') || rawStatus.includes('LISTED') || rawStage.includes('PUBLIC')) {
                     stageBadgeText = 'IPO EXIT';
                     isExit = true;
+                    startupFormDesc = 'Share NSE / BSE par list ho chuka hai (Public Trading Active)';
+                    startupFormIcon = 'checkmark-circle';
+                    startupFormColor = '#10B981';
+                    buyActionType = 'LISTED';
+                    buyActionLabel = `Buy ${st.name.split(' ')[0]} on NSE via Zerodha / Groww →`;
+                    buyActionIcon = 'flash';
+                    buyActionColor = '#10B981';
                   } else if (rawStage.includes('ACQUISITION') || rawStage.includes('EXITED') || rawStage.includes('WALMART')) {
                     stageBadgeText = 'ACQUIRED';
                     isExit = true;
+                    startupFormDesc = 'Strategic acquisition exit ho chuka hai (Company Acquired)';
+                    startupFormIcon = 'business-outline';
+                    startupFormColor = '#A855F7';
+                    buyActionType = 'ACQUIRED';
+                    buyActionLabel = `Deal Exited (Strategic Acquisition) 🔒`;
+                    buyActionIcon = 'lock-closed-outline';
+                    buyActionColor = '#94A3B8';
                   } else if (rawStage.includes('PRE-IPO')) {
                     stageBadgeText = 'PRE-IPO';
                     isExit = false;
+                    startupFormDesc = 'IPO aane wala hai (Pre-IPO / Unlisted round active)';
+                    startupFormIcon = 'rocket-outline';
+                    startupFormColor = '#F59E0B';
+                    buyActionType = 'PRE_IPO';
+                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Pre-IPO Desk →`;
+                    buyActionIcon = 'rocket-outline';
+                    buyActionColor = '#F59E0B';
                   } else if (rawStage.includes('SERIES')) {
                     const seriesMatch = (st.stage || '').match(/Series\s+([A-Z0-9/]+)/i);
                     stageBadgeText = seriesMatch ? `SERIES ${seriesMatch[1].toUpperCase()}` : 'GROWTH';
                     isExit = false;
+                    startupFormDesc = `Private startup hai (${stageBadgeText} unlisted round)`;
+                    startupFormIcon = 'cube-outline';
+                    startupFormColor = '#60A5FA';
+                    buyActionType = 'PRIVATE';
+                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Syndicate Desk →`;
+                    buyActionIcon = 'briefcase-outline';
+                    buyActionColor = '#3B82F6';
                   } else if (rawStage.includes('ANGEL')) {
                     stageBadgeText = 'ANGEL';
                     isExit = false;
+                    startupFormDesc = 'Early-stage private startup hai (Angel stage bet)';
+                    startupFormIcon = 'sparkles-outline';
+                    startupFormColor = '#8B5CF6';
+                    buyActionType = 'PRIVATE';
+                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Angel Syndicate →`;
+                    buyActionIcon = 'briefcase-outline';
+                    buyActionColor = '#8B5CF6';
                   } else if (rawStage.includes('GROWTH')) {
                     stageBadgeText = 'GROWTH';
                     isExit = false;
+                    startupFormDesc = 'Private startup hai (Growth capital round)';
+                    startupFormIcon = 'trending-up-outline';
+                    startupFormColor = '#60A5FA';
+                    buyActionType = 'PRIVATE';
+                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Syndicate Desk →`;
+                    buyActionIcon = 'briefcase-outline';
+                    buyActionColor = '#3B82F6';
                   } else {
                     stageBadgeText = 'ACTIVE';
                     isExit = false;
@@ -507,27 +619,57 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                             </View>
                           </View>
 
-                          {st.notes && (
-                            <View style={styles.startupNoteBox}>
-                              <Ionicons name="shield-checkmark" size={12} color="#10B981" />
-                              <Text style={styles.startupNoteText}>{st.notes}</Text>
+                          {/* Startup Form Status Box & Filing Notes */}
+                          <View style={styles.startupNoteBox}>
+                            <Ionicons
+                              name={startupFormIcon}
+                              size={13}
+                              color={startupFormColor}
+                              style={{ marginTop: 1 }}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.startupFormTag, { color: startupFormColor }]}>
+                                {startupFormDesc}
+                              </Text>
+                              {st.notes ? (
+                                <Text style={styles.startupNoteText}>{st.notes}</Text>
+                              ) : null}
                             </View>
-                          )}
+                          </View>
 
+                          {/* Button 1: View MCA PAS-3 Filing */}
                           <TouchableOpacity
                             style={styles.startupActionBtn}
                             onPress={() => {
                               Alert.alert(
                                 `${st.name} Venture Sheet`,
-                                `Regulatory Source: MCA Form PAS-3 & Venture Intelligence\n\n• Round / Entry: ${st.entryYear}\n• Initial Investment: ${st.investedValue || 'Undisclosed'}\n• Current Mark / Exit: ${st.currentValue || 'Active'}\n• Realized Return: ${st.multiple || 'Active Holding'}\n\nKey Note: ${st.notes || 'Institutional private venture bet.'}`,
+                                `Regulatory Source: MCA Form PAS-3 & Venture Intelligence\n\n• Form / Status: ${startupFormDesc}\n• Round / Entry: ${st.entryYear}\n• Initial Investment: ${st.investedValue || 'Undisclosed'}\n• Current Mark / Exit: ${st.currentValue || 'Active'}\n• Realized Return: ${st.multiple || 'Active Holding'}\n\nKey Note: ${st.notes || 'Institutional private venture bet.'}`,
                                 [{ text: 'Close', style: 'cancel' }]
                               );
                             }}
                             activeOpacity={0.8}
                           >
-                            <Ionicons name="document-text-outline" size={13} color="#3B82F6" />
+                            <Ionicons name="document-text-outline" size={13} color="#60A5FA" />
                             <Text style={styles.startupActionText}>
                               View MCA PAS-3 Filing & Venture Sheet →
+                            </Text>
+                          </TouchableOpacity>
+
+                          {/* Button 2: Buy / Invest Action Button (conditioned) */}
+                          <TouchableOpacity
+                            style={[
+                              styles.startupBuyActionBtn,
+                              buyActionType === 'LISTED' && styles.buyBtnListed,
+                              buyActionType === 'PRE_IPO' && styles.buyBtnPreIpo,
+                              buyActionType === 'PRIVATE' && styles.buyBtnPrivate,
+                              buyActionType === 'ACQUIRED' && styles.buyBtnAcquired,
+                            ]}
+                            onPress={() => handleStartupBuyPrompt(st, buyActionType)}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name={buyActionIcon} size={13} color={buyActionColor} />
+                            <Text style={[styles.startupBuyActionText, { color: buyActionColor }]}>
+                              {buyActionLabel}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -934,6 +1076,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: '#60A5FA',
+  },
+  startupBuyActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    paddingVertical: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    gap: 6,
+  },
+  buyBtnListed: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.28)',
+  },
+  buyBtnPreIpo: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  buyBtnPrivate: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.28)',
+  },
+  buyBtnAcquired: {
+    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+    borderColor: 'rgba(148, 163, 184, 0.2)',
+  },
+  startupBuyActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  startupFormTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: 2,
   },
   startupNoteBox: {
     flexDirection: 'row',
