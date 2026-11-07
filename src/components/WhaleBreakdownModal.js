@@ -380,60 +380,104 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
             )}
 
             {/* ========================================= */}
-            {/* TAB 2: PRIVATE STARTUPS (LIST VIEW)       */}
+            {/* TAB 2: PRIVATE STARTUPS (CLONE STYLE)     */}
             {/* ========================================= */}
             {activeTab === 'STARTUPS' && (
               <View>
-                {/* Column Table Header */}
-                <View style={styles.tableHeader}>
-                  <Text style={styles.colLeftHeader}>STARTUP / ROUND</Text>
-                  <Text style={styles.colRightHeader}>VALUATION / RETURN</Text>
-                </View>
+                {/* Heading */}
+                <Text style={styles.stocksHeading}>
+                  PRIVATE VENTURE & STARTUP BETS ({startups.length} DEALS)
+                </Text>
 
                 {startups.map((st, idx) => {
                   const isExpanded = expandedItemId === `startup-${idx}`;
-                  const isIpo =
-                    (st.stage || '').includes('IPO') ||
-                    (st.status || '').includes('Listed') ||
-                    (st.stage || '').includes('Acquisition');
+                  
+                  // Stage & Exit Categorization
+                  let stageBadgeText = 'VENTURE';
+                  let isExit = false;
+                  const rawStage = (st.stage || '').toUpperCase();
+                  const rawStatus = (st.status || '').toUpperCase();
+
+                  if (rawStage.includes('IPO') || rawStatus.includes('LISTED') || rawStage.includes('PUBLIC')) {
+                    stageBadgeText = 'IPO EXIT';
+                    isExit = true;
+                  } else if (rawStage.includes('ACQUISITION') || rawStage.includes('EXITED') || rawStage.includes('WALMART')) {
+                    stageBadgeText = 'ACQUIRED';
+                    isExit = true;
+                  } else if (rawStage.includes('PRE-IPO')) {
+                    stageBadgeText = 'PRE-IPO';
+                    isExit = false;
+                  } else if (rawStage.includes('SERIES')) {
+                    const seriesMatch = (st.stage || '').match(/Series\s+([A-Z0-9/]+)/i);
+                    stageBadgeText = seriesMatch ? `SERIES ${seriesMatch[1].toUpperCase()}` : 'GROWTH';
+                    isExit = false;
+                  } else if (rawStage.includes('ANGEL')) {
+                    stageBadgeText = 'ANGEL';
+                    isExit = false;
+                  } else if (rawStage.includes('GROWTH')) {
+                    stageBadgeText = 'GROWTH';
+                    isExit = false;
+                  } else {
+                    stageBadgeText = 'ACTIVE';
+                    isExit = false;
+                  }
 
                   return (
-                    <View key={idx} style={styles.rowWrapper}>
+                    <View key={idx} style={styles.stockCardContainer}>
                       <TouchableOpacity
-                        style={styles.rowMain}
+                        style={styles.stockItemRow}
                         onPress={() => handleToggleRow(`startup-${idx}`)}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                       >
-                        {/* Left Column: Startup Name & Category */}
-                        <View style={styles.rowLeftCol}>
-                          <View style={styles.startupNameBadgeRow}>
+                        {/* Numbering Circle (Clone Portfolio Style) */}
+                        <View style={styles.stockNumberCircle}>
+                          <Text style={styles.stockNumberText}>{idx + 1}</Text>
+                        </View>
+
+                        {/* Main Info: Name + Stage Badge + Subtitle */}
+                        <View style={styles.stockMainInfo}>
+                          <View style={styles.stockTitleRow}>
                             <Text style={styles.stockName} numberOfLines={1}>
                               {st.name}
                             </Text>
-                            {isIpo && (
-                              <View style={styles.ipoPill}>
-                                <Text style={styles.ipoPillText}>IPO EXIT</Text>
-                              </View>
-                            )}
+                            <View
+                              style={[
+                                styles.startupStageBadge,
+                                isExit ? styles.startupStageBadgeExit : styles.startupStageBadgeActive,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.startupStageText,
+                                  isExit ? styles.startupStageTextExit : styles.startupStageTextActive,
+                                ]}
+                              >
+                                {stageBadgeText}
+                              </Text>
+                            </View>
                           </View>
-                          <Text style={styles.stockSub} numberOfLines={1}>
-                            {st.category}
+
+                          <Text style={styles.sharesSub} numberOfLines={1}>
+                            {st.category} • Entered {st.entryYear}
                           </Text>
                         </View>
 
-                        {/* Right Column: Current Value & Multiple */}
-                        <View style={styles.rowRightCol}>
-                          <Text style={styles.stockValue}>{st.currentValue || st.status}</Text>
-                          <View style={styles.multipleTag}>
-                            <Text style={styles.multipleTagText}>{st.multiple} Return</Text>
+                        {/* Amount Box: Value + Return Multiple */}
+                        <View style={styles.stockAmountBox}>
+                          <Text style={styles.stockTotalVal}>{st.currentValue || 'Active'}</Text>
+                          <View style={styles.rightSubRow}>
+                            <View style={styles.multiplePillMini}>
+                              <Ionicons name="sparkles" size={9} color="#10B981" />
+                              <Text style={styles.multipleTextMini}>{st.multiple || 'Active'} Gain</Text>
+                            </View>
                           </View>
                         </View>
 
                         <Ionicons
                           name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                          size={14}
-                          color="#475569"
-                          style={{ marginLeft: 8 }}
+                          size={13}
+                          color="#64748B"
+                          style={{ marginLeft: 6 }}
                         />
                       </TouchableOpacity>
 
@@ -444,27 +488,48 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                             <View style={styles.drawerItem}>
                               <Text style={styles.drawerLabel}>Initial Capital</Text>
                               <Text style={styles.drawerValue}>
-                                {st.investedValue || '—'} ({st.entryYear})
+                                {st.investedValue || '—'}
                               </Text>
                             </View>
 
                             <View style={styles.drawerItem}>
-                              <Text style={styles.drawerLabel}>Current Status</Text>
-                              <Text style={styles.drawerValue}>{st.status}</Text>
+                              <Text style={styles.drawerLabel}>Current Mark / Exit</Text>
+                              <Text style={styles.drawerValueGreen}>
+                                {st.currentValue || '—'}
+                              </Text>
                             </View>
 
                             <View style={styles.drawerItem}>
-                              <Text style={styles.drawerLabel}>Deal Stage</Text>
-                              <Text style={styles.drawerValue}>{st.stage}</Text>
+                              <Text style={styles.drawerLabel}>Status</Text>
+                              <Text style={styles.drawerValue} numberOfLines={1}>
+                                {st.status ? st.status.split('(')[0].trim() : 'Active Holding'}
+                              </Text>
                             </View>
                           </View>
 
                           {st.notes && (
                             <View style={styles.startupNoteBox}>
-                              <Ionicons name="information-circle" size={13} color="#64748B" />
+                              <Ionicons name="shield-checkmark" size={12} color="#10B981" />
                               <Text style={styles.startupNoteText}>{st.notes}</Text>
                             </View>
                           )}
+
+                          <TouchableOpacity
+                            style={styles.startupActionBtn}
+                            onPress={() => {
+                              Alert.alert(
+                                `${st.name} Venture Sheet`,
+                                `Regulatory Source: MCA Form PAS-3 & Venture Intelligence\n\n• Round / Entry: ${st.entryYear}\n• Initial Investment: ${st.investedValue || 'Undisclosed'}\n• Current Mark / Exit: ${st.currentValue || 'Active'}\n• Realized Return: ${st.multiple || 'Active Holding'}\n\nKey Note: ${st.notes || 'Institutional private venture bet.'}`,
+                                [{ text: 'Close', style: 'cancel' }]
+                              );
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="document-text-outline" size={13} color="#3B82F6" />
+                            <Text style={styles.startupActionText}>
+                              View MCA PAS-3 Filing & Venture Sheet →
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       )}
                     </View>
@@ -818,33 +883,57 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#10B981',
   },
-  startupNameBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  startupStageBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
   },
-  ipoPill: {
+  startupStageBadgeExit: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
   },
-  ipoPillText: {
-    fontSize: 8,
-    fontWeight: '900',
+  startupStageBadgeActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  startupStageText: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  startupStageTextExit: {
     color: '#10B981',
   },
-  multipleTag: {
+  startupStageTextActive: {
+    color: '#60A5FA',
+  },
+  multiplePillMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    marginTop: 2,
+    gap: 3,
   },
-  multipleTagText: {
+  multipleTextMini: {
     fontSize: 10,
     fontWeight: '800',
     color: '#10B981',
+  },
+  startupActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.25)',
+    gap: 6,
+  },
+  startupActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#60A5FA',
   },
   startupNoteBox: {
     flexDirection: 'row',
