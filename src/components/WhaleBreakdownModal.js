@@ -19,6 +19,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
   const [activeTab, setActiveTab] = useState('STOCKS'); // 'STOCKS' | 'STARTUPS'
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItemId, setExpandedItemId] = useState(null);
+  const [startupFilter, setStartupFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'EXIT'
 
   if (!whale) return null;
 
@@ -52,14 +53,44 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
 
   // 2. Process Startups
   const rawStartups = whale.startups || [];
-  const startups = !q
-    ? rawStartups
-    : rawStartups.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          s.category.toLowerCase().includes(q) ||
-          (s.status && s.status.toLowerCase().includes(q))
-      );
+
+  // Categorize counts
+  const activeStartupsCount = rawStartups.filter((s) => {
+    const rawStage = (s.stage || '').toUpperCase();
+    const rawStatus = (s.status || '').toUpperCase();
+    return !(
+      rawStage.includes('IPO') ||
+      rawStatus.includes('LISTED') ||
+      rawStage.includes('PUBLIC') ||
+      rawStage.includes('ACQUISITION') ||
+      rawStage.includes('EXITED')
+    );
+  }).length;
+  const exitStartupsCount = rawStartups.length - activeStartupsCount;
+
+  // Filter Startups with search and quick filter
+  const startups = rawStartups.filter((s) => {
+    const rawStage = (s.stage || '').toUpperCase();
+    const rawStatus = (s.status || '').toUpperCase();
+    const isExit =
+      rawStage.includes('IPO') ||
+      rawStatus.includes('LISTED') ||
+      rawStage.includes('PUBLIC') ||
+      rawStage.includes('ACQUISITION') ||
+      rawStage.includes('EXITED');
+
+    // Quick status sub-filter
+    if (startupFilter === 'ACTIVE' && isExit) return false;
+    if (startupFilter === 'EXIT' && !isExit) return false;
+
+    // Search query
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q) ||
+      (s.status && s.status.toLowerCase().includes(q))
+    );
+  });
 
   // Best multiple stat
   let bestStartupMultiple = 'N/A';
@@ -83,6 +114,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
     setActiveTab(tab);
     setSearchQuery('');
     setExpandedItemId(null);
+    setStartupFilter('ALL');
   };
 
   const handleToggleRow = (id) => {
@@ -446,9 +478,80 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
             {/* ========================================= */}
             {activeTab === 'STARTUPS' && (
               <View>
+                {/* Quick Status Sub-Filter Row */}
+                <View style={styles.startupFilterRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.startupFilterPill,
+                      startupFilter === 'ALL' && styles.startupFilterPillActive,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setStartupFilter('ALL');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.startupFilterText,
+                        startupFilter === 'ALL' && styles.startupFilterTextActive,
+                      ]}
+                    >
+                      All ({rawStartups.length})
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.startupFilterPill,
+                      startupFilter === 'ACTIVE' && styles.startupFilterPillActiveGreen,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setStartupFilter('ACTIVE');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.activeDot} />
+                    <Text
+                      style={[
+                        styles.startupFilterText,
+                        startupFilter === 'ACTIVE' && styles.startupFilterTextActiveGreen,
+                      ]}
+                    >
+                      Active Private ({activeStartupsCount})
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.startupFilterPill,
+                      startupFilter === 'EXIT' && styles.startupFilterPillActive,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setStartupFilter('EXIT');
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.startupFilterText,
+                        startupFilter === 'EXIT' && styles.startupFilterTextActive,
+                      ]}
+                    >
+                      Listed / Exits ({exitStartupsCount})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Heading */}
                 <Text style={styles.stocksHeading}>
-                  PRIVATE VENTURE & STARTUP BETS ({startups.length} DEALS)
+                  {startupFilter === 'ACTIVE'
+                    ? `ACTIVE VENTURE ROUNDS (${startups.length} DEALS OPEN)`
+                    : startupFilter === 'EXIT'
+                    ? `LISTED & EXITED BETS (${startups.length} EXITS)`
+                    : `ALL VENTURE & STARTUP BETS (${startups.length} DEALS)`}
                 </Text>
 
                 {startups.map((st, idx) => {
@@ -1111,6 +1214,50 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     marginBottom: 2,
+  },
+  startupFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  startupFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: '#0F1622',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    gap: 5,
+  },
+  startupFilterPillActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  startupFilterPillActiveGreen: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  startupFilterText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  startupFilterTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  startupFilterTextActiveGreen: {
+    color: '#10B981',
+    fontWeight: '800',
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
   },
   startupNoteBox: {
     flexDirection: 'row',
