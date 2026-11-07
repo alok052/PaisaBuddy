@@ -376,15 +376,33 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                   const isPositive = !(stock.change1Y || '').startsWith('-');
 
                   return (
-                    <View key={idx} style={styles.stockCardContainer}>
+                    <View
+                      key={idx}
+                      style={[
+                        styles.stockCardContainer,
+                        isExpanded && styles.stockCardContainerExpanded,
+                      ]}
+                    >
                       <TouchableOpacity
                         style={styles.stockItemRow}
                         onPress={() => handleToggleRow(stock.symbol || stock.name)}
                         activeOpacity={0.8}
                       >
                         {/* Numbering Circle (Clone Portfolio Style) */}
-                        <View style={styles.stockNumberCircle}>
-                          <Text style={styles.stockNumberText}>{idx + 1}</Text>
+                        <View
+                          style={[
+                            styles.stockNumberCircle,
+                            isExpanded && styles.stockNumberCircleActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.stockNumberText,
+                              isExpanded && styles.stockNumberTextActive,
+                            ]}
+                          >
+                            {idx + 1}
+                          </Text>
                         </View>
 
                         {/* Main Info: Name + Weight Badge + Subtitle */}
@@ -423,14 +441,15 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                         <Ionicons
                           name={isExpanded ? 'chevron-up' : 'chevron-down'}
                           size={13}
-                          color="#64748B"
+                          color={isExpanded ? '#10B981' : '#64748B'}
                           style={{ marginLeft: 6 }}
                         />
                       </TouchableOpacity>
 
-                      {/* Expandable Deep Institutional Drawer */}
+                      {/* Expandable Deep Institutional Drawer (Unified in same card) */}
                       {isExpanded && (
                         <View style={styles.expandedDrawer}>
+                          <View style={styles.drawerDivider} />
                           <View style={styles.drawerGrid}>
                             <View style={styles.drawerItem}>
                               <Text style={styles.drawerLabel}>Whale Stake</Text>
@@ -638,15 +657,33 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                   }
 
                   return (
-                    <View key={idx} style={styles.stockCardContainer}>
+                    <View
+                      key={idx}
+                      style={[
+                        styles.stockCardContainer,
+                        isExpanded && styles.stockCardContainerExpanded,
+                      ]}
+                    >
                       <TouchableOpacity
                         style={styles.stockItemRow}
                         onPress={() => handleToggleRow(`startup-${idx}`)}
                         activeOpacity={0.8}
                       >
                         {/* Numbering Circle (Clone Portfolio Style) */}
-                        <View style={styles.stockNumberCircle}>
-                          <Text style={styles.stockNumberText}>{idx + 1}</Text>
+                        <View
+                          style={[
+                            styles.stockNumberCircle,
+                            isExpanded && styles.stockNumberCircleActive,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.stockNumberText,
+                              isExpanded && styles.stockNumberTextActive,
+                            ]}
+                          >
+                            {idx + 1}
+                          </Text>
                         </View>
 
                         {/* Main Info: Name + Stage Badge + Subtitle */}
@@ -691,14 +728,15 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                         <Ionicons
                           name={isExpanded ? 'chevron-up' : 'chevron-down'}
                           size={13}
-                          color="#64748B"
+                          color={isExpanded ? '#10B981' : '#64748B'}
                           style={{ marginLeft: 6 }}
                         />
                       </TouchableOpacity>
 
-                      {/* Expandable Startup Deal Drawer */}
+                      {/* Expandable Startup Deal Drawer (Unified in same card) */}
                       {isExpanded && (
                         <View style={styles.expandedDrawer}>
+                          <View style={styles.drawerDivider} />
                           <View style={styles.drawerGrid}>
                             <View style={styles.drawerItem}>
                               <Text style={styles.drawerLabel}>Initial Capital</Text>
@@ -996,16 +1034,21 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   stockCardContainer: {
+    backgroundColor: '#0F1622',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     marginBottom: 8,
+    overflow: 'hidden',
+  },
+  stockCardContainerExpanded: {
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#0D141F',
   },
   stockItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F1622',
-    borderRadius: 14,
     padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   stockNumberCircle: {
     width: 24,
@@ -1016,10 +1059,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
+  stockNumberCircleActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
   stockNumberText: {
     fontSize: 11,
     fontWeight: '800',
     color: '#64748B',
+  },
+  stockNumberTextActive: {
+    color: '#10B981',
   },
   stockMainInfo: {
     flex: 1,
@@ -1079,12 +1128,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   expandedDrawer: {
-    backgroundColor: '#0F1622',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    paddingTop: 0,
+  },
+  drawerDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: 12,
   },
   drawerGrid: {
     flexDirection: 'row',
