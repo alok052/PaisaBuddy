@@ -268,46 +268,56 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
             contentContainerStyle={styles.listContainer}
           >
             {/* ========================================= */}
-            {/* TAB 1: PUBLIC EQUITIES (LIST VIEW)        */}
+            {/* TAB 1: PUBLIC EQUITIES (CLONE STYLE)      */}
             {/* ========================================= */}
             {activeTab === 'STOCKS' && (
               <View>
-                {/* Column Table Header */}
-                <View style={styles.tableHeader}>
-                  <Text style={styles.colLeftHeader}>COMPANY / HOLDING</Text>
-                  <Text style={styles.colRightHeader}>STAKE / WEIGHT</Text>
-                </View>
+                {/* Heading */}
+                <Text style={styles.stocksHeading}>
+                  DISCLOSED HOLDINGS ({holdings.length} COMPANIES)
+                </Text>
 
                 {holdings.map((stock, idx) => {
                   const isExpanded = expandedItemId === (stock.symbol || stock.name);
                   const isPositive = !(stock.change1Y || '').startsWith('-');
 
                   return (
-                    <View key={idx} style={styles.rowWrapper}>
+                    <View key={idx} style={styles.stockCardContainer}>
                       <TouchableOpacity
-                        style={styles.rowMain}
+                        style={styles.stockItemRow}
                         onPress={() => handleToggleRow(stock.symbol || stock.name)}
-                        activeOpacity={0.7}
+                        activeOpacity={0.8}
                       >
-                        {/* Left Column: Name & Sector */}
-                        <View style={styles.rowLeftCol}>
-                          <Text style={styles.stockName} numberOfLines={1}>
-                            {stock.name}
-                          </Text>
-                          <Text style={styles.stockSub} numberOfLines={1}>
-                            {stock.symbol || 'EQUITY'} • {stock.sector}
+                        {/* Numbering Circle (Clone Portfolio Style) */}
+                        <View style={styles.stockNumberCircle}>
+                          <Text style={styles.stockNumberText}>{idx + 1}</Text>
+                        </View>
+
+                        {/* Main Info: Name + Weight Badge + Subtitle */}
+                        <View style={styles.stockMainInfo}>
+                          <View style={styles.stockTitleRow}>
+                            <Text style={styles.stockName} numberOfLines={1}>
+                              {stock.name}
+                            </Text>
+                            <View style={styles.weightBadge}>
+                              <Text style={styles.weightText}>{stock.weightPercent}% Weight</Text>
+                            </View>
+                          </View>
+
+                          <Text style={styles.sharesSub} numberOfLines={1}>
+                            {stock.symbol || 'EQUITY'} • {stock.sector} • CMP {stock.cmp || '—'}
                           </Text>
                         </View>
 
-                        {/* Right Column: Total Value & Weight */}
-                        <View style={styles.rowRightCol}>
-                          <Text style={styles.stockValue}>{stock.value}</Text>
-                          <View style={styles.subMetaRow}>
-                            <Text style={styles.stockWeight}>{stock.weightPercent}% of portfolio</Text>
+                        {/* Amount Box: Value + Stake & 1Y Return */}
+                        <View style={styles.stockAmountBox}>
+                          <Text style={styles.stockTotalVal}>{stock.value}</Text>
+                          <View style={styles.rightSubRow}>
+                            <Text style={styles.whaleStakeNote}>{stock.stake} stake</Text>
                             <Text style={styles.metaDot}>•</Text>
                             <Text
                               style={[
-                                styles.stockReturn,
+                                styles.stockReturnText,
                                 { color: isPositive ? '#10B981' : '#EF4444' },
                               ]}
                             >
@@ -318,9 +328,9 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
 
                         <Ionicons
                           name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                          size={14}
-                          color="#475569"
-                          style={{ marginLeft: 8 }}
+                          size={13}
+                          color="#64748B"
+                          style={{ marginLeft: 6 }}
                         />
                       </TouchableOpacity>
 
@@ -666,73 +676,96 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 4,
   },
-  tableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  colLeftHeader: {
-    fontSize: 9,
+  stocksHeading: {
+    fontSize: 11,
     fontWeight: '800',
-    color: '#475569',
+    color: '#64748B',
+    marginBottom: 10,
+    marginTop: 4,
+    textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  colRightHeader: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#475569',
-    letterSpacing: 0.6,
+  stockCardContainer: {
+    marginBottom: 8,
   },
-  rowWrapper: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
-  },
-  rowMain: {
+  stockItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    backgroundColor: '#0F1622',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  rowLeftCol: {
+  stockNumberCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  stockNumberText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  stockMainInfo: {
     flex: 1,
-    paddingRight: 10,
+    marginRight: 8,
+  },
+  stockTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   stockName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#F8FAFC',
+    flexShrink: 1,
   },
-  stockSub: {
+  weightBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  weightText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  sharesSub: {
     fontSize: 11,
     color: '#64748B',
     marginTop: 2,
   },
-  rowRightCol: {
+  stockAmountBox: {
     alignItems: 'flex-end',
   },
-  stockValue: {
-    fontSize: 14,
-    fontWeight: '700',
+  stockTotalVal: {
+    fontSize: 13,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
-  subMetaRow: {
+  rightSubRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
     gap: 4,
   },
-  stockWeight: {
-    fontSize: 11,
-    fontWeight: '600',
+  whaleStakeNote: {
+    fontSize: 10,
     color: '#94A3B8',
   },
   metaDot: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#475569',
   },
-  stockReturn: {
-    fontSize: 11,
+  stockReturnText: {
+    fontSize: 10,
     fontWeight: '700',
   },
   expandedDrawer: {
