@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
@@ -108,18 +109,18 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       {/* Trust & Guarantee Banner */}
       <View style={styles.trustBanner}>
         <View style={styles.trustItem}>
-          <Ionicons name="shield-checkmark" size={13} color="#10B981" />
+          <Ionicons name="shield-checkmark" size={13} color="#38BDF8" />
           <Text style={styles.trustText}>SEBI AIF Escrow</Text>
         </View>
         <Text style={styles.trustDot}>•</Text>
         <View style={styles.trustItem}>
-          <Ionicons name="wallet-outline" size={13} color="#3B82F6" />
+          <Ionicons name="wallet-outline" size={13} color="#818CF8" />
           <Text style={styles.trustText}>CDSL / NSDL Demat</Text>
         </View>
         <Text style={styles.trustDot}>•</Text>
         <View style={styles.trustItem}>
           <Ionicons name="sparkles" size={13} color="#F59E0B" />
-          <Text style={styles.trustText}>From ₹5,000 Cheque</Text>
+          <Text style={styles.trustText}>Min ₹5,000 Cheque</Text>
         </View>
       </View>
 
@@ -175,21 +176,17 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
         <Text style={styles.sectionHeaderTitle}>
           VERIFIED SYNDICATE DEALS ({filteredStartups.length})
         </Text>
-        <Text style={styles.sectionHeaderSub}>Live rounds open for allocation</Text>
+        <Text style={styles.sectionHeaderSub}>Live rounds open for institutional allocation</Text>
       </View>
 
       {/* Startup Cards List */}
       <View style={styles.cardsList}>
-        {filteredStartups.map((startup, idx) => (
+        {filteredStartups.map((startup) => (
           <View key={startup.id} style={styles.card}>
-            {/* Card Top: Rank + Avatar + Name + Urgency Tag */}
+            {/* Card Top: Avatar + Name & Category + Stage Badge */}
             <View style={styles.cardTopRow}>
               <View style={styles.cardHeaderLeft}>
-                <View style={styles.rankCircle}>
-                  <Text style={styles.rankText}>{idx + 1}</Text>
-                </View>
-
-                <View style={[styles.iconBox, { backgroundColor: startup.iconBg || '#10B981' }]}>
+                <View style={[styles.iconBox, { backgroundColor: startup.iconBg || '#1E293B' }]}>
                   <Text style={styles.iconEmoji}>{startup.iconEmoji || '🚀'}</Text>
                 </View>
 
@@ -205,78 +202,79 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                     )}
                   </View>
                   <Text style={styles.categoryText} numberOfLines={1}>
-                    {startup.category}
+                    {startup.category} • {startup.city || 'India'}
                   </Text>
                   {startup.founders && (
                     <Text style={styles.founderText} numberOfLines={1}>
-                      {startup.founders} • {startup.city}
+                      Founders: {startup.founders}
                     </Text>
                   )}
                 </View>
               </View>
 
-              <View style={styles.urgencyPill}>
-                <View style={styles.pulseDot} />
-                <Text style={styles.urgencyText}>{startup.daysLeft}d left</Text>
+              <View style={styles.stagePill}>
+                <Text style={styles.stagePillText}>{startup.stage || 'Pre-IPO'}</Text>
+                <Text style={styles.daysLeftText}>{startup.daysLeft}d left</Text>
               </View>
             </View>
 
-            {/* Whale Backer Highlight Box (Crucial Moat!) */}
+            {/* Whale Backer Highlight Moat (Clean Midnight/Slate, No Green Background) */}
             {startup.whaleBacker && (
-              <View style={styles.whaleBackerPill}>
-                <Ionicons name="shield-checkmark" size={13} color="#10B981" />
+              <View style={styles.whaleBackerStrip}>
+                <Ionicons name="shield-checkmark" size={13} color="#38BDF8" />
                 <Text style={styles.whaleBackerText} numberOfLines={1}>
-                  Co-Invest with <Text style={{ color: '#10B981', fontWeight: '800' }}>{startup.whaleBacker}</Text>
+                  Co-investing with <Text style={styles.whaleBackerHighlight}>{startup.whaleBacker}</Text>
                 </Text>
               </View>
             )}
 
-            {/* 4 Core Financial Metrics Grid */}
+            {/* 2x2 Clean Financial Metrics Grid (Spacious & Clean, No Awkward Wrapping) */}
             <View style={styles.metricsGrid}>
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Valuation</Text>
-                <Text style={styles.metricValue}>{startup.valuation}</Text>
+              <View style={styles.metricsRow}>
+                <View style={styles.metricCell}>
+                  <Text style={styles.metricLabel}>VALUATION</Text>
+                  <Text style={styles.metricValue}>{startup.valuation}</Text>
+                </View>
+                <View style={styles.metricCell}>
+                  <Text style={styles.metricLabel}>MIN. TICKET</Text>
+                  <Text style={[styles.metricValue, { color: '#38BDF8' }]}>
+                    {startup.minInvestment}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Min. Entry</Text>
-                <Text style={[styles.metricValue, { color: '#10B981' }]}>
-                  {startup.minInvestment}
-                </Text>
-              </View>
+              <View style={styles.metricDivider} />
 
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Growth / ARR</Text>
-                <Text style={styles.metricValue} numberOfLines={1}>
-                  {startup.arrRevenue || startup.growthMetric}
-                </Text>
-              </View>
-
-              <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>Target Exit</Text>
-                <Text style={[styles.metricValue, { color: '#F59E0B' }]} numberOfLines={1}>
-                  {startup.targetExit || startup.stage}
-                </Text>
+              <View style={styles.metricsRow}>
+                <View style={styles.metricCell}>
+                  <Text style={styles.metricLabel}>TRACTION / SCALE</Text>
+                  <Text style={styles.metricValue} numberOfLines={1}>
+                    {startup.arrRevenue || startup.growthMetric}
+                  </Text>
+                </View>
+                <View style={styles.metricCell}>
+                  <Text style={styles.metricLabel}>TARGET EXIT</Text>
+                  <Text style={[styles.metricValue, { color: '#F59E0B' }]} numberOfLines={1}>
+                    {startup.targetExit || startup.stage}
+                  </Text>
+                </View>
               </View>
             </View>
 
-            {/* Progress Bar & Funding Status */}
+            {/* Progress Bar & Syndicate Allocation Status */}
             <View style={styles.progressContainer}>
               <View style={styles.progressLabels}>
                 <Text style={styles.progressLeft}>
                   {startup.raisedSoFar} <Text style={{ color: '#64748B' }}>raised of {startup.targetAmount}</Text>
                 </Text>
-                <Text style={styles.progressRight}>{startup.progressPercent}% Filled</Text>
+                <Text style={styles.progressRight}>{startup.progressPercent}% Allocated</Text>
               </View>
 
               <View style={styles.progressBarBg}>
                 <View
                   style={[
                     styles.progressBarFill,
-                    {
-                      width: `${Math.min(startup.progressPercent || 85, 100)}%`,
-                      backgroundColor: startup.progressPercent >= 90 ? '#10B981' : '#3B82F6',
-                    },
+                    { width: `${Math.min(startup.progressPercent || 85, 100)}%` },
                   ]}
                 />
               </View>
@@ -286,30 +284,37 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                   <Ionicons name="people-outline" size={12} color="#64748B" />
                   <Text style={styles.investorsCount}>{startup.investorCount} Backers In Round</Text>
                 </View>
-                <Text style={styles.escrowNote}>• Verified Escrow</Text>
+                <Text style={styles.escrowNote}>• SEBI Escrow Protected</Text>
               </View>
             </View>
 
-            {/* Dual Action Buttons */}
+            {/* Dual Action Buttons (No Dark Green Background, Clean 1-Line Labels) */}
             <View style={styles.actionButtonsRow}>
               <TouchableOpacity
                 style={styles.pitchDeckBtn}
                 activeOpacity={0.8}
                 onPress={() => handleOpenPitchRoom(startup)}
               >
-                <Ionicons name="document-text-outline" size={13} color="#60A5FA" />
-                <Text style={styles.pitchDeckText}>Pitch Room & Thesis →</Text>
+                <Ionicons name="document-text-outline" size={13} color="#94A3B8" />
+                <Text style={styles.pitchDeckText}>Pitch & Thesis</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.investButton}
+                style={styles.investBtnWrapper}
                 activeOpacity={0.85}
                 onPress={() => handleOpenInvest(startup)}
               >
-                <Ionicons name="flash" size={13} color="#052E16" />
-                <Text style={styles.investBtnText}>
-                  Co-Invest from {startup.minInvestment}
-                </Text>
+                <LinearGradient
+                  colors={['#2563EB', '#1D4ED8']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.investBtnGrad}
+                >
+                  <Ionicons name="flash" size={13} color="#FFFFFF" />
+                  <Text style={styles.investBtnText}>
+                    Co-Invest ({startup.minInvestment})
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -327,16 +332,16 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       {/* Monthly Ecosystem Overview */}
       <View style={styles.ecoCard}>
         <View style={styles.ecoHeaderRow}>
-          <Ionicons name="analytics" size={16} color="#10B981" />
+          <Ionicons name="analytics" size={16} color="#38BDF8" />
           <Text style={styles.ecoTitle}>India Venture Capital & Syndicate Pulse</Text>
         </View>
         <View style={styles.ecoGrid}>
           <View style={styles.ecoItem}>
-            <Text style={[styles.ecoVal, { color: '#10B981' }]}>₹8,400 Cr</Text>
+            <Text style={[styles.ecoVal, { color: '#38BDF8' }]}>₹8,400 Cr</Text>
             <Text style={styles.ecoSub}>Monthly Inflow</Text>
           </View>
           <View style={styles.ecoItem}>
-            <Text style={[styles.ecoVal, { color: '#60A5FA' }]}>47 Deals</Text>
+            <Text style={[styles.ecoVal, { color: '#818CF8' }]}>47 Deals</Text>
             <Text style={styles.ecoSub}>Syndicates Closed</Text>
           </View>
           <View style={styles.ecoItem}>
@@ -350,7 +355,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       <View style={styles.regulatoryNote}>
         <Ionicons name="shield-checkmark-outline" size={13} color="#475569" />
         <Text style={styles.regulatoryNoteText}>
-          All syndicate investments are conducted under SEBI Alternative Investment Funds (AIF) Regulations, 2012. Shares are credited as CCPS directly to your Demat.
+          All syndicate allocations are conducted under SEBI Alternative Investment Funds (AIF) Regulations, 2012. Shares are credited as CCPS directly to your Demat.
         </Text>
       </View>
 
@@ -387,24 +392,23 @@ const styles = StyleSheet.create({
   trustBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    justifyContent: 'space-between',
+    backgroundColor: '#0F1622',
     borderRadius: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     marginTop: 2,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
-    gap: 8,
   },
   trustItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   trustText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#94A3B8',
   },
@@ -443,8 +447,8 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   filterChipActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.35)',
+    backgroundColor: 'rgba(37, 99, 235, 0.16)',
+    borderColor: 'rgba(59, 130, 246, 0.45)',
   },
   filterText: {
     fontSize: 11,
@@ -452,7 +456,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   filterTextActive: {
-    color: '#10B981',
+    color: '#60A5FA',
     fontWeight: '800',
   },
   sectionHeaderRow: {
@@ -491,27 +495,15 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
-  rankCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  rankText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-  },
   iconBox: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   iconEmoji: {
     fontSize: 20,
@@ -525,91 +517,109 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   startupName: {
-    fontSize: 15,
+    fontSize: 15.5,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -0.3,
   },
   unicornBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
     paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingVertical: 1.5,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
   },
   unicornText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#F59E0B',
   },
   categoryText: {
     fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
+    fontWeight: '500',
   },
   founderText: {
     fontSize: 10,
     color: '#64748B',
     marginTop: 1,
   },
-  urgencyPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
+  stagePill: {
+    alignItems: 'flex-end',
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
     borderRadius: 6,
-    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.25)',
   },
-  pulseDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: '#F59E0B',
-  },
-  urgencyText: {
-    fontSize: 9.5,
+  stagePillText: {
+    fontSize: 10,
     fontWeight: '800',
-    color: '#F59E0B',
+    color: '#60A5FA',
   },
-  whaleBackerPill: {
+  daysLeftText: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  whaleBackerStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    backgroundColor: '#131D2E',
     borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.22)',
+    borderColor: 'rgba(56, 189, 248, 0.2)',
     gap: 6,
   },
   whaleBackerText: {
     fontSize: 11,
-    color: '#E2E8F0',
+    color: '#CBD5E1',
     flex: 1,
   },
+  whaleBackerHighlight: {
+    color: '#38BDF8',
+    fontWeight: '800',
+  },
   metricsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.02)',
     borderRadius: 10,
     padding: 10,
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
   },
-  metricItem: {
+  metricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  metricCell: {
     flex: 1,
   },
   metricLabel: {
     fontSize: 9.5,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   metricValue: {
-    fontSize: 11.5,
+    fontSize: 12.5,
     fontWeight: '800',
     color: '#F8FAFC',
     marginTop: 2,
+  },
+  metricDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    marginVertical: 8,
   },
   progressContainer: {
     marginTop: 12,
@@ -620,14 +630,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   progressLeft: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '700',
     color: '#F8FAFC',
   },
   progressRight: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#60A5FA',
   },
   progressBarBg: {
     height: 4,
@@ -638,6 +648,7 @@ const styles = StyleSheet.create({
   progressBarFill: {
     height: '100%',
     borderRadius: 2,
+    backgroundColor: '#2563EB',
   },
   progressFooter: {
     flexDirection: 'row',
@@ -670,32 +681,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    backgroundColor: '#162032',
     borderRadius: 10,
-    paddingVertical: 9,
+    paddingVertical: 10,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     gap: 6,
   },
   pitchDeckText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
-    color: '#60A5FA',
+    color: '#CBD5E1',
   },
-  investButton: {
-    flex: 1.3,
+  investBtnWrapper: {
+    flex: 1.25,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  investBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
-    borderRadius: 10,
-    paddingVertical: 9,
+    paddingVertical: 10,
     gap: 6,
   },
   investBtnText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#052E16',
+    color: '#FFFFFF',
   },
   emptyState: {
     alignItems: 'center',

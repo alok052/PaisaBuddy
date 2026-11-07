@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
@@ -145,7 +146,7 @@ export default function StartupPitchRoomModal({ visible, startup, onClose, onCoI
                 {/* Whale Backer Spotlight Banner */}
                 {startup.whaleBacker && (
                   <View style={styles.whaleSpotlightBox}>
-                    <Ionicons name="shield-checkmark" size={16} color="#10B981" />
+                    <Ionicons name="shield-checkmark" size={16} color="#38BDF8" />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.whaleSpotlightTitle}>
                         Co-Invest with {startup.whaleBacker}
@@ -385,12 +386,17 @@ export default function StartupPitchRoomModal({ visible, startup, onClose, onCoI
             </View>
 
             <TouchableOpacity
-              style={styles.ctaButton}
+              style={styles.ctaButtonWrapper}
               onPress={handleProceedToInvest}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Ionicons name="flash" size={14} color="#052E16" />
-              <Text style={styles.ctaButtonText}>Co-Invest in Round →</Text>
+              <LinearGradient
+                colors={['#2563EB', '#1D4ED8']}
+                style={styles.ctaButtonGrad}
+              >
+                <Ionicons name="flash" size={14} color="#FFFFFF" />
+                <Text style={styles.ctaButtonText}>Co-Invest in Round →</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -799,21 +805,23 @@ const styles = StyleSheet.create({
   footerMinVal: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#60A5FA',
     marginTop: 1,
   },
-  ctaButton: {
+  ctaButtonWrapper: {
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  ctaButtonGrad: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 10,
     gap: 6,
   },
   ctaButtonText: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#052E16',
+    color: '#FFFFFF',
   },
 });

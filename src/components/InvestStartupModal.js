@@ -98,9 +98,9 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
             {/* Whale Backer Spotlight */}
             {startup.whaleBacker && (
               <View style={styles.whaleCoInvestBox}>
-                <Ionicons name="shield-checkmark" size={15} color="#10B981" />
+                <Ionicons name="shield-checkmark" size={15} color="#38BDF8" />
                 <Text style={styles.whaleCoInvestText}>
-                  Co-investing on matching terms with <Text style={{ color: '#10B981', fontWeight: '800' }}>{startup.whaleBacker}</Text>
+                  Co-investing on matching terms with <Text style={{ color: '#38BDF8', fontWeight: '800' }}>{startup.whaleBacker}</Text>
                 </Text>
               </View>
             )}
@@ -188,7 +188,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               </View>
               <View style={[styles.summaryRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.summaryLabel}>Syndicate Platform Fee</Text>
-                <Text style={[styles.summaryValue, { color: '#10B981' }]}>₹0 (Waived for Pro Members)</Text>
+                <Text style={[styles.summaryValue, { color: '#60A5FA' }]}>₹0 (Waived for Pro Members)</Text>
               </View>
             </View>
 
@@ -202,7 +202,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               activeOpacity={0.8}
             >
               <View style={[styles.checkbox, agreedTerms && styles.checkboxActive]}>
-                {agreedTerms && <Ionicons name="checkmark" size={13} color="#052E16" />}
+                {agreedTerms && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
               </View>
               <Text style={styles.termsText}>
                 I confirm that I understand startup investments carry equity risk, illiquidity, and I agree to the SEBI Angel Syndicate Terms & Escrow Conditions.
@@ -220,10 +220,10 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
             disabled={isSubmitting}
           >
             <LinearGradient
-              colors={['#10B981', '#059669']}
+              colors={['#2563EB', '#1D4ED8']}
               style={styles.confirmBtnGrad}
             >
-              <Ionicons name="lock-closed" size={15} color="#052E16" style={{ marginRight: 6 }} />
+              <Ionicons name="lock-closed" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
               <Text style={styles.confirmBtnText}>
                 {isSubmitting ? 'Securing Escrow Allocation...' : `Commit ₹${selectedTicket.value.toLocaleString('en-IN')} via Escrow`}
               </Text>
@@ -308,11 +308,11 @@ const styles = StyleSheet.create({
   whaleCoInvestBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: '#131D2E',
     borderRadius: 8,
-    padding: 9,
+    padding: 10,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderColor: 'rgba(56, 189, 248, 0.2)',
     marginBottom: 12,
     gap: 6,
   },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   statusValue: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#60A5FA',
   },
   progressBarBg: {
     height: 5,
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#10B981',
+    backgroundColor: '#2563EB',
     borderRadius: 3,
   },
   sectionTitle: {
@@ -378,8 +378,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   ticketCardActive: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderColor: '#2563EB',
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
   },
   ticketAmt: {
     fontSize: 14,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   ticketAmtActive: {
-    color: '#10B981',
+    color: '#60A5FA',
   },
   ticketDesc: {
     fontSize: 9.5,
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   ticketDescActive: {
-    color: '#10B981',
+    color: '#93C5FD',
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -457,8 +457,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxActive: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
   },
   termsText: {
     fontSize: 10,
@@ -479,6 +479,6 @@ const styles = StyleSheet.create({
   confirmBtnText: {
     fontSize: 13.5,
     fontWeight: '800',
-    color: '#052E16',
+    color: '#FFFFFF',
   },
 });
