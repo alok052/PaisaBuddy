@@ -144,15 +144,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         onMenuPress={onOpenMenu}
       />
 
-      {/* Real-Time Exchange Sync Pill */}
-      <View style={styles.syncStatusBar}>
-        <View style={styles.syncStatusLeft}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.syncStatusTitle}>REAL-TIME EXCHANGE FEED</Text>
-        </View>
-        <Text style={styles.syncStatusTime}>SEBI & 13F VERIFIED</Text>
-      </View>
-      
 
       {/* Sleek Search Bar for 50 Whales */}
       <View style={styles.searchBarWrapper}>
