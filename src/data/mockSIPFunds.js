@@ -1305,3 +1305,118 @@ export function resolveFundAudit(query) {
     replacement: replacementFund,
   };
 }
+
+/**
+ * Fiduciary Diagnostic Engine: The Hippocratic Oath for Mutual Funds
+ * Accurately determines if a fund is healthy (19-20 normal variation),
+ * needs a simple Direct Plan conversion, or is a chronic underperformer.
+ */
+export function diagnoseFundHealth(fund, planType = 'REGULAR', sipAmount = 10000, sipYears = 15) {
+  if (!fund) {
+    return {
+      healthScore: 50,
+      healthTag: 'NEEDS AUDIT',
+      healthColor: '#F59E0B',
+      isHealthy: false,
+      statusType: 'UNKNOWN',
+      title: 'Audit In Progress',
+      doctorNote: 'Please select a fund to run diagnostic.',
+      prescription: 'SELECT FUND',
+      prescriptionPoints: [],
+      replacement: null,
+    };
+  }
+
+  const isDirect = planType === 'DIRECT' || (fund.name || '').includes('(Direct)');
+  const alphaStr = fund.alphaVsBenchmark || '+0.0%';
+  const alphaNum = parseFloat(alphaStr.replace('%', '')) || 0;
+  const isLaggard = fund.isLagging || alphaNum < -1.5;
+
+  if (isDirect) {
+    if (!isLaggard) {
+      // 100% HEALTHY STATE (19-20 Ka Fark - NO CHURN)
+      return {
+        healthScore: 94,
+        healthTag: '100% HEALTHY • GRADE A+',
+        healthColor: '#10B981',
+        isHealthy: true,
+        statusType: 'HEALTHY',
+        title: 'Shabash! Aapka SIP Portfolio Ekdam Fit Hai!',
+        doctorNote:
+          'Aapka fund bilkul fit hai! Direct Plan me hone se koi agent commission leak nahi ho raha hai aur fund benchmark ke barabar/aage chal raha hai. Jo 19-20 ka chhota return difference market cycles me hota hai, wah bilkul normal hai. Uske chakkar me baar-baar fund badal kar tax aur exit load mat badhaiye. Apni SIP bina ruke continue rakhein!',
+        prescription: 'NO MEDICINE NEEDED (Zero Churn Protocol)',
+        prescriptionPoints: [
+          'Direct Plan: 0% intermediary commission leakage.',
+          'Solid rolling alpha & strong portfolio discipline.',
+          'Zero churn protects you from 12.5% LTCG tax and exit loads.',
+          'Stay the course to achieve compounding wealth milestones.',
+        ],
+        replacement: null,
+      };
+    } else {
+      // Direct Plan, but fund manager is underperforming benchmark
+      return {
+        healthScore: 58,
+        healthTag: 'LAGGING BENCHMARK • DIRECT PLAN',
+        healthColor: '#F59E0B',
+        isHealthy: false,
+        statusType: 'DIRECT_LAGGARD',
+        title: 'Direct Plan Active, Par Benchmark Se Peechhe Hai',
+        doctorNote:
+          `Aap commission toh bacha rahe hain, lekin ${fund.name} apne benchmark (${fund.benchmarkName}) se ${fund.alphaVsBenchmark} peechhe chal raha hai. Agar pichhle 3 saal se aesa hi hai, toh low-cost Index Fund me shift karna behtar hoga.`,
+        prescription: 'CONSIDER LOW-COST INDEX REPLACEMENT',
+        prescriptionPoints: [
+          'Zero agent commission (Good job on Direct Plan!).',
+          `Fund manager alpha is lagging benchmark by ${fund.alphaVsBenchmark}.`,
+          'Low-cost Nifty 50 Index Fund delivers superior consistency.',
+        ],
+        replacement: fund.replacement,
+      };
+    }
+  } else {
+    // REGULAR PLAN
+    if (!isLaggard) {
+      // Good fund, but Regular Plan Commission leak
+      return {
+        healthScore: 72,
+        healthTag: 'GOOD FUND • SWITCH TO DIRECT',
+        healthColor: '#F59E0B',
+        isHealthy: false,
+        statusType: 'SWITCH_TO_DIRECT',
+        title: 'Fund Accha Hai, Lekin Commission Kat Raha Hai',
+        doctorNote:
+          'Aapko fund badalne ki bilkul zaroorat nahi hai! Fund manager aur strategy acchi hai. Bas Regular Plan se Direct Plan me switch kar lijiye taaki extra ₹25-35 Lakh aapki family wealth me bache.',
+        prescription: 'CONVERT TO DIRECT (Same Fund, Zero Commission)',
+        prescriptionPoints: [
+          `Save ~${fund.agentCommissionCut || '1.0%'} distributor cut every single year.`,
+          'Identical fund manager, portfolio, and bluechip stocks.',
+          'Seamless paperless switch via MFCentral or Zerodha Coin.',
+        ],
+        replacement: {
+          ...fund.replacement,
+          name: `${fund.name.replace(' (Regular)', '').replace(' Regular', '')} (Direct Plan)`,
+          category: 'Same Fund • 100% Commission-Free Direct Plan',
+        },
+      };
+    } else {
+      // Chronic Underperformer & Regular Plan Leak
+      return {
+        healthScore: 38,
+        healthTag: 'CRITICAL WEALTH LEAK • LAGGARD',
+        healthColor: '#EF4444',
+        isHealthy: false,
+        statusType: 'CRITICAL_LEAK',
+        title: 'Chronic Underperformer & Regular Fee Leak',
+        doctorNote:
+          `Yeh fund double loss de raha hai: benchmark se ${fund.alphaVsBenchmark} peechhe hai aur sath me ${fund.currentExpense} expense ratio bhi le raha hai. Ise low-cost Direct Index ya Category Leader se replace karein.`,
+        prescription: 'CRITICAL CURE: REPLACE WITH DIRECT LEADER',
+        prescriptionPoints: [
+          `Trails ${fund.benchmarkName} benchmark by ${fund.alphaVsBenchmark}.`,
+          `Diverts ${fund.agentCommissionCut} annual cut to bank distributors.`,
+          'Switching to a Direct Index Fund rescues ₹30L+ in compounding wealth.',
+        ],
+        replacement: fund.replacement,
+      };
+    }
+  }
+}
