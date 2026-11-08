@@ -377,11 +377,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             maximumTrackTintColor="#1E293B"
             thumbTintColor="#38BDF8"
           />
-          <View style={s.sliderRangeRow}>
-            <Text style={s.sliderRangeText}>\u20B91K</Text>
-            <Text style={s.sliderRangeText}>\u20B950K</Text>
-            <Text style={s.sliderRangeText}>\u20B91L</Text>
-          </View>
+
         </View>
 
 
@@ -409,11 +405,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             maximumTrackTintColor="#1E293B"
             thumbTintColor="#10B981"
           />
-          <View style={s.sliderRangeRow}>
-            <Text style={s.sliderRangeText}>1 Year</Text>
-            <Text style={s.sliderRangeText}>15 Years</Text>
-            <Text style={s.sliderRangeText}>30 Years</Text>
-          </View>
+
         </View>
 
 
