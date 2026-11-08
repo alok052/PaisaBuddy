@@ -470,12 +470,19 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         colors={['rgba(245, 158, 11, 0.15)', 'rgba(217, 119, 6, 0.25)']}
         style={styles.proCta}
       >
-        <Ionicons name="notifications-outline" size={26} color={colors.warning} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.proTitle}>Real-Time Whale SMS Alerts</Text>
-          <Text style={styles.proSub}>
-            Instant real-time SMS & Push alerts when billionaires buy or sell (₹99/mo)
+        <View style={styles.proIconBox}>
+          <Ionicons name="notifications-outline" size={22} color={colors.warning} />
+        </View>
+        <View style={styles.proTextCol}>
+          <Text style={styles.proTitle} numberOfLines={1}>Real-Time Whale SMS Alerts</Text>
+          <Text style={styles.proSub} numberOfLines={2}>
+            Instant SMS & push alerts when billionaires trade
           </Text>
+          <View style={styles.proPriceRow}>
+            <Text style={styles.proPriceText}>\u20B999 / mo</Text>
+            <Text style={styles.proPriceDivider}>\u2022</Text>
+            <Text style={styles.proPriceSub}>SEBI Filing Live Feed</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.proButton} activeOpacity={0.8}>
           <Text style={styles.proButtonText}>Upgrade</Text>
@@ -888,33 +895,70 @@ const styles = StyleSheet.create({
   },
   proCta: {
     borderRadius: 18,
-    padding: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 20,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
   },
+  proIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+  },
+  proTextCol: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
   proTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    letterSpacing: -0.2,
   },
   proSub: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: '#94A3B8',
     marginTop: 2,
+    lineHeight: 15,
+  },
+  proPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 5,
+  },
+  proPriceText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#F59E0B',
+  },
+  proPriceDivider: {
+    fontSize: 8,
+    color: '#64748B',
+  },
+  proPriceSub: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
   },
   proButton: {
     backgroundColor: colors.warning,
-    paddingHorizontal: 14,
+    paddingHorizontal: 13,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 9,
   },
   proButtonText: {
     color: '#000000',
     fontWeight: '800',
-    fontSize: 12,
+    fontSize: 11.5,
   },
   // Whale Consensus Screener Styles
   consensusContainer: {
