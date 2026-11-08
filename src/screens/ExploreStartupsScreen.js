@@ -171,13 +171,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
         })}
       </ScrollView>
 
-      {/* Section Heading */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionHeaderTitle}>
-          VERIFIED SYNDICATE DEALS ({filteredStartups.length})
-        </Text>
-        <Text style={styles.sectionHeaderSub}>Live rounds open for institutional allocation</Text>
-      </View>
+
 
       {/* Startup Cards List */}
       <View style={styles.cardsList}>
@@ -201,14 +195,6 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.categoryText} numberOfLines={1}>
-                    {startup.category} • {startup.city || 'India'}
-                  </Text>
-                  {startup.founders && (
-                    <Text style={styles.founderText} numberOfLines={1}>
-                      Founders: {startup.founders}
-                    </Text>
-                  )}
                 </View>
               </View>
 
@@ -491,7 +477,7 @@ const styles = StyleSheet.create({
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   cardHeaderLeft: {
     flexDirection: 'row',
