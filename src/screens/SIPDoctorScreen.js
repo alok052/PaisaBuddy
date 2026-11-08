@@ -24,7 +24,8 @@ import {
 } from '../data/mockSIPFunds';
 
 export default function SIPDoctorScreen({ onOpenMenu }) {
-  const [selectedFund, setSelectedFund] = useState(mockSIPFundsDatabase[0]);
+  // Start with NO fund pre-selected so user can choose themselves
+  const [selectedFund, setSelectedFund] = useState(null);
   const [planType, setPlanType] = useState('REGULAR'); // 'REGULAR' | 'DIRECT'
   const [sipAmount, setSipAmount] = useState(10000);
   const [sipYears, setSipYears] = useState(15);
@@ -81,8 +82,10 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   const baseWealthRep = 84.7 * multiplier * yearMultiplier;
   const calculatedExtraWealth = Math.max(0, baseWealthRep - baseWealthCur);
 
-  // Diagnostic outcome calculation
-  const diagnosis = diagnoseFundHealth(selectedFund, planType, sipAmount, sipYears);
+  // Diagnostic outcome calculation (safely guarded when selectedFund is null)
+  const diagnosis = selectedFund
+    ? diagnoseFundHealth(selectedFund, planType, sipAmount, sipYears)
+    : null;
 
   // Compounding milestones for healthy portfolio
   const m5Y = (sipAmount * 12 * 5 * 1.55 / 100000).toFixed(1);
@@ -124,6 +127,12 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   };
 
   const handleRunDiagnostic = () => {
+    if (!selectedFund) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setSearchModalVisible(true);
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsAnalyzing(true);
 
@@ -182,7 +191,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             </Text>
           </View>
 
-          {/* SECTION 1: ACTIVE SCHEME SHOWCASE (TITANIUM ASSET CARD) */}
+          {/* SECTION 1: SCHEME UNDER EXAMINATION */}
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>1. SCHEME UNDER EXAMINATION</Text>
             <TouchableOpacity
@@ -190,82 +199,139 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
               activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.sectionActionText}>Browse 50+ →</Text>
+              <Text style={styles.sectionActionText}>Browse 50+ Schemes →</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.heroAssetCard}>
-            {/* Asset Top Tags */}
-            <View style={styles.assetTagRow}>
-              <View style={styles.assetAmcBadge}>
-                <Text style={styles.assetAmcText}>{selectedFund.amc || 'MUTUAL FUND'}</Text>
-              </View>
-              <View style={styles.assetCategoryBadge}>
-                <Text style={styles.assetCategoryText}>{selectedFund.category}</Text>
-              </View>
-              <View style={styles.assetStarBadge}>
-                <Ionicons name="star" size={10} color="#F59E0B" style={{ marginRight: 3 }} />
-                <Text style={styles.assetStarText}>Top Rated</Text>
-              </View>
-            </View>
-
-            {/* Scheme Name */}
-            <Text style={styles.assetTitle}>{selectedFund.name}</Text>
-
-            {/* Micro Metrics Grid */}
-            <View style={styles.assetMetricsGrid}>
-              <View style={styles.assetMetricCol}>
-                <Text style={styles.assetMetricLabel}>EXPENSE RATIO</Text>
-                <Text style={styles.assetMetricValue}>{selectedFund.currentExpense}</Text>
-                <Text style={styles.assetMetricSub}>
-                  {planType === 'DIRECT' ? 'Direct (0% Cut)' : 'Regular Plan'}
-                </Text>
-              </View>
-              <View style={styles.assetMetricDivider} />
-              <View style={styles.assetMetricCol}>
-                <Text style={styles.assetMetricLabel}>5Y CAGR</Text>
-                <Text style={[styles.assetMetricValue, { color: '#10B981' }]}>
-                  {selectedFund.currentCagr}
-                </Text>
-                <Text style={styles.assetMetricSub}>Historical</Text>
-              </View>
-              <View style={styles.assetMetricDivider} />
-              <View style={styles.assetMetricCol}>
-                <Text style={styles.assetMetricLabel}>BENCHMARK</Text>
-                <Text style={styles.assetMetricValue} numberOfLines={1}>
-                  {selectedFund.benchmarkName || 'Nifty 50'}
-                </Text>
-                <Text style={styles.assetMetricSub}>
-                  Alpha: {selectedFund.alphaVsBenchmark || '+0.0%'}
-                </Text>
-              </View>
-            </View>
-
-            {/* Change Fund Trigger Button */}
+          {/* DYNAMIC CARD: EMPTY STATE vs ACTIVE SELECTED FUND */}
+          {!selectedFund ? (
+            /* EMPTY STATE: USER HAS NOT SELECTED ANY FUND YET */
             <TouchableOpacity
-              style={styles.assetChangeBtn}
-              activeOpacity={0.8}
+              style={styles.emptyAssetCard}
+              activeOpacity={0.85}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSearchModalVisible(true);
               }}
             >
-              <Ionicons name="search" size={14} color="#38BDF8" style={{ marginRight: 6 }} />
-              <Text style={styles.assetChangeBtnText}>Switch Scheme (Search 50+ Funds)</Text>
-              <Ionicons name="chevron-forward" size={14} color="#38BDF8" />
+              <LinearGradient
+                colors={['#0F172A', '#0D111A']}
+                style={styles.emptyAssetGrad}
+              >
+                <View style={styles.emptyAssetTopRow}>
+                  <View style={styles.emptySearchIconAperture}>
+                    <Ionicons name="search" size={20} color="#38BDF8" />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.emptyAssetTitle}>Select Mutual Fund Scheme</Text>
+                    <Text style={styles.emptyAssetSub}>
+                      Tap here to search from 50+ schemes or type any AMC fund name
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Simulated Search Trigger Bar */}
+                <View style={styles.emptySearchFakeInput}>
+                  <Ionicons name="search-outline" size={15} color="#64748B" style={{ marginRight: 8 }} />
+                  <Text style={styles.emptySearchFakeText} numberOfLines={1}>
+                    Search fund (e.g. Parag Parikh, SBI, HDFC, Quant)...
+                  </Text>
+                  <View style={styles.emptySearchBadge}>
+                    <Text style={styles.emptySearchBadgeText}>Search</Text>
+                    <Ionicons name="chevron-forward" size={12} color="#38BDF8" />
+                  </View>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
-          </View>
+          ) : (
+            /* ACTIVE STATE: USER SELECTED A SPECIFIC FUND */
+            <View style={styles.heroAssetCard}>
+              {/* Asset Top Tags */}
+              <View style={styles.assetTagRow}>
+                <View style={styles.assetAmcBadge}>
+                  <Text style={styles.assetAmcText}>{selectedFund.amc || 'MUTUAL FUND'}</Text>
+                </View>
+                <View style={styles.assetCategoryBadge}>
+                  <Text style={styles.assetCategoryText}>{selectedFund.category}</Text>
+                </View>
+                <View style={styles.assetStarBadge}>
+                  <Ionicons name="star" size={10} color="#F59E0B" style={{ marginRight: 3 }} />
+                  <Text style={styles.assetStarText}>SEBI Registered</Text>
+                </View>
+
+                {/* Clear Fund Button */}
+                <TouchableOpacity
+                  style={styles.clearFundChip}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedFund(null);
+                  }}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={14} color="#94A3B8" />
+                  <Text style={styles.clearFundText}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Scheme Name */}
+              <Text style={styles.assetTitle}>{selectedFund.name}</Text>
+
+              {/* Micro Metrics Grid */}
+              <View style={styles.assetMetricsGrid}>
+                <View style={styles.assetMetricCol}>
+                  <Text style={styles.assetMetricLabel}>EXPENSE RATIO</Text>
+                  <Text style={styles.assetMetricValue}>{selectedFund.currentExpense}</Text>
+                  <Text style={styles.assetMetricSub}>
+                    {planType === 'DIRECT' ? 'Direct (0% Cut)' : 'Regular Plan'}
+                  </Text>
+                </View>
+                <View style={styles.assetMetricDivider} />
+                <View style={styles.assetMetricCol}>
+                  <Text style={styles.assetMetricLabel}>5Y CAGR</Text>
+                  <Text style={[styles.assetMetricValue, { color: '#10B981' }]}>
+                    {selectedFund.currentCagr}
+                  </Text>
+                  <Text style={styles.assetMetricSub}>Historical</Text>
+                </View>
+                <View style={styles.assetMetricDivider} />
+                <View style={styles.assetMetricCol}>
+                  <Text style={styles.assetMetricLabel}>BENCHMARK</Text>
+                  <Text style={styles.assetMetricValue} numberOfLines={1}>
+                    {selectedFund.benchmarkName || 'Nifty 50'}
+                  </Text>
+                  <Text style={styles.assetMetricSub}>
+                    Alpha: {selectedFund.alphaVsBenchmark || '+0.0%'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Change Fund Trigger Button */}
+              <TouchableOpacity
+                style={styles.assetChangeBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSearchModalVisible(true);
+                }}
+              >
+                <Ionicons name="swap-horizontal" size={15} color="#38BDF8" style={{ marginRight: 6 }} />
+                <Text style={styles.assetChangeBtnText}>Change Scheme (Search 50+ Funds)</Text>
+                <Ionicons name="chevron-forward" size={14} color="#38BDF8" />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Quick-Pick Popular Scheme Chips */}
           <View style={styles.quickPickContainer}>
-            <Text style={styles.quickPickHeaderLabel}>QUICK BENCHMARK PICKS (1-TAP):</Text>
+            <Text style={styles.quickPickHeaderLabel}>POPULAR SCHEMES (1-TAP SELECT):</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingRight: 10 }}
             >
               {popularFunds.map((fund) => {
-                const isCur = selectedFund.id === fund.id;
+                const isCur = selectedFund && selectedFund.id === fund.id;
                 const shortName = fund.name
                   .replace(' Fund', '')
                   .replace(' (Regular)', '')
@@ -462,43 +528,77 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             </View>
           </View>
 
-          {/* PRIMARY EXECUTIVE CTA: DIAGNOSE WEALTH HEALTH */}
-          <TouchableOpacity
-            style={styles.runAuditButton}
-            activeOpacity={0.88}
-            onPress={handleRunDiagnostic}
-            disabled={isAnalyzing}
-          >
-            <LinearGradient
-              colors={['#38BDF8', '#2563EB']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.runAuditGradient}
+          {/* PRIMARY EXECUTIVE CTA: DYNAMIC BASED ON SELECTION */}
+          {selectedFund ? (
+            <TouchableOpacity
+              style={styles.runAuditButton}
+              activeOpacity={0.88}
+              onPress={handleRunDiagnostic}
+              disabled={isAnalyzing}
             >
-              {isAnalyzing ? (
-                <View style={styles.runBtnInner}>
-                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.runBtnTitle}>RUNNING FIDUCIARY CLINICAL AUDIT...</Text>
-                    <Text style={styles.runBtnSub}>Auditing expense ratio drag & rolling alpha</Text>
+              <LinearGradient
+                colors={['#38BDF8', '#2563EB']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.runAuditGradient}
+              >
+                {isAnalyzing ? (
+                  <View style={styles.runBtnInner}>
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 10 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.runBtnTitle}>RUNNING FIDUCIARY CLINICAL AUDIT...</Text>
+                      <Text style={styles.runBtnSub}>Auditing expense ratio drag & rolling alpha</Text>
+                    </View>
                   </View>
-                </View>
-              ) : (
+                ) : (
+                  <View style={styles.runBtnInner}>
+                    <View style={styles.runBtnIconAperture}>
+                      <Ionicons name="pulse" size={18} color="#FFFFFF" />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={styles.runBtnTitle}>DIAGNOSE PORTFOLIO HEALTH</Text>
+                      <Text style={styles.runBtnSub}>
+                        Fiduciary diagnosis • Zero churn promise • Instant remedy
+                      </Text>
+                    </View>
+                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ opacity: 0.9 }} />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            /* USER HAS NOT CHOSEN A FUND YET -> GUIDED SEARCH CTA */
+            <TouchableOpacity
+              style={styles.runAuditButton}
+              activeOpacity={0.88}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSearchModalVisible(true);
+              }}
+            >
+              <LinearGradient
+                colors={['#131D2E', '#0B111E']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.runAuditGradient, { borderColor: 'rgba(56, 189, 248, 0.35)', borderWidth: 1 }]}
+              >
                 <View style={styles.runBtnInner}>
-                  <View style={styles.runBtnIconAperture}>
-                    <Ionicons name="pulse" size={18} color="#FFFFFF" />
+                  <View style={[styles.runBtnIconAperture, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+                    <Ionicons name="search" size={18} color="#38BDF8" />
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.runBtnTitle}>DIAGNOSE PORTFOLIO HEALTH</Text>
+                    <Text style={[styles.runBtnTitle, { color: '#38BDF8' }]}>
+                      SELECT MUTUAL FUND TO AUDIT
+                    </Text>
                     <Text style={styles.runBtnSub}>
-                      Fiduciary diagnosis • Zero churn promise • Instant remedy
+                      Tap here to pick from 50+ schemes and run health check
                     </Text>
                   </View>
-                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ opacity: 0.9 }} />
+                  <Ionicons name="chevron-forward" size={18} color="#38BDF8" />
                 </View>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         /* ========================================================= */
@@ -506,34 +606,34 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         /* ========================================================= */
         <View style={styles.resultsContainer}>
           {/* Main Health Diagnostic Card */}
-          <View style={[styles.diagnosticCard, { borderColor: diagnosis.healthColor + '40' }]}>
+          <View style={[styles.diagnosticCard, { borderColor: diagnosis?.healthColor + '40' }]}>
             <View style={styles.diagHeaderRow}>
               <View style={{ flex: 1, marginRight: 10 }}>
                 <Text style={styles.diagSub}>CLINICAL VERDICT</Text>
-                <Text style={styles.diagFundName}>{selectedFund.name}</Text>
+                <Text style={styles.diagFundName}>{selectedFund?.name}</Text>
                 <Text style={styles.diagCategory}>
-                  {selectedFund.amc || 'Mutual Fund'} • {planType === 'DIRECT' ? 'Direct Plan (0% Cut)' : 'Regular Plan'}
+                  {selectedFund?.amc || 'Mutual Fund'} • {planType === 'DIRECT' ? 'Direct Plan (0% Cut)' : 'Regular Plan'}
                 </Text>
               </View>
 
-              <View style={[styles.healthScoreBadge, { backgroundColor: diagnosis.healthColor + '18' }]}>
-                <Ionicons name="medkit" size={15} color={diagnosis.healthColor} style={{ marginRight: 5 }} />
-                <Text style={[styles.healthScoreText, { color: diagnosis.healthColor }]}>
-                  {diagnosis.healthScore}/100
+              <View style={[styles.healthScoreBadge, { backgroundColor: diagnosis?.healthColor + '18' }]}>
+                <Ionicons name="medkit" size={15} color={diagnosis?.healthColor} style={{ marginRight: 5 }} />
+                <Text style={[styles.healthScoreText, { color: diagnosis?.healthColor }]}>
+                  {diagnosis?.healthScore}/100
                 </Text>
               </View>
             </View>
 
             {/* Doctor Note Box */}
-            <View style={[styles.leakNoteBox, { backgroundColor: diagnosis.healthColor + '10' }]}>
+            <View style={[styles.leakNoteBox, { backgroundColor: diagnosis?.healthColor + '10' }]}>
               <View style={styles.leakTagRow}>
-                <View style={[styles.leakDot, { backgroundColor: diagnosis.healthColor }]} />
-                <Text style={[styles.leakTagTitle, { color: diagnosis.healthColor }]}>
-                  {diagnosis.healthTag}
+                <View style={[styles.leakDot, { backgroundColor: diagnosis?.healthColor }]} />
+                <Text style={[styles.leakTagTitle, { color: diagnosis?.healthColor }]}>
+                  {diagnosis?.healthTag}
                 </Text>
               </View>
-              <Text style={styles.leakTagHeading}>{diagnosis.title}</Text>
-              <Text style={styles.leakTagReason}>{diagnosis.doctorNote}</Text>
+              <Text style={styles.leakTagHeading}>{diagnosis?.title}</Text>
+              <Text style={styles.leakTagReason}>{diagnosis?.doctorNote}</Text>
             </View>
 
             {/* Doctor's Official Prescription Callout */}
@@ -542,8 +642,8 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                 <Ionicons name="receipt-outline" size={16} color="#38BDF8" />
                 <Text style={styles.prescriptionTitle}>DOCTOR'S PRESCRIPTION (ILAJ):</Text>
               </View>
-              <Text style={styles.prescriptionMainText}>{diagnosis.prescription}</Text>
-              {diagnosis.prescriptionPoints.map((pt, idx) => (
+              <Text style={styles.prescriptionMainText}>{diagnosis?.prescription}</Text>
+              {diagnosis?.prescriptionPoints?.map((pt, idx) => (
                 <View key={idx} style={styles.prescPointRow}>
                   <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginTop: 2 }} />
                   <Text style={styles.prescPointText}>{pt}</Text>
@@ -555,7 +655,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           {/* ======================================================== */}
           {/* SCENARIO 1: 100% HEALTHY (19-20 KA FARK) -> ZERO CHURN!  */}
           {/* ======================================================== */}
-          {diagnosis.isHealthy ? (
+          {diagnosis?.isHealthy ? (
             <View style={styles.healthyContainer}>
               {/* Disciplined Investor Certificate */}
               <View style={styles.healthyCard}>
@@ -618,7 +718,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                       +₹{calculatedExtraWealth >= 100 ? (calculatedExtraWealth / 100).toFixed(2) + ' Crore' : calculatedExtraWealth.toFixed(1) + ' Lakh'}
                     </Text>
                     <Text style={styles.extraWealthNote}>
-                      {diagnosis.statusType === 'SWITCH_TO_DIRECT'
+                      {diagnosis?.statusType === 'SWITCH_TO_DIRECT'
                         ? 'Saves 100% of distributor commission deductions in your family wealth.'
                         : 'Compounded gain by eliminating commission drain & trailing benchmark alpha.'}
                     </Text>
@@ -627,7 +727,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
               )}
 
               {/* HEAD-TO-HEAD BATTLE CARD: If Replacement exists */}
-              {diagnosis.replacement && (
+              {diagnosis?.replacement && (
                 <View style={styles.battleCard}>
                   <Text style={styles.battleTitle}>RECOMMENDED DIRECT RESOLUTION</Text>
                   <View style={styles.battleRow}>
@@ -637,7 +737,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                         <Text style={styles.currentTagText}>YOUR FUND</Text>
                       </View>
                       <Text style={styles.sideFundName} numberOfLines={2}>
-                        {selectedFund.name}
+                        {selectedFund?.name}
                       </Text>
                       <Text style={styles.sideSub}>
                         {planType === 'DIRECT' ? 'Direct Plan' : 'Regular Plan (Bank)'}
@@ -646,13 +746,13 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                       <View style={styles.sideMetricItem}>
                         <Text style={styles.sideMetricLbl}>Expense Ratio</Text>
                         <Text style={[styles.sideMetricVal, { color: '#F59E0B' }]}>
-                          {selectedFund.currentExpense}
+                          {selectedFund?.currentExpense}
                         </Text>
                       </View>
 
                       <View style={styles.sideMetricItem}>
                         <Text style={styles.sideMetricLbl}>5Y Return</Text>
-                        <Text style={styles.sideMetricVal}>{selectedFund.currentCagr} CAGR</Text>
+                        <Text style={styles.sideMetricVal}>{selectedFund?.currentCagr} CAGR</Text>
                       </View>
 
                       <View style={styles.sideWealthItem}>
@@ -720,7 +820,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                     setMigratingFund({
                       ...selectedFund,
                       lossOver20Y: `₹${calculatedExtraWealth.toFixed(1)} Lakh`,
-                      hiddenAgentCommission: selectedFund.agentCommissionCut || '0.95%',
+                      hiddenAgentCommission: selectedFund?.agentCommissionCut || '0.95%',
                     });
                   }}
                 >
@@ -844,7 +944,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             {/* Funds List */}
             <ScrollView showsVerticalScrollIndicator={false} style={styles.modalFundsList}>
               {filteredModalFunds.map((fund) => {
-                const isSelected = selectedFund.id === fund.id;
+                const isSelected = selectedFund && selectedFund.id === fund.id;
                 return (
                   <TouchableOpacity
                     key={fund.id}
@@ -1019,6 +1119,72 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#38BDF8',
   },
+  /* Empty state card when no fund selected */
+  emptyAssetCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  emptyAssetGrad: {
+    padding: 16,
+  },
+  emptyAssetTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  emptySearchIconAperture: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  emptyAssetTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  emptyAssetSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  emptySearchFakeInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#07090E',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  emptySearchFakeText: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#94A3B8',
+  },
+  emptySearchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 3,
+  },
+  emptySearchBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#38BDF8',
+  },
   heroAssetCard: {
     backgroundColor: '#0D111A',
     borderRadius: 16,
@@ -1070,6 +1236,21 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: '800',
     color: '#F59E0B',
+  },
+  clearFundChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginLeft: 'auto',
+    gap: 3,
+  },
+  clearFundText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
   assetTitle: {
     fontSize: 17,
