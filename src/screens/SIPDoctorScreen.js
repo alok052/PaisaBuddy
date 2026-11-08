@@ -67,15 +67,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     }
   }, [hasAnalyzed]);
 
-  const sipAmounts = [
-    { label: '\u20B92.5K', value: 2500 },
-    { label: '\u20B95K', value: 5000 },
-    { label: '\u20B910K', value: 10000 },
-    { label: '\u20B925K', value: 25000 },
-    { label: '\u20B950K', value: 50000 },
-  ];
 
-  const yearOptions = [5, 10, 15, 20];
 
   const categories = [
     { id: 'ALL', label: 'All' },
@@ -392,27 +384,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           </View>
         </View>
 
-        {/* Quick Amount Pills */}
-        <View style={s.pillRow}>
-          {sipAmounts.map((tier) => {
-            const isActive = sipAmount === tier.value;
-            return (
-              <TouchableOpacity
-                key={tier.value}
-                style={[s.pill, isActive && s.pillActive]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setSipAmount(tier.value);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text style={[s.pillText, isActive && s.pillTextActive]}>
-                  {tier.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+
       </View>
 
       {/* Time Period with Interactive Slider (Renamed from Horizon) */}
@@ -444,32 +416,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           </View>
         </View>
 
-        {/* Quick Horizon Pills */}
-        <View style={s.pillRow}>
-          {yearOptions.map((yr) => {
-            const isActive = sipYears === yr;
-            return (
-              <TouchableOpacity
-                key={yr}
-                style={[s.pill, s.pillWide, isActive && s.pillActiveGreen]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setSipYears(yr);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    s.pillText,
-                    isActive && { color: '#10B981', fontWeight: '800' },
-                  ]}
-                >
-                  {yr}Y
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+
       </View>
 
       {/* Annual Step-Up Option (Flat SIP | 5% | 10%) */}
