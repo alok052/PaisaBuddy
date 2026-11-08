@@ -109,18 +109,18 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
       {/* Trust & Guarantee Banner */}
       <View style={styles.trustBanner}>
         <View style={styles.trustItem}>
-          <Ionicons name="shield-checkmark" size={13} color="#38BDF8" />
-          <Text style={styles.trustText}>SEBI AIF Escrow</Text>
+          <Ionicons name="shield-checkmark" size={12} color="#38BDF8" />
+          <Text style={styles.trustText} numberOfLines={1}>SEBI AIF</Text>
         </View>
-        <Text style={styles.trustDot}>•</Text>
+        <View style={styles.trustDivider} />
         <View style={styles.trustItem}>
-          <Ionicons name="wallet-outline" size={13} color="#818CF8" />
-          <Text style={styles.trustText}>CDSL / NSDL Demat</Text>
+          <Ionicons name="wallet-outline" size={12} color="#818CF8" />
+          <Text style={styles.trustText} numberOfLines={1}>CDSL Demat</Text>
         </View>
-        <Text style={styles.trustDot}>•</Text>
+        <View style={styles.trustDivider} />
         <View style={styles.trustItem}>
-          <Ionicons name="sparkles" size={13} color="#F59E0B" />
-          <Text style={styles.trustText}>Min ₹5,000 Cheque</Text>
+          <Ionicons name="sparkles" size={12} color="#F59E0B" />
+          <Text style={styles.trustText} numberOfLines={1}>Min ₹5,000</Text>
         </View>
       </View>
 
@@ -395,26 +395,30 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#0F1622',
     borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
     marginTop: 2,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'hidden',
   },
   trustItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 5,
   },
   trustText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '700',
     color: '#94A3B8',
   },
-  trustDot: {
-    fontSize: 8,
-    color: '#475569',
+  trustDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   searchBarWrapper: {
     flexDirection: 'row',
