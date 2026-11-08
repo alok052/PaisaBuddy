@@ -84,7 +84,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               <View style={styles.stageTag}>
                 <Text style={styles.stageText}>{startup.stage}</Text>
               </View>
-              <Text style={styles.title}>Co-Invest in {startup.name}</Text>
+              <Text style={styles.title}>Invest in {startup.name}</Text>
               <Text style={styles.subtitle}>
                 Valuation: {startup.valuation} • Cheque from {startup.minInvestment}
               </Text>
@@ -100,7 +100,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
               <View style={styles.whaleCoInvestBox}>
                 <Ionicons name="shield-checkmark" size={15} color="#38BDF8" />
                 <Text style={styles.whaleCoInvestText}>
-                  Co-investing on matching terms with <Text style={{ color: '#38BDF8', fontWeight: '800' }}>{startup.whaleBacker}</Text>
+                  Investing on matching terms with <Text style={{ color: '#38BDF8', fontWeight: '800' }}>{startup.whaleBacker}</Text>
                 </Text>
               </View>
             )}
@@ -220,7 +220,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
             disabled={isSubmitting}
           >
             <LinearGradient
-              colors={['#38BDF8', '#2563EB']}
+              colors={['#10B981', '#059669']}
               style={styles.confirmBtnGrad}
             >
               <Ionicons name="lock-closed" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#10B981',
     borderRadius: 3,
   },
   sectionTitle: {
@@ -378,8 +378,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   ticketCardActive: {
-    borderColor: '#2563EB',
-    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    borderColor: '#10B981',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
   },
   ticketAmt: {
     fontSize: 14,
@@ -457,8 +457,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   checkboxActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
   },
   termsText: {
     fontSize: 10,
@@ -470,7 +470,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(52, 211, 153, 0.45)',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
   },
   confirmBtnGrad: {
     flexDirection: 'row',

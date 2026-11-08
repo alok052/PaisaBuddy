@@ -212,7 +212,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
               <View style={styles.whaleBackerStrip}>
                 <Ionicons name="shield-checkmark" size={13} color="#38BDF8" />
                 <Text style={styles.whaleBackerText} numberOfLines={1}>
-                  Co-investing with <Text style={styles.whaleBackerHighlight}>{startup.whaleBacker}</Text>
+                  Investing with <Text style={styles.whaleBackerHighlight}>{startup.whaleBacker}</Text>
                 </Text>
               </View>
             )}
@@ -294,14 +294,14 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                 onPress={() => handleOpenInvest(startup)}
               >
                 <LinearGradient
-                  colors={['#38BDF8', '#2563EB']}
+                  colors={['#10B981', '#059669']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.investBtnGrad}
                 >
                   <Ionicons name="flash" size={13} color="#FFFFFF" />
                   <Text style={styles.investBtnText}>
-                    Co-Invest ({startup.minInvestment})
+                    Invest
                   </Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -693,11 +693,16 @@ const styles = StyleSheet.create({
     color: '#CBD5E1',
   },
   investBtnWrapper: {
-    flex: 1.25,
+    flex: 1,
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(52, 211, 153, 0.45)',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
   },
   investBtnGrad: {
     flexDirection: 'row',
@@ -707,7 +712,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   investBtnText: {
-    fontSize: 12,
+    fontSize: 12.5,
+    letterSpacing: 0.3,
     fontWeight: '800',
     color: '#FFFFFF',
   },

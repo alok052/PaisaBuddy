@@ -149,7 +149,7 @@ export default function StartupPitchRoomModal({ visible, startup, onClose, onCoI
                     <Ionicons name="shield-checkmark" size={16} color="#38BDF8" />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.whaleSpotlightTitle}>
-                        Co-Invest with {startup.whaleBacker}
+                        Invest with {startup.whaleBacker}
                       </Text>
                       <Text style={styles.whaleSpotlightDesc}>
                         Lead institutional syndicate allocation verified under SEBI Angel Fund / AIF Category I norms.
@@ -391,11 +391,11 @@ export default function StartupPitchRoomModal({ visible, startup, onClose, onCoI
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#38BDF8', '#2563EB']}
+                colors={['#10B981', '#059669']}
                 style={styles.ctaButtonGrad}
               >
                 <Ionicons name="flash" size={14} color="#FFFFFF" />
-                <Text style={styles.ctaButtonText}>Co-Invest in Round →</Text>
+                <Text style={styles.ctaButtonText}>Invest in Round →</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -812,7 +812,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(52, 211, 153, 0.45)',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 3,
   },
   ctaButtonGrad: {
     flexDirection: 'row',
