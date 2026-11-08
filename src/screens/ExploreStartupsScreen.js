@@ -247,7 +247,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
 
               <View style={styles.metricsRow}>
                 <View style={styles.metricCell}>
-                  <Text style={styles.metricLabel}>TRACTION / SCALE</Text>
+                  <Text style={styles.metricLabel}>REVENUE (ARR)</Text>
                   <Text style={styles.metricValue} numberOfLines={1}>
                     {startup.arrRevenue || startup.growthMetric}
                   </Text>
@@ -305,7 +305,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                 onPress={() => handleOpenInvest(startup)}
               >
                 <LinearGradient
-                  colors={['#2563EB', '#1D4ED8']}
+                  colors={['#38BDF8', '#2563EB']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.investBtnGrad}
@@ -701,6 +701,8 @@ const styles = StyleSheet.create({
     flex: 1.25,
     borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   investBtnGrad: {
     flexDirection: 'row',

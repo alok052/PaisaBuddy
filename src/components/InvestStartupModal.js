@@ -220,7 +220,7 @@ export default function InvestStartupModal({ visible, startup, onClose }) {
             disabled={isSubmitting}
           >
             <LinearGradient
-              colors={['#2563EB', '#1D4ED8']}
+              colors={['#38BDF8', '#2563EB']}
               style={styles.confirmBtnGrad}
             >
               <Ionicons name="lock-closed" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -469,6 +469,8 @@ const styles = StyleSheet.create({
   confirmBtn: {
     borderRadius: 12,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   confirmBtnGrad: {
     flexDirection: 'row',

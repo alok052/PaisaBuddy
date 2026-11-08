@@ -391,7 +391,7 @@ export default function StartupPitchRoomModal({ visible, startup, onClose, onCoI
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#2563EB', '#1D4ED8']}
+                colors={['#38BDF8', '#2563EB']}
                 style={styles.ctaButtonGrad}
               >
                 <Ionicons name="flash" size={14} color="#FFFFFF" />
@@ -811,6 +811,8 @@ const styles = StyleSheet.create({
   ctaButtonWrapper: {
     borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   ctaButtonGrad: {
     flexDirection: 'row',
