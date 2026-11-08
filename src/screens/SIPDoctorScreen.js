@@ -16,6 +16,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import Slider from '@react-native-community/slider';
 import { colors } from '../theme/colors';
 import SIPMigrationModal from '../components/SIPMigrationModal';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
@@ -33,7 +34,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   const [planType, setPlanType] = useState('REGULAR');
   const [sipAmount, setSipAmount] = useState(10000);
   const [sipYears, setSipYears] = useState(15);
-  const [hasStepUp, setHasStepUp] = useState(false);
+  const [stepUpRate, setStepUpRate] = useState(0); // 0 (Flat) | 5 | 10
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [modalSearchText, setModalSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -99,10 +100,11 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     return corpus;
   };
 
-  // Step-Up vs Flat calculations
+  // Step-Up vs Flat calculations (0%, 5%, 10%)
   const flatCorpus = calcCorpus(sipAmount, sipYears, 0.13, 0);
-  const stepUpCorpus = calcCorpus(sipAmount, sipYears, 0.13, 10);
-  const stepUpGain = Math.max(0, stepUpCorpus - flatCorpus);
+  const stepUpCorpus = calcCorpus(sipAmount, sipYears, 0.13, stepUpRate);
+  const stepUpCorpus10 = calcCorpus(sipAmount, sipYears, 0.13, 10);
+  const stepUpGain = Math.max(0, (stepUpRate > 0 ? stepUpCorpus : stepUpCorpus10) - flatCorpus);
 
   // Dynamic wealth calculations for comparison
   const multiplier = sipAmount / 10000;
@@ -115,21 +117,23 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     ? diagnoseFundHealth(selectedFund, planType, sipAmount, sipYears)
     : null;
 
-  // Adjust score based on Step-Up discipline
+  // Adjust score based on Step-Up discipline (0% = -4, 5% = +3, 10% = +6)
   const diagnosis = rawDiagnosis
     ? {
         ...rawDiagnosis,
-        healthScore: hasStepUp
-          ? Math.min(100, rawDiagnosis.healthScore + 5)
+        healthScore: stepUpRate === 10
+          ? Math.min(100, rawDiagnosis.healthScore + 6)
+          : stepUpRate === 5
+          ? Math.min(100, rawDiagnosis.healthScore + 3)
           : Math.max(30, rawDiagnosis.healthScore - 4),
       }
     : null;
 
-  // Compounding milestones (reflects Step-Up if active)
-  const m5Y = (calcCorpus(sipAmount, 5, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
-  const m10Y = (calcCorpus(sipAmount, 10, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
-  const m15Y = (calcCorpus(sipAmount, 15, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
-  const m20Y = (calcCorpus(sipAmount, 20, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
+  // Compounding milestones (reflects selected Step-Up rate: 0%, 5%, 10%)
+  const m5Y = (calcCorpus(sipAmount, 5, 0.13, stepUpRate) / 100000).toFixed(1);
+  const m10Y = (calcCorpus(sipAmount, 10, 0.13, stepUpRate) / 100000).toFixed(1);
+  const m15Y = (calcCorpus(sipAmount, 15, 0.13, stepUpRate) / 100000).toFixed(1);
+  const m20Y = (calcCorpus(sipAmount, 20, 0.13, stepUpRate) / 100000).toFixed(1);
 
   // Filter funds for modal
   const filteredModalFunds = mockSIPFundsDatabase.filter((f) => {
@@ -358,14 +362,37 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         </View>
       </View>
 
-      {/* SIP Amount */}
+      {/* SIP Amount with Interactive Slider */}
       <View style={s.configSection}>
         <View style={s.configLabelRow}>
-          <Text style={s.configLabel}>Monthly SIP</Text>
+          <Text style={s.configLabel}>Monthly SIP Amount</Text>
           <Text style={s.configValueDisplay}>
-            {'\u20B9'}{sipAmount.toLocaleString('en-IN')}
+            {'\u20B9'}{sipAmount.toLocaleString('en-IN')}{' '}
+            <Text style={s.configValueSub}>/ month</Text>
           </Text>
         </View>
+
+        {/* Amount Slider */}
+        <View style={s.sliderWrap}>
+          <Slider
+            style={s.sliderBar}
+            minimumValue={1000}
+            maximumValue={100000}
+            step={500}
+            value={sipAmount}
+            onValueChange={(val) => setSipAmount(Math.round(val))}
+            minimumTrackTintColor="#38BDF8"
+            maximumTrackTintColor="#1E293B"
+            thumbTintColor="#38BDF8"
+          />
+          <View style={s.sliderRangeRow}>
+            <Text style={s.sliderRangeText}>\u20B91K</Text>
+            <Text style={s.sliderRangeText}>\u20B950K</Text>
+            <Text style={s.sliderRangeText}>\u20B91L</Text>
+          </View>
+        </View>
+
+        {/* Quick Amount Pills */}
         <View style={s.pillRow}>
           {sipAmounts.map((tier) => {
             const isActive = sipAmount === tier.value;
@@ -388,12 +415,36 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         </View>
       </View>
 
-      {/* Investment Horizon */}
+      {/* Time Period with Interactive Slider (Renamed from Horizon) */}
       <View style={s.configSection}>
         <View style={s.configLabelRow}>
-          <Text style={s.configLabel}>Horizon</Text>
-          <Text style={s.configValueDisplay}>{sipYears} Years</Text>
+          <Text style={s.configLabel}>Time Period</Text>
+          <Text style={[s.configValueDisplay, { color: '#10B981' }]}>
+            {sipYears} {sipYears === 1 ? 'Year' : 'Years'}
+          </Text>
         </View>
+
+        {/* Time Period Slider */}
+        <View style={s.sliderWrap}>
+          <Slider
+            style={s.sliderBar}
+            minimumValue={1}
+            maximumValue={30}
+            step={1}
+            value={sipYears}
+            onValueChange={(val) => setSipYears(Math.round(val))}
+            minimumTrackTintColor="#10B981"
+            maximumTrackTintColor="#1E293B"
+            thumbTintColor="#10B981"
+          />
+          <View style={s.sliderRangeRow}>
+            <Text style={s.sliderRangeText}>1 Year</Text>
+            <Text style={s.sliderRangeText}>15 Years</Text>
+            <Text style={s.sliderRangeText}>30 Years</Text>
+          </View>
+        </View>
+
+        {/* Quick Horizon Pills */}
         <View style={s.pillRow}>
           {yearOptions.map((yr) => {
             const isActive = sipYears === yr;
@@ -421,62 +472,112 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         </View>
       </View>
 
-      {/* Annual Step-Up Option */}
+      {/* Annual Step-Up Option (Flat SIP | 5% | 10%) */}
       <View style={s.configSection}>
         <View style={s.configLabelRow}>
           <Text style={s.configLabel}>Annual Step-Up</Text>
-          <Text style={[s.stepUpStatusBadge, hasStepUp ? { color: '#10B981' } : { color: '#64748B' }]}>
-            {hasStepUp ? '+10% Increment / Yr' : 'Flat SIP (No Step-Up)'}
+          <Text
+            style={[
+              s.stepUpStatusBadge,
+              stepUpRate === 10
+                ? { color: '#10B981' }
+                : stepUpRate === 5
+                ? { color: '#38BDF8' }
+                : { color: '#64748B' },
+            ]}
+          >
+            {stepUpRate === 10
+              ? '+10% Increment / Yr'
+              : stepUpRate === 5
+              ? '+5% Increment / Yr'
+              : 'Flat SIP (0% Increment)'}
           </Text>
         </View>
+
+        {/* 3 Step-Up Options */}
         <View style={s.stepUpToggleRow}>
+          {/* Option 1: Flat SIP */}
           <TouchableOpacity
-            style={[s.stepUpToggleBtn, !hasStepUp && s.stepUpToggleBtnActiveFlat]}
+            style={[
+              s.stepUpToggleBtn,
+              stepUpRate === 0 && s.stepUpToggleBtnActiveFlat,
+            ]}
             onPress={() => {
               Haptics.selectionAsync();
-              setHasStepUp(false);
+              setStepUpRate(0);
             }}
             activeOpacity={0.8}
           >
             <Ionicons
               name="remove-circle-outline"
-              size={14}
-              color={!hasStepUp ? '#F59E0B' : '#64748B'}
-              style={{ marginRight: 6 }}
+              size={13}
+              color={stepUpRate === 0 ? '#F59E0B' : '#64748B'}
+              style={{ marginRight: 5 }}
             />
             <Text
               style={[
                 s.stepUpToggleText,
-                !hasStepUp && { color: '#F59E0B', fontWeight: '800' },
+                stepUpRate === 0 && { color: '#F59E0B', fontWeight: '800' },
               ]}
             >
               Flat SIP
             </Text>
           </TouchableOpacity>
 
+          {/* Option 2: 5% Step-Up */}
           <TouchableOpacity
-            style={[s.stepUpToggleBtn, hasStepUp && s.stepUpToggleBtnActiveStepUp]}
+            style={[
+              s.stepUpToggleBtn,
+              stepUpRate === 5 && s.stepUpToggleBtnActiveBlue,
+            ]}
             onPress={() => {
               Haptics.selectionAsync();
-              setHasStepUp(true);
+              setStepUpRate(5);
             }}
             activeOpacity={0.8}
           >
             <Ionicons
               name="trending-up"
-              size={14}
-              color={hasStepUp ? '#10B981' : '#64748B'}
-              style={{ marginRight: 6 }}
+              size={13}
+              color={stepUpRate === 5 ? '#38BDF8' : '#64748B'}
+              style={{ marginRight: 5 }}
             />
             <Text
               style={[
                 s.stepUpToggleText,
-                hasStepUp && { color: '#10B981', fontWeight: '800' },
+                stepUpRate === 5 && { color: '#38BDF8', fontWeight: '800' },
               ]}
             >
-              +10% Annual Step-Up
+              5% Step-Up
             </Text>
-            {hasStepUp && <Text style={s.stepUpTagDirect}>2x Speed</Text>}
+          </TouchableOpacity>
+
+          {/* Option 3: 10% Step-Up */}
+          <TouchableOpacity
+            style={[
+              s.stepUpToggleBtn,
+              stepUpRate === 10 && s.stepUpToggleBtnActiveStepUp,
+            ]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setStepUpRate(10);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="flash"
+              size={13}
+              color={stepUpRate === 10 ? '#10B981' : '#64748B'}
+              style={{ marginRight: 5 }}
+            />
+            <Text
+              style={[
+                s.stepUpToggleText,
+                stepUpRate === 10 && { color: '#10B981', fontWeight: '800' },
+              ]}
+            >
+              10% Step-Up
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -572,7 +673,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           <Text style={s.resultFundMeta}>
             {planType === 'DIRECT' ? 'Direct Plan' : 'Regular Plan'}
             {' \u2022 '}{'\u20B9'}{sipAmount.toLocaleString('en-IN')}/mo
-            {' \u2022 '}{hasStepUp ? '+10% Step-Up' : 'Flat SIP'}
+            {' \u2022 '}{stepUpRate === 10 ? '+10% Step-Up' : stepUpRate === 5 ? '+5% Step-Up' : 'Flat SIP'}
             {' \u2022 '}{sipYears} Years
           </Text>
         </Animated.View>
@@ -583,8 +684,8 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           <Text style={s.verdictNote}>{diagnosis.doctorNote}</Text>
         </View>
 
-        {/* Step-Up Diagnostic Audit Card */}
-        {!hasStepUp ? (
+        {/* Step-Up Diagnostic Audit Card (Flat / 5% / 10%) */}
+        {stepUpRate === 0 ? (
           <View style={s.stepUpAuditCard}>
             <View style={s.stepUpAuditHeader}>
               <View style={s.stepUpAlertBadge}>
@@ -594,7 +695,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
               <Text style={s.stepUpGainHighlight}>+{formatWealth(stepUpGain / 100000)} Extra</Text>
             </View>
             <Text style={s.stepUpAuditDesc}>
-              Salary/income har saal badhti hai, lekin aapki SIP freeze hai. Har saal sirf 10% Step-Up karne se aapka corpus {formatWealth(flatCorpus / 100000)} se badhkar {formatWealth(stepUpCorpus / 100000)} ho sakta hai!
+              Salary/income badhne ke sath SIP freeze rakhne se aapka wealth loss ho raha hai. Har saal 10% Step-Up karne se aapka corpus {formatWealth(flatCorpus / 100000)} se badhkar {formatWealth(stepUpCorpus10 / 100000)} ho jayega!
             </Text>
             <View style={s.stepUpCompareStrip}>
               <View style={s.stepUpCompareItem}>
@@ -603,18 +704,27 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
               </View>
               <Ionicons name="arrow-forward" size={14} color="#64748B" />
               <View style={[s.stepUpCompareItem, s.stepUpCompareItemHighlight]}>
-                <Text style={[s.stepUpCompareLbl, { color: '#10B981' }]}>With +10% Step-Up</Text>
-                <Text style={[s.stepUpCompareVal, { color: '#10B981' }]}>{formatWealth(stepUpCorpus / 100000)}</Text>
+                <Text style={[s.stepUpCompareLbl, { color: '#10B981' }]}>With 10% Step-Up</Text>
+                <Text style={[s.stepUpCompareVal, { color: '#10B981' }]}>{formatWealth(stepUpCorpus10 / 100000)}</Text>
               </View>
             </View>
           </View>
         ) : (
-          <View style={s.stepUpSuccessCard}>
-            <Ionicons name="trending-up" size={22} color="#10B981" style={{ marginRight: 10 }} />
+          <View style={[s.stepUpSuccessCard, stepUpRate === 5 && { borderColor: 'rgba(56, 189, 248, 0.35)' }]}>
+            <Ionicons
+              name={stepUpRate === 10 ? 'flash' : 'trending-up'}
+              size={22}
+              color={stepUpRate === 10 ? '#10B981' : '#38BDF8'}
+              style={{ marginRight: 10 }}
+            />
             <View style={{ flex: 1 }}>
-              <Text style={s.stepUpSuccessTitle}>10% Annual Step-Up Active 🚀</Text>
+              <Text style={[s.stepUpSuccessTitle, stepUpRate === 5 && { color: '#38BDF8' }]}>
+                {stepUpRate}% Annual Step-Up Active {stepUpRate === 10 ? '🚀' : '⚡'}
+              </Text>
               <Text style={s.stepUpSuccessDesc}>
-                Peak Compounding Mode: 10% annual increment se aapka total corpus ~{formatWealth(stepUpCorpus / 100000)} tak pahuchega.
+                {stepUpRate === 10
+                  ? `Maximum Compounding: 10% yearly increment se aapka projected corpus ${formatWealth(stepUpCorpus / 100000)} tak pahuchega (+${formatWealth(stepUpGain / 100000)} gain).`
+                  : `Solid Step-Up Discipline: 5% yearly increment se aapka projected corpus ${formatWealth(stepUpCorpus / 100000)} tak pahuchega (+${formatWealth(stepUpGain / 100000)} gain).`}
               </Text>
             </View>
           </View>
@@ -1173,7 +1283,37 @@ const s = StyleSheet.create({
     color: '#F8FAFC',
   },
 
+  // Slider Wrappers
+  sliderWrap: {
+    marginVertical: 4,
+  },
+  sliderBar: {
+    width: '100%',
+    height: 40,
+  },
+  sliderRangeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+    marginTop: -8,
+    marginBottom: 6,
+  },
+  sliderRangeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  configValueSub: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+
   // Step-Up Toggle Styles
+  stepUpToggleBtnActiveBlue: {
+    borderColor: 'rgba(56, 189, 248, 0.5)',
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+  },
   stepUpStatusBadge: {
     fontSize: 11,
     fontWeight: '700',
