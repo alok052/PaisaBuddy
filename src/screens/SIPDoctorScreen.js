@@ -33,6 +33,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   const [planType, setPlanType] = useState('REGULAR');
   const [sipAmount, setSipAmount] = useState(10000);
   const [sipYears, setSipYears] = useState(15);
+  const [hasStepUp, setHasStepUp] = useState(false);
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [modalSearchText, setModalSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -85,22 +86,50 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     { id: 'ELSS', label: 'ELSS' },
   ];
 
-  // Dynamic calculations
+  // Precise Monthly Compounding Engine (13% CAGR)
+  const calcCorpus = (monthly, years, rate = 0.13, stepupPct = 0) => {
+    const mRate = rate / 12;
+    const totalMonths = years * 12;
+    let corpus = 0;
+    for (let m = 1; m <= totalMonths; m++) {
+      const yIdx = Math.floor((m - 1) / 12);
+      const curM = monthly * Math.pow(1 + stepupPct / 100, yIdx);
+      corpus += curM * Math.pow(1 + mRate, totalMonths - m + 1);
+    }
+    return corpus;
+  };
+
+  // Step-Up vs Flat calculations
+  const flatCorpus = calcCorpus(sipAmount, sipYears, 0.13, 0);
+  const stepUpCorpus = calcCorpus(sipAmount, sipYears, 0.13, 10);
+  const stepUpGain = Math.max(0, stepUpCorpus - flatCorpus);
+
+  // Dynamic wealth calculations for comparison
   const multiplier = sipAmount / 10000;
   const yearMultiplier = sipYears / 15;
-  const baseWealthCur = 46.2 * multiplier * yearMultiplier;
-  const baseWealthRep = 84.7 * multiplier * yearMultiplier;
+  const baseWealthCur = (flatCorpus / 100000);
+  const baseWealthRep = (flatCorpus * 1.48 / 100000);
   const calculatedExtraWealth = Math.max(0, baseWealthRep - baseWealthCur);
 
-  const diagnosis = selectedFund
+  const rawDiagnosis = selectedFund
     ? diagnoseFundHealth(selectedFund, planType, sipAmount, sipYears)
     : null;
 
-  // Compounding milestones
-  const m5Y = (sipAmount * 12 * 5 * 1.55 / 100000).toFixed(1);
-  const m10Y = (sipAmount * 12 * 10 * 2.35 / 100000).toFixed(1);
-  const m15Y = (sipAmount * 12 * 15 * 4.15 / 100000).toFixed(1);
-  const m20Y = (sipAmount * 12 * 20 * 7.55 / 100000).toFixed(1);
+  // Adjust score based on Step-Up discipline
+  const diagnosis = rawDiagnosis
+    ? {
+        ...rawDiagnosis,
+        healthScore: hasStepUp
+          ? Math.min(100, rawDiagnosis.healthScore + 5)
+          : Math.max(30, rawDiagnosis.healthScore - 4),
+      }
+    : null;
+
+  // Compounding milestones (reflects Step-Up if active)
+  const m5Y = (calcCorpus(sipAmount, 5, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
+  const m10Y = (calcCorpus(sipAmount, 10, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
+  const m15Y = (calcCorpus(sipAmount, 15, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
+  const m20Y = (calcCorpus(sipAmount, 20, 0.13, hasStepUp ? 10 : 0) / 100000).toFixed(1);
 
   // Filter funds for modal
   const filteredModalFunds = mockSIPFundsDatabase.filter((f) => {
@@ -392,6 +421,66 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
         </View>
       </View>
 
+      {/* Annual Step-Up Option */}
+      <View style={s.configSection}>
+        <View style={s.configLabelRow}>
+          <Text style={s.configLabel}>Annual Step-Up</Text>
+          <Text style={[s.stepUpStatusBadge, hasStepUp ? { color: '#10B981' } : { color: '#64748B' }]}>
+            {hasStepUp ? '+10% Increment / Yr' : 'Flat SIP (No Step-Up)'}
+          </Text>
+        </View>
+        <View style={s.stepUpToggleRow}>
+          <TouchableOpacity
+            style={[s.stepUpToggleBtn, !hasStepUp && s.stepUpToggleBtnActiveFlat]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setHasStepUp(false);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="remove-circle-outline"
+              size={14}
+              color={!hasStepUp ? '#F59E0B' : '#64748B'}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                s.stepUpToggleText,
+                !hasStepUp && { color: '#F59E0B', fontWeight: '800' },
+              ]}
+            >
+              Flat SIP
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[s.stepUpToggleBtn, hasStepUp && s.stepUpToggleBtnActiveStepUp]}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setHasStepUp(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="trending-up"
+              size={14}
+              color={hasStepUp ? '#10B981' : '#64748B'}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                s.stepUpToggleText,
+                hasStepUp && { color: '#10B981', fontWeight: '800' },
+              ]}
+            >
+              +10% Annual Step-Up
+            </Text>
+            {hasStepUp && <Text style={s.stepUpTagDirect}>2x Speed</Text>}
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* CTA Button */}
       <TouchableOpacity
         style={s.ctaBtn}
@@ -483,6 +572,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           <Text style={s.resultFundMeta}>
             {planType === 'DIRECT' ? 'Direct Plan' : 'Regular Plan'}
             {' \u2022 '}{'\u20B9'}{sipAmount.toLocaleString('en-IN')}/mo
+            {' \u2022 '}{hasStepUp ? '+10% Step-Up' : 'Flat SIP'}
             {' \u2022 '}{sipYears} Years
           </Text>
         </Animated.View>
@@ -492,6 +582,43 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           <Text style={s.verdictTitle}>{diagnosis.title}</Text>
           <Text style={s.verdictNote}>{diagnosis.doctorNote}</Text>
         </View>
+
+        {/* Step-Up Diagnostic Audit Card */}
+        {!hasStepUp ? (
+          <View style={s.stepUpAuditCard}>
+            <View style={s.stepUpAuditHeader}>
+              <View style={s.stepUpAlertBadge}>
+                <Ionicons name="alert-circle" size={13} color="#F59E0B" style={{ marginRight: 4 }} />
+                <Text style={s.stepUpAlertBadgeText}>FLAT SIP TRAP DETECTED</Text>
+              </View>
+              <Text style={s.stepUpGainHighlight}>+{formatWealth(stepUpGain / 100000)} Extra</Text>
+            </View>
+            <Text style={s.stepUpAuditDesc}>
+              Salary/income har saal badhti hai, lekin aapki SIP freeze hai. Har saal sirf 10% Step-Up karne se aapka corpus {formatWealth(flatCorpus / 100000)} se badhkar {formatWealth(stepUpCorpus / 100000)} ho sakta hai!
+            </Text>
+            <View style={s.stepUpCompareStrip}>
+              <View style={s.stepUpCompareItem}>
+                <Text style={s.stepUpCompareLbl}>Flat SIP ({sipYears}Y)</Text>
+                <Text style={s.stepUpCompareVal}>{formatWealth(flatCorpus / 100000)}</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={14} color="#64748B" />
+              <View style={[s.stepUpCompareItem, s.stepUpCompareItemHighlight]}>
+                <Text style={[s.stepUpCompareLbl, { color: '#10B981' }]}>With +10% Step-Up</Text>
+                <Text style={[s.stepUpCompareVal, { color: '#10B981' }]}>{formatWealth(stepUpCorpus / 100000)}</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <View style={s.stepUpSuccessCard}>
+            <Ionicons name="trending-up" size={22} color="#10B981" style={{ marginRight: 10 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.stepUpSuccessTitle}>10% Annual Step-Up Active 🚀</Text>
+              <Text style={s.stepUpSuccessDesc}>
+                Peak Compounding Mode: 10% annual increment se aapka total corpus ~{formatWealth(stepUpCorpus / 100000)} tak pahuchega.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* ===== HEALTHY PATH ===== */}
         {isHealthy ? (
@@ -1044,6 +1171,138 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#F8FAFC',
+  },
+
+  // Step-Up Toggle Styles
+  stepUpStatusBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  stepUpToggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  stepUpToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0D111A',
+    borderRadius: 10,
+    paddingVertical: 11,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  stepUpToggleBtnActiveFlat: {
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    backgroundColor: 'rgba(245, 158, 11, 0.06)',
+  },
+  stepUpToggleBtnActiveStepUp: {
+    borderColor: 'rgba(16, 185, 129, 0.5)',
+    backgroundColor: 'rgba(16, 185, 129, 0.06)',
+  },
+  stepUpToggleText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  stepUpTagDirect: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#10B981',
+    marginLeft: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+
+  // Step-Up Audit Cards in Output Mode
+  stepUpAuditCard: {
+    backgroundColor: '#0D111A',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  stepUpAuditHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  stepUpAlertBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  stepUpAlertBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.4,
+  },
+  stepUpGainHighlight: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#10B981',
+  },
+  stepUpAuditDesc: {
+    fontSize: 11.5,
+    color: '#94A3B8',
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  stepUpCompareStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#131926',
+    borderRadius: 10,
+    padding: 8,
+    justifyContent: 'space-between',
+  },
+  stepUpCompareItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  stepUpCompareItemHighlight: {
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderRadius: 8,
+    paddingVertical: 4,
+  },
+  stepUpCompareLbl: {
+    fontSize: 9,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  stepUpCompareVal: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#F8FAFC',
+    marginTop: 2,
+  },
+  stepUpSuccessCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0D111A',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  stepUpSuccessTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#10B981',
+  },
+  stepUpSuccessDesc: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 16,
   },
 
   // Plan Toggle
