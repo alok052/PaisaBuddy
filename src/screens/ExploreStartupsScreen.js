@@ -195,6 +195,9 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                       </View>
                     )}
                   </View>
+                  <Text style={styles.shortIntroText} numberOfLines={1}>
+                    {startup.shortIntro || startup.category?.split('•')[0]?.trim()}
+                  </Text>
                 </View>
               </View>
 
@@ -505,6 +508,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  shortIntroText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    fontWeight: '500',
   },
   startupName: {
     fontSize: 15.5,

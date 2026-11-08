@@ -1,6 +1,7 @@
 export const mockStartups = [
   {
     "id": "1",
+    "shortIntro": "10-Min Quick Commerce",
     "name": "Zepto",
     "category": "Quick Commerce • 10-Min Grocery Delivery",
     "city": "Mumbai",
@@ -36,6 +37,7 @@ export const mockStartups = [
   },
   {
     "id": "2",
+    "shortIntro": "EdTech & Test Prep",
     "name": "PhysicsWallah (PW)",
     "category": "EdTech, Competitive Exam Prep & Skilling",
     "city": "Noida",
@@ -70,6 +72,7 @@ export const mockStartups = [
   },
   {
     "id": "3",
+    "shortIntro": "Omnichannel Eyewear",
     "name": "Lenskart",
     "category": "Omnichannel Eyewear & Optical Technology",
     "city": "Gurugram",
@@ -105,6 +108,7 @@ export const mockStartups = [
   },
   {
     "id": "4",
+    "shortIntro": "Electric 2-Wheelers",
     "name": "Ather Energy",
     "category": "Smart Electric 2-Wheelers & Fast Charging Grid",
     "city": "Bengaluru",
@@ -140,6 +144,7 @@ export const mockStartups = [
   },
   {
     "id": "5",
+    "shortIntro": "Sovereign AI & LLMs",
     "name": "Krutrim AI",
     "category": "Full-Stack Sovereign GenAI & Indic LLMs",
     "city": "Bengaluru",
@@ -173,6 +178,7 @@ export const mockStartups = [
   },
   {
     "id": "6",
+    "shortIntro": "Commercial Airline",
     "name": "Akasa Air (SNV Aviation)",
     "category": "Next-Gen Commercial Airline Carrier",
     "city": "Mumbai",
@@ -206,6 +212,7 @@ export const mockStartups = [
   },
   {
     "id": "7",
+    "shortIntro": "E-Commerce Logistics",
     "name": "Xpressbees",
     "category": "End-to-End E-Commerce Logistics & Freight",
     "city": "Pune",
@@ -240,6 +247,7 @@ export const mockStartups = [
   },
   {
     "id": "8",
+    "shortIntro": "All-Electric Cabs",
     "name": "BluSmart EV",
     "category": "All-Electric Clean Ride-Hailing & Fast Charging",
     "city": "Gurugram",
@@ -274,6 +282,7 @@ export const mockStartups = [
   },
   {
     "id": "9",
+    "shortIntro": "Cloud Kitchen Brands",
     "name": "Curefoods (EatFit)",
     "category": "Cloud Kitchen Powerhouse & D2C Food Tech",
     "city": "Bengaluru",
@@ -308,6 +317,7 @@ export const mockStartups = [
   },
   {
     "id": "10",
+    "shortIntro": "Consumer Lending",
     "name": "KreditBee",
     "category": "Digital Consumer Lending & Credit FinTech",
     "city": "Bengaluru",
@@ -342,6 +352,7 @@ export const mockStartups = [
   },
   {
     "id": "11",
+    "shortIntro": "Retail POS & Payments",
     "name": "Innoviti Technologies",
     "category": "Enterprise Payments POS & Retail SaaS",
     "city": "Bengaluru",
@@ -376,6 +387,7 @@ export const mockStartups = [
   },
   {
     "id": "12",
+    "shortIntro": "Travel & Luggage",
     "name": "Mokobara",
     "category": "Premium D2C Travel & Luggage Lifestyle",
     "city": "Bengaluru",
@@ -409,6 +421,7 @@ export const mockStartups = [
   },
   {
     "id": "13",
+    "shortIntro": "Precision Drone Tech",
     "name": "AgriNext Drones",
     "category": "Agritech & Precision Drone Spraying",
     "city": "Pune",
@@ -442,6 +455,7 @@ export const mockStartups = [
   },
   {
     "id": "14",
+    "shortIntro": "Farm-Fresh Dairy",
     "name": "Country Delight",
     "category": "Farm-to-Door Pure Milk & Fresh Groceries",
     "city": "Gurugram",
