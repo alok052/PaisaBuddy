@@ -194,17 +194,21 @@ export async function fetchLiveStartups() {
       return mockStartups;
     }
 
-    const supabaseIds = new Set(data.map((d) => d.id));
+    const supabaseIds = new Set(data.map((d) => String(d.id)));
     const mergedList = data.map((item) => {
-      const local = mockStartups.find((m) => m.id === item.id) || {};
+      const local = mockStartups.find((m) =>
+        m.name.toLowerCase().trim() === (item.name || '').toLowerCase().trim() ||
+        String(m.id) === String(item.id)
+      ) || {};
       return {
         ...local,
-        id: item.id,
-        name: item.name,
+        id: String(item.id),
+        name: item.name || local.name,
+        shortIntro: local.shortIntro || (item.category ? item.category.split('•')[0].trim() : 'Growth Venture'),
         category: item.category || local.category,
         city: item.city || local.city,
         stage: item.stage || local.stage,
-        isUnicorn: item.is_unicorn !== undefined ? item.is_unicorn : local.isUnicorn,
+        isUnicorn: local.isUnicorn !== undefined ? local.isUnicorn : (item.is_unicorn !== undefined ? item.is_unicorn : false),
         valuation: item.valuation || local.valuation,
         totalRaised: item.total_raised || local.totalRaised,
         minInvestment: item.min_investment || local.minInvestment,
@@ -214,16 +218,15 @@ export async function fetchLiveStartups() {
         progressPercent: item.progress_percent || local.progressPercent,
         daysLeft: item.days_left || local.daysLeft,
         investorCount: item.investor_count || local.investorCount,
-        iconBg: item.icon_bg || local.iconBg,
-        iconEmoji: item.icon_emoji || local.iconEmoji,
+        iconBg: local.iconBg || item.icon_bg || '#1E293B',
+        iconEmoji: local.iconEmoji || item.icon_emoji || '🚀',
         investors: item.investors || local.investors || [],
         growthMetric: item.growth_metric || local.growthMetric,
-        whaleBacker: local.whaleBacker,
-        founders: local.founders,
-        arrRevenue: local.arrRevenue,
+        whaleBacker: local.whaleBacker || item.whale_backer || 'Top VC Syndicate',
+        arrRevenue: local.arrRevenue || '₹250 Cr ARR',
         grossMargin: local.grossMargin,
-        targetExit: local.targetExit,
-        pitchThesis: local.pitchThesis,
+        targetExit: local.targetExit || 'IPO / Strategic Exit',
+        pitchThesis: local.pitchThesis || 'Category leader with dominant market share.',
         escrowBank: local.escrowBank || 'ICICI Bank Escrow / Axis Trustee',
         instrument: local.instrument || 'CCPS in CDSL/NSDL Demat',
       };

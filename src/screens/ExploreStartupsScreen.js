@@ -191,7 +191,7 @@ export default function ExploreStartupsScreen({ onOpenMenu }) {
                     </Text>
                     {startup.isUnicorn && (
                       <View style={styles.unicornBadge}>
-                        <Text style={styles.unicornText}>🦄 Unicorn</Text>
+                        <Text style={styles.unicornEmoji}>🦄</Text>
                       </View>
                     )}
                   </View>
@@ -522,17 +522,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   unicornBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
     paddingHorizontal: 5,
     paddingVertical: 1.5,
-    borderRadius: 4,
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  unicornText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#F59E0B',
+  unicornEmoji: {
+    fontSize: 10.5,
   },
   categoryText: {
     fontSize: 11,
