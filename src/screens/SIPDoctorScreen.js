@@ -24,7 +24,6 @@ import {
 } from '../data/mockSIPFunds';
 
 export default function SIPDoctorScreen({ onOpenMenu }) {
-  // Start with NO fund pre-selected so user can choose themselves
   const [selectedFund, setSelectedFund] = useState(null);
   const [planType, setPlanType] = useState('REGULAR'); // 'REGULAR' | 'DIRECT'
   const [sipAmount, setSipAmount] = useState(10000);
@@ -46,23 +45,22 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   ];
 
   const yearTiers = [
-    { label: '5 Yrs', value: 5, tag: 'Base' },
-    { label: '10 Yrs', value: 10, tag: 'Growth' },
-    { label: '15 Yrs', value: 15, tag: 'Compound' },
-    { label: '20 Yrs', value: 20, tag: 'Freedom' },
+    { label: '5Y', value: 5 },
+    { label: '10Y', value: 10 },
+    { label: '15Y', value: 15 },
+    { label: '20Y', value: 20 },
   ];
 
   const categories = [
-    { id: 'ALL', label: 'All Funds' },
+    { id: 'ALL', label: 'All' },
     { id: 'LARGE', label: 'Large Cap' },
-    { id: 'FLEXI', label: 'Flexi & Multi' },
+    { id: 'FLEXI', label: 'Flexi Cap' },
     { id: 'MID', label: 'Mid Cap' },
     { id: 'SMALL', label: 'Small Cap' },
-    { id: 'HYBRID', label: 'Hybrid / BAF' },
-    { id: 'ELSS', label: 'ELSS Tax' },
+    { id: 'HYBRID', label: 'Hybrid' },
+    { id: 'ELSS', label: 'ELSS' },
   ];
 
-  // Quick popular picks for 1-tap testing
   const popularFundIds = [
     'parag_parikh_flexicap',
     'nippon_smallcap',
@@ -70,30 +68,27 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     'quant_smallcap',
     'uti_nifty50_reg',
     'sbi_contra',
-    'axis_bluechip',
-    'icici_bluechip',
   ];
   const popularFunds = mockSIPFundsDatabase.filter((f) => popularFundIds.includes(f.id));
 
-  // Dynamic calculations based on SIP amount & years
+  // Dynamic calculations
   const multiplier = sipAmount / 10000;
   const yearMultiplier = sipYears / 15;
   const baseWealthCur = 46.2 * multiplier * yearMultiplier;
   const baseWealthRep = 84.7 * multiplier * yearMultiplier;
   const calculatedExtraWealth = Math.max(0, baseWealthRep - baseWealthCur);
 
-  // Diagnostic outcome calculation (safely guarded when selectedFund is null)
   const diagnosis = selectedFund
     ? diagnoseFundHealth(selectedFund, planType, sipAmount, sipYears)
     : null;
 
-  // Compounding milestones for healthy portfolio
+  // Compounding milestones
   const m5Y = (sipAmount * 12 * 5 * 1.55 / 100000).toFixed(1);
   const m10Y = (sipAmount * 12 * 10 * 2.35 / 100000).toFixed(1);
   const m15Y = (sipAmount * 12 * 15 * 4.15 / 100000).toFixed(1);
   const m20Y = (sipAmount * 12 * 20 * 7.55 / 100000).toFixed(1);
 
-  // Filter fund database for modal search
+  // Filter modal funds
   const filteredModalFunds = mockSIPFundsDatabase.filter((f) => {
     const matchesSearch =
       f.name.toLowerCase().includes(modalSearchText.toLowerCase()) ||
@@ -140,7 +135,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
       setIsAnalyzing(false);
       setHasAnalyzed(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 600);
+    }, 500);
   };
 
   const handleReset = () => {
@@ -150,338 +145,204 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Premium Brand Header */}
+      {/* Clean Header */}
       <AppHeader
-        subtitle="Portfolio Health & Leakage Audit"
+        subtitle="Portfolio Health Check"
         onMenuPress={onOpenMenu}
       />
 
-      {/* Fiduciary Guarantee Strip (Native floating surface) */}
-      <View style={styles.fiduciaryBanner}>
-        <View style={styles.fiduciaryItem}>
-          <Ionicons name="medkit" size={13} color="#10B981" />
-          <Text style={styles.fiduciaryText} numberOfLines={1}>0% Churn Doctor</Text>
-        </View>
-        <View style={styles.fiduciaryDivider} />
-        <View style={styles.fiduciaryItem}>
-          <Ionicons name="shield-checkmark" size={13} color="#38BDF8" />
-          <Text style={styles.fiduciaryText} numberOfLines={1}>SEBI Direct Engine</Text>
-        </View>
-        <View style={styles.fiduciaryDivider} />
-        <View style={styles.fiduciaryItem}>
-          <Ionicons name="cash-outline" size={13} color="#F59E0B" />
-          <Text style={styles.fiduciaryText} numberOfLines={1}>₹0 Agent Comm.</Text>
-        </View>
-      </View>
-
       {!hasAnalyzed ? (
         /* ========================================================= */
-        /* OPEN NATIVE INPUT LAYOUT (NO MONOLITHIC BOX CONTAINER)    */
+        /* CLEAN, MINIMAL INPUT FLOW (NO TEXT CLUTTER)               */
         /* ========================================================= */
-        <View style={styles.openContentWrapper}>
-          {/* Hero Editorial Header */}
-          <View style={styles.heroSection}>
-            <View style={styles.heroAuraPill}>
-              <View style={styles.heroPulseDot} />
-              <Text style={styles.heroAuraText}>CLINICAL PORTFOLIO AUDIT</Text>
-            </View>
-            <Text style={styles.heroTitle}>Is your SIP leaking wealth?</Text>
-            <Text style={styles.heroSubtitle}>
-              Detect silent ~1% regular commission drains, verify benchmark alpha, or confirm your portfolio fitness.
-            </Text>
-          </View>
+        <View style={styles.flowWrapper}>
+          {/* 1. FUND SELECTOR (SEARCH BAR OR COMPACT CARD) */}
+          <Text style={styles.miniLabel}>MUTUAL FUND SCHEME</Text>
 
-          {/* SECTION 1: SCHEME UNDER EXAMINATION */}
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>1. SCHEME UNDER EXAMINATION</Text>
-            <TouchableOpacity
-              onPress={() => setSearchModalVisible(true)}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.sectionActionText}>Browse 50+ Schemes →</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* DYNAMIC CARD: EMPTY STATE vs ACTIVE SELECTED FUND */}
           {!selectedFund ? (
-            /* EMPTY STATE: USER HAS NOT SELECTED ANY FUND YET */
+            /* Search Trigger */
             <TouchableOpacity
-              style={styles.emptyAssetCard}
-              activeOpacity={0.85}
+              style={styles.searchBarTrigger}
+              activeOpacity={0.8}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSearchModalVisible(true);
               }}
             >
-              <LinearGradient
-                colors={['#0F172A', '#0D111A']}
-                style={styles.emptyAssetGrad}
-              >
-                <View style={styles.emptyAssetTopRow}>
-                  <View style={styles.emptySearchIconAperture}>
-                    <Ionicons name="search" size={20} color="#38BDF8" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={styles.emptyAssetTitle}>Select Mutual Fund Scheme</Text>
-                    <Text style={styles.emptyAssetSub}>
-                      Tap here to search from 50+ schemes or type any AMC fund name
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Simulated Search Trigger Bar */}
-                <View style={styles.emptySearchFakeInput}>
-                  <Ionicons name="search-outline" size={15} color="#64748B" style={{ marginRight: 8 }} />
-                  <Text style={styles.emptySearchFakeText} numberOfLines={1}>
-                    Search fund (e.g. Parag Parikh, SBI, HDFC, Quant)...
-                  </Text>
-                  <View style={styles.emptySearchBadge}>
-                    <Text style={styles.emptySearchBadgeText}>Search</Text>
-                    <Ionicons name="chevron-forward" size={12} color="#38BDF8" />
-                  </View>
-                </View>
-              </LinearGradient>
+              <Ionicons name="search" size={17} color="#38BDF8" style={{ marginRight: 10 }} />
+              <Text style={styles.searchPlaceholderText}>
+                Search 50+ schemes (Parag Parikh, SBI, HDFC)...
+              </Text>
+              <Ionicons name="chevron-forward" size={15} color="#64748B" />
             </TouchableOpacity>
           ) : (
-            /* ACTIVE STATE: USER SELECTED A SPECIFIC FUND */
-            <View style={styles.heroAssetCard}>
-              {/* Asset Top Tags */}
-              <View style={styles.assetTagRow}>
-                <View style={styles.assetAmcBadge}>
-                  <Text style={styles.assetAmcText}>{selectedFund.amc || 'MUTUAL FUND'}</Text>
-                </View>
-                <View style={styles.assetCategoryBadge}>
-                  <Text style={styles.assetCategoryText}>{selectedFund.category}</Text>
-                </View>
-                <View style={styles.assetStarBadge}>
-                  <Ionicons name="star" size={10} color="#F59E0B" style={{ marginRight: 3 }} />
-                  <Text style={styles.assetStarText}>SEBI Registered</Text>
+            /* Clean Selected Fund Card */
+            <View style={styles.selectedFundCard}>
+              <View style={styles.selectedFundTop}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.selectedFundName} numberOfLines={1}>
+                    {selectedFund.name}
+                  </Text>
+                  <Text style={styles.selectedFundMeta}>
+                    {selectedFund.amc || 'AMC'} • {selectedFund.category}
+                  </Text>
                 </View>
 
-                {/* Clear Fund Button */}
+                {/* Clear Button */}
                 <TouchableOpacity
-                  style={styles.clearFundChip}
                   onPress={() => {
                     Haptics.selectionAsync();
                     setSelectedFund(null);
                   }}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  style={styles.clearBtn}
                 >
-                  <Ionicons name="close-circle" size={14} color="#94A3B8" />
-                  <Text style={styles.clearFundText}>Clear</Text>
+                  <Ionicons name="close-circle" size={18} color="#94A3B8" />
                 </TouchableOpacity>
               </View>
 
-              {/* Scheme Name */}
-              <Text style={styles.assetTitle}>{selectedFund.name}</Text>
-
-              {/* Micro Metrics Grid */}
-              <View style={styles.assetMetricsGrid}>
-                <View style={styles.assetMetricCol}>
-                  <Text style={styles.assetMetricLabel}>EXPENSE RATIO</Text>
-                  <Text style={styles.assetMetricValue}>{selectedFund.currentExpense}</Text>
-                  <Text style={styles.assetMetricSub}>
-                    {planType === 'DIRECT' ? 'Direct (0% Cut)' : 'Regular Plan'}
-                  </Text>
+              {/* 3 Clean Numbers */}
+              <View style={styles.selectedMetricsRow}>
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricLabel}>EXPENSE</Text>
+                  <Text style={styles.metricVal}>{selectedFund.currentExpense}</Text>
                 </View>
-                <View style={styles.assetMetricDivider} />
-                <View style={styles.assetMetricCol}>
-                  <Text style={styles.assetMetricLabel}>5Y CAGR</Text>
-                  <Text style={[styles.assetMetricValue, { color: '#10B981' }]}>
+                <View style={styles.metricDivider} />
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricLabel}>5Y CAGR</Text>
+                  <Text style={[styles.metricVal, { color: '#10B981' }]}>
                     {selectedFund.currentCagr}
                   </Text>
-                  <Text style={styles.assetMetricSub}>Historical</Text>
                 </View>
-                <View style={styles.assetMetricDivider} />
-                <View style={styles.assetMetricCol}>
-                  <Text style={styles.assetMetricLabel}>BENCHMARK</Text>
-                  <Text style={styles.assetMetricValue} numberOfLines={1}>
-                    {selectedFund.benchmarkName || 'Nifty 50'}
-                  </Text>
-                  <Text style={styles.assetMetricSub}>
-                    Alpha: {selectedFund.alphaVsBenchmark || '+0.0%'}
+                <View style={styles.metricDivider} />
+                <View style={styles.metricItem}>
+                  <Text style={styles.metricLabel}>ALPHA</Text>
+                  <Text style={[styles.metricVal, { color: selectedFund.alphaVsBenchmark?.includes('-') ? '#EF4444' : '#38BDF8' }]}>
+                    {selectedFund.alphaVsBenchmark || '0.0%'}
                   </Text>
                 </View>
               </View>
 
-              {/* Change Fund Trigger Button */}
               <TouchableOpacity
-                style={styles.assetChangeBtn}
-                activeOpacity={0.8}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSearchModalVisible(true);
-                }}
+                style={styles.changeAction}
+                onPress={() => setSearchModalVisible(true)}
+                activeOpacity={0.7}
               >
-                <Ionicons name="swap-horizontal" size={15} color="#38BDF8" style={{ marginRight: 6 }} />
-                <Text style={styles.assetChangeBtnText}>Change Scheme (Search 50+ Funds)</Text>
-                <Ionicons name="chevron-forward" size={14} color="#38BDF8" />
+                <Text style={styles.changeActionText}>Change Fund →</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Quick-Pick Popular Scheme Chips */}
-          <View style={styles.quickPickContainer}>
-            <Text style={styles.quickPickHeaderLabel}>POPULAR SCHEMES (1-TAP SELECT):</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 10 }}
-            >
-              {popularFunds.map((fund) => {
-                const isCur = selectedFund && selectedFund.id === fund.id;
-                const shortName = fund.name
-                  .replace(' Fund', '')
-                  .replace(' (Regular)', '')
-                  .replace(' Opportunities', '')
-                  .replace(' Prudential', '');
+          {/* Quick-Pick Popular Scheme Pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.quickScroll}
+            contentContainerStyle={{ paddingVertical: 2 }}
+          >
+            {popularFunds.map((fund) => {
+              const isCur = selectedFund && selectedFund.id === fund.id;
+              const shortName = fund.name
+                .replace(' Fund', '')
+                .replace(' (Regular)', '')
+                .replace(' Opportunities', '')
+                .replace(' Prudential', '');
 
-                return (
-                  <TouchableOpacity
-                    key={fund.id}
-                    style={[styles.quickPickPill, isCur && styles.quickPickPillActive]}
-                    onPress={() => handleSelectFund(fund)}
-                    activeOpacity={0.75}
-                  >
-                    {isCur ? (
-                      <Ionicons name="checkmark-circle" size={12} color="#38BDF8" style={{ marginRight: 5 }} />
-                    ) : (
-                      <Ionicons name="flash" size={11} color="#F59E0B" style={{ marginRight: 5 }} />
-                    )}
-                    <Text style={[styles.quickPickPillText, isCur && styles.quickPickPillTextActive]}>
-                      {shortName}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
+              return (
+                <TouchableOpacity
+                  key={fund.id}
+                  style={[styles.quickChip, isCur && styles.quickChipActive]}
+                  onPress={() => handleSelectFund(fund)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.quickChipText, isCur && styles.quickChipTextActive]}>
+                    {shortName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
-          {/* SECTION 2: PLAN ARCHITECTURE (DIRECT VS REGULAR) */}
-          <Text style={[styles.sectionTitle, { marginTop: 18 }]}>
-            2. PLAN TYPE (WHERE IS YOUR SIP RUNNING?)
-          </Text>
-
-          <View style={styles.planSelectorRow}>
-            {/* Direct Plan Card */}
+          {/* 2. PLAN TYPE (SLEEK SEGMENTED SWITCHER) */}
+          <Text style={[styles.miniLabel, { marginTop: 14 }]}>PLAN TYPE</Text>
+          <View style={styles.segmentedControl}>
             <TouchableOpacity
               style={[
-                styles.planOptionCard,
-                planType === 'DIRECT' && styles.planOptionCardDirectActive,
+                styles.segmentTab,
+                planType === 'DIRECT' && styles.segmentTabActiveDirect,
               ]}
               onPress={() => {
                 Haptics.selectionAsync();
                 setPlanType('DIRECT');
               }}
-              activeOpacity={0.85}
+              activeOpacity={0.8}
             >
-              <View style={styles.planCardHeader}>
-                <View
-                  style={[
-                    styles.planIconWrapper,
-                    { backgroundColor: planType === 'DIRECT' ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 255, 255, 0.04)' },
-                  ]}
-                >
-                  <Ionicons
-                    name="flash"
-                    size={16}
-                    color={planType === 'DIRECT' ? '#10B981' : '#64748B'}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.planTitle, planType === 'DIRECT' && { color: '#10B981' }]}>
-                    Direct Plan
-                  </Text>
-                  <Text style={styles.planBadgeText}>0% COMMISSION</Text>
-                </View>
-                {planType === 'DIRECT' && (
-                  <Ionicons name="checkmark-circle" size={18} color="#10B981" />
-                )}
-              </View>
-              <Text style={styles.planDescription}>
-                Via Zerodha Coin, Groww Direct, Kuvera, or AMC website.
+              <Ionicons
+                name="flash"
+                size={13}
+                color={planType === 'DIRECT' ? '#10B981' : '#64748B'}
+                style={{ marginRight: 5 }}
+              />
+              <Text
+                style={[
+                  styles.segmentText,
+                  planType === 'DIRECT' && styles.segmentTextActiveDirect,
+                ]}
+              >
+                Direct (0% Cut)
               </Text>
             </TouchableOpacity>
 
-            {/* Regular Plan Card */}
             <TouchableOpacity
               style={[
-                styles.planOptionCard,
-                planType === 'REGULAR' && styles.planOptionCardRegularActive,
+                styles.segmentTab,
+                planType === 'REGULAR' && styles.segmentTabActiveRegular,
               ]}
               onPress={() => {
                 Haptics.selectionAsync();
                 setPlanType('REGULAR');
               }}
-              activeOpacity={0.85}
+              activeOpacity={0.8}
             >
-              <View style={styles.planCardHeader}>
-                <View
-                  style={[
-                    styles.planIconWrapper,
-                    { backgroundColor: planType === 'REGULAR' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(255, 255, 255, 0.04)' },
-                  ]}
-                >
-                  <Ionicons
-                    name="business"
-                    size={16}
-                    color={planType === 'REGULAR' ? '#F59E0B' : '#64748B'}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.planTitle, planType === 'REGULAR' && { color: '#F59E0B' }]}>
-                    Regular Plan
-                  </Text>
-                  <Text style={[styles.planBadgeText, { color: '#F59E0B' }]}>~1% ANNUAL CUT</Text>
-                </View>
-                {planType === 'REGULAR' && (
-                  <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
-                )}
-              </View>
-              <Text style={styles.planDescription}>
-                Via Bank Branch, RM, Financial Agent, or Distributor.
+              <Ionicons
+                name="business"
+                size={13}
+                color={planType === 'REGULAR' ? '#F59E0B' : '#64748B'}
+                style={{ marginRight: 5 }}
+              />
+              <Text
+                style={[
+                  styles.segmentText,
+                  planType === 'REGULAR' && styles.segmentTextActiveRegular,
+                ]}
+              >
+                Regular (~1% Cut)
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* SECTION 3: MONTHLY SIP ALLOCATION & HORIZON */}
-          <View style={styles.amountHorizonCard}>
-            <View style={styles.amountHeaderRow}>
-              <View>
-                <Text style={styles.amountSectionLabel}>MONTHLY SIP COMMITMENT</Text>
-                <Text style={styles.amountHeroDisplay}>
-                  ₹{sipAmount.toLocaleString('en-IN')}{' '}
-                  <Text style={styles.amountHeroUnit}>/ month</Text>
-                </Text>
-              </View>
-              <View style={styles.horizonBadge}>
-                <Ionicons name="hourglass-outline" size={12} color="#38BDF8" style={{ marginRight: 4 }} />
-                <Text style={styles.horizonBadgeText}>{sipYears} Years Horizon</Text>
-              </View>
+          {/* 3. SIP AMOUNT & HORIZON (CLEAN COMPACT CARD) */}
+          <View style={styles.calcCard}>
+            {/* Amount */}
+            <View style={styles.calcRowHeader}>
+              <Text style={styles.calcLabel}>MONTHLY SIP</Text>
+              <Text style={styles.calcVal}>₹{sipAmount.toLocaleString('en-IN')}</Text>
             </View>
 
-            {/* Amount Quick Tiers */}
-            <View style={styles.tierPillsRow}>
+            <View style={styles.pillRow}>
               {sipAmounts.map((tier) => {
                 const isSelected = sipAmount === tier.value;
                 return (
                   <TouchableOpacity
                     key={tier.value}
-                    style={[styles.tierPillButton, isSelected && styles.tierPillButtonActive]}
+                    style={[styles.pillBtn, isSelected && styles.pillBtnActive]}
                     onPress={() => {
                       Haptics.selectionAsync();
                       setSipAmount(tier.value);
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.tierPillButtonText,
-                        isSelected && styles.tierPillButtonTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.pillBtnText, isSelected && styles.pillBtnTextActive]}>
                       {tier.label}
                     </Text>
                   </TouchableOpacity>
@@ -489,38 +350,29 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
               })}
             </View>
 
-            <View style={styles.cardSeparator} />
+            <View style={styles.calcDivider} />
 
-            {/* Horizon Selection Row */}
-            <Text style={styles.horizonSectionLabel}>INVESTMENT HORIZON (COMPOUNDING PHASES)</Text>
-            <View style={styles.horizonPillsRow}>
+            {/* Horizon */}
+            <View style={styles.calcRowHeader}>
+              <Text style={styles.calcLabel}>HORIZON</Text>
+              <Text style={styles.calcVal}>{sipYears} Years</Text>
+            </View>
+
+            <View style={styles.pillRow}>
               {yearTiers.map((tier) => {
                 const isSelected = sipYears === tier.value;
                 return (
                   <TouchableOpacity
                     key={tier.value}
-                    style={[styles.horizonPillButton, isSelected && styles.horizonPillButtonActive]}
+                    style={[styles.pillBtn, isSelected && styles.pillBtnActive]}
                     onPress={() => {
                       Haptics.selectionAsync();
                       setSipYears(tier.value);
                     }}
                     activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.horizonPillText,
-                        isSelected && styles.horizonPillTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.pillBtnText, isSelected && styles.pillBtnTextActive]}>
                       {tier.label}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.horizonPillSub,
-                        isSelected && styles.horizonPillSubActive,
-                      ]}
-                    >
-                      {tier.tag}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -528,350 +380,210 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             </View>
           </View>
 
-          {/* PRIMARY EXECUTIVE CTA: DYNAMIC BASED ON SELECTION */}
-          {selectedFund ? (
-            <TouchableOpacity
-              style={styles.runAuditButton}
-              activeOpacity={0.88}
-              onPress={handleRunDiagnostic}
-              disabled={isAnalyzing}
+          {/* 4. PRIMARY AUDIT BUTTON (PUNCHY, NO PARAGRAPH) */}
+          <TouchableOpacity
+            style={styles.ctaButton}
+            activeOpacity={0.88}
+            onPress={handleRunDiagnostic}
+            disabled={isAnalyzing}
+          >
+            <LinearGradient
+              colors={['#38BDF8', '#2563EB']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaGradient}
             >
-              <LinearGradient
-                colors={['#38BDF8', '#2563EB']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.runAuditGradient}
-              >
-                {isAnalyzing ? (
-                  <View style={styles.runBtnInner}>
-                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 10 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.runBtnTitle}>RUNNING FIDUCIARY CLINICAL AUDIT...</Text>
-                      <Text style={styles.runBtnSub}>Auditing expense ratio drag & rolling alpha</Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.runBtnInner}>
-                    <View style={styles.runBtnIconAperture}>
-                      <Ionicons name="pulse" size={18} color="#FFFFFF" />
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text style={styles.runBtnTitle}>DIAGNOSE PORTFOLIO HEALTH</Text>
-                      <Text style={styles.runBtnSub}>
-                        Fiduciary diagnosis • Zero churn promise • Instant remedy
-                      </Text>
-                    </View>
-                    <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ opacity: 0.9 }} />
-                  </View>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            /* USER HAS NOT CHOSEN A FUND YET -> GUIDED SEARCH CTA */
-            <TouchableOpacity
-              style={styles.runAuditButton}
-              activeOpacity={0.88}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setSearchModalVisible(true);
-              }}
-            >
-              <LinearGradient
-                colors={['#131D2E', '#0B111E']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.runAuditGradient, { borderColor: 'rgba(56, 189, 248, 0.35)', borderWidth: 1 }]}
-              >
-                <View style={styles.runBtnInner}>
-                  <View style={[styles.runBtnIconAperture, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                    <Ionicons name="search" size={18} color="#38BDF8" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={[styles.runBtnTitle, { color: '#38BDF8' }]}>
-                      SELECT MUTUAL FUND TO AUDIT
-                    </Text>
-                    <Text style={styles.runBtnSub}>
-                      Tap here to pick from 50+ schemes and run health check
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color="#38BDF8" />
+              {isAnalyzing ? (
+                <View style={styles.ctaInner}>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.ctaText}>Auditing Portfolio Health...</Text>
                 </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+              ) : (
+                <View style={styles.ctaInner}>
+                  <Ionicons
+                    name={selectedFund ? 'pulse' : 'search'}
+                    size={17}
+                    color="#FFFFFF"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.ctaText}>
+                    {selectedFund ? 'Check SIP Health →' : 'Select a Fund to Check →'}
+                  </Text>
+                </View>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
       ) : (
         /* ========================================================= */
-        /* DIAGNOSTIC REPORT & ACTIONABLE PRESCRIPTION               */
+        /* CLEAN CLINICAL REPORT CARD (PUNCHY & MINIMAL)             */
         /* ========================================================= */
-        <View style={styles.resultsContainer}>
-          {/* Main Health Diagnostic Card */}
-          <View style={[styles.diagnosticCard, { borderColor: diagnosis?.healthColor + '40' }]}>
-            <View style={styles.diagHeaderRow}>
-              <View style={{ flex: 1, marginRight: 10 }}>
-                <Text style={styles.diagSub}>CLINICAL VERDICT</Text>
-                <Text style={styles.diagFundName}>{selectedFund?.name}</Text>
-                <Text style={styles.diagCategory}>
-                  {selectedFund?.amc || 'Mutual Fund'} • {planType === 'DIRECT' ? 'Direct Plan (0% Cut)' : 'Regular Plan'}
+        <View style={styles.reportWrapper}>
+          {/* Verdict Score Hero */}
+          <View style={[styles.scoreHeroCard, { borderColor: diagnosis?.healthColor + '40' }]}>
+            <View style={styles.scoreRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.reportFundName} numberOfLines={1}>
+                  {selectedFund?.name}
+                </Text>
+                <Text style={styles.reportFundSub}>
+                  {planType === 'DIRECT' ? 'Direct Plan (0% Commission)' : 'Regular Plan (~1% Leak)'}
                 </Text>
               </View>
 
-              <View style={[styles.healthScoreBadge, { backgroundColor: diagnosis?.healthColor + '18' }]}>
-                <Ionicons name="medkit" size={15} color={diagnosis?.healthColor} style={{ marginRight: 5 }} />
-                <Text style={[styles.healthScoreText, { color: diagnosis?.healthColor }]}>
-                  {diagnosis?.healthScore}/100
+              <View style={[styles.scoreBadge, { backgroundColor: diagnosis?.healthColor + '18' }]}>
+                <Text style={[styles.scoreNumber, { color: diagnosis?.healthColor }]}>
+                  {diagnosis?.healthScore}
                 </Text>
+                <Text style={[styles.scoreOutOf, { color: diagnosis?.healthColor }]}>/100</Text>
               </View>
             </View>
 
-            {/* Doctor Note Box */}
-            <View style={[styles.leakNoteBox, { backgroundColor: diagnosis?.healthColor + '10' }]}>
-              <View style={styles.leakTagRow}>
-                <View style={[styles.leakDot, { backgroundColor: diagnosis?.healthColor }]} />
-                <Text style={[styles.leakTagTitle, { color: diagnosis?.healthColor }]}>
-                  {diagnosis?.healthTag}
-                </Text>
-              </View>
-              <Text style={styles.leakTagHeading}>{diagnosis?.title}</Text>
-              <Text style={styles.leakTagReason}>{diagnosis?.doctorNote}</Text>
+            {/* 1-Sentence Punchy Verdict */}
+            <View style={[styles.verdictStrip, { backgroundColor: diagnosis?.healthColor + '10' }]}>
+              <View style={[styles.verdictDot, { backgroundColor: diagnosis?.healthColor }]} />
+              <Text style={styles.verdictHeading}>
+                {diagnosis?.isHealthy
+                  ? 'Healthy Portfolio (No Action Needed)'
+                  : diagnosis?.statusType === 'SWITCH_TO_DIRECT'
+                  ? 'Commission Leak Detected'
+                  : 'Underperforming Benchmark'}
+              </Text>
             </View>
 
-            {/* Doctor's Official Prescription Callout */}
-            <View style={styles.prescriptionBox}>
-              <View style={styles.prescriptionHeader}>
-                <Ionicons name="receipt-outline" size={16} color="#38BDF8" />
-                <Text style={styles.prescriptionTitle}>DOCTOR'S PRESCRIPTION (ILAJ):</Text>
-              </View>
-              <Text style={styles.prescriptionMainText}>{diagnosis?.prescription}</Text>
-              {diagnosis?.prescriptionPoints?.map((pt, idx) => (
-                <View key={idx} style={styles.prescPointRow}>
-                  <Ionicons name="checkmark-circle" size={14} color="#10B981" style={{ marginTop: 2 }} />
-                  <Text style={styles.prescPointText}>{pt}</Text>
-                </View>
-              ))}
-            </View>
+            <Text style={styles.shortVerdictText}>
+              {diagnosis?.isHealthy
+                ? 'Aapka fund Direct Plan me bilkul swasth hai aur benchmark ko beat/match kar raha hai. 19-20 ka market cycle fark normal hota hai. Fund change mat karein, SIP continue rakhein.'
+                : diagnosis?.statusType === 'SWITCH_TO_DIRECT'
+                ? 'Fund accha hai, par Regular Plan hone se har saal ~1% distributor commission kat raha hai. Same fund ke Direct Plan me switch karein.'
+                : `${selectedFund?.name} benchmark se peechhe chal raha hai. Low-cost Direct Index Fund me shift karna behtar hoga.`}
+            </Text>
           </View>
 
-          {/* ======================================================== */}
-          {/* SCENARIO 1: 100% HEALTHY (19-20 KA FARK) -> ZERO CHURN!  */}
-          {/* ======================================================== */}
+          {/* SCENARIO 1: HEALTHY (ZERO CHURN) */}
           {diagnosis?.isHealthy ? (
-            <View style={styles.healthyContainer}>
-              {/* Disciplined Investor Certificate */}
-              <View style={styles.healthyCard}>
-                <View style={styles.healthyHeaderRow}>
-                  <Ionicons name="trophy" size={22} color="#F59E0B" />
-                  <Text style={styles.healthyTitle}>Certified Disciplined Investor 🏆</Text>
-                </View>
-                <Text style={styles.healthySubText}>
-                  Aapka fund bilkul swasth hai. Jo 19-20 ka mamuli return difference market cycles me hota hai, uske liye bar-bar fund switch karna portfolio ko nuksan pahuchata hai. Stay the course!
+            <View style={styles.healthyBlock}>
+              {/* Compounding Milestones (Clean Numbers) */}
+              <View style={styles.milestoneCard}>
+                <Text style={styles.milestoneTitle}>
+                  COMPOUNDING TRAJECTORY (AT ₹{sipAmount.toLocaleString('en-IN')}/MO):
                 </Text>
-
-                {/* Compounding Milestones Roadmap */}
-                <Text style={styles.milestoneHeading}>
-                  YOUR COMPOUNDING ROADMAP (AT ₹{sipAmount.toLocaleString('en-IN')}/MO):
-                </Text>
-                <View style={styles.milestoneGrid}>
-                  <View style={styles.milestoneItem}>
-                    <Text style={styles.milestoneYear}>5 Yrs</Text>
-                    <Text style={styles.milestoneAmt}>₹{m5Y} Lakh</Text>
-                    <Text style={styles.milestoneLabel}>Initial Base</Text>
+                <View style={styles.milestoneRow}>
+                  <View style={styles.milestoneCol}>
+                    <Text style={styles.mYear}>5Y</Text>
+                    <Text style={styles.mAmt}>₹{m5Y}L</Text>
                   </View>
-                  <View style={styles.milestoneItem}>
-                    <Text style={styles.milestoneYear}>10 Yrs</Text>
-                    <Text style={styles.milestoneAmt}>₹{m10Y} Lakh</Text>
-                    <Text style={styles.milestoneLabel}>Momentum</Text>
+                  <View style={styles.milestoneCol}>
+                    <Text style={styles.mYear}>10Y</Text>
+                    <Text style={styles.mAmt}>₹{m10Y}L</Text>
                   </View>
-                  <View style={styles.milestoneItem}>
-                    <Text style={styles.milestoneYear}>15 Yrs</Text>
-                    <Text style={[styles.milestoneAmt, { color: '#38BDF8' }]}>₹{m15Y} Lakh</Text>
-                    <Text style={styles.milestoneLabel}>Compounding</Text>
+                  <View style={styles.milestoneCol}>
+                    <Text style={styles.mYear}>15Y</Text>
+                    <Text style={[styles.mAmt, { color: '#38BDF8' }]}>₹{m15Y}L</Text>
                   </View>
-                  <View style={styles.milestoneItem}>
-                    <Text style={styles.milestoneYear}>20 Yrs</Text>
-                    <Text style={[styles.milestoneAmt, { color: '#10B981' }]}>
-                      {parseFloat(m20Y) >= 100 ? `₹${(parseFloat(m20Y) / 100).toFixed(2)} Cr` : `₹${m20Y} L`}
+                  <View style={styles.milestoneCol}>
+                    <Text style={styles.mYear}>20Y</Text>
+                    <Text style={[styles.mAmt, { color: '#10B981' }]}>
+                      {parseFloat(m20Y) >= 100 ? `₹${(parseFloat(m20Y) / 100).toFixed(2)}Cr` : `₹${m20Y}L`}
                     </Text>
-                    <Text style={styles.milestoneLabel}>Financial Freedom</Text>
                   </View>
                 </View>
               </View>
 
-              {/* Reset / Audit Another */}
-              <TouchableOpacity style={styles.resetBtn} activeOpacity={0.8} onPress={handleReset}>
-                <Ionicons name="refresh" size={16} color="#94A3B8" style={{ marginRight: 8 }} />
-                <Text style={styles.resetBtnText}>Audit Another Mutual Fund Scheme</Text>
+              <TouchableOpacity style={styles.resetOutlineBtn} activeOpacity={0.8} onPress={handleReset}>
+                <Ionicons name="refresh" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
+                <Text style={styles.resetOutlineBtnText}>Check Another Fund</Text>
               </TouchableOpacity>
             </View>
           ) : (
-            /* ======================================================== */
-            /* SCENARIO 2 & 3: LEAKAGE / REMEDY ACTIONS                 */
-            /* ======================================================== */
-            <View style={{ gap: 12 }}>
-              {/* Extra Wealth Created / Recovered Banner */}
+            /* SCENARIO 2 & 3: LEAKAGE REMEDY */
+            <View style={styles.remedyBlock}>
+              {/* Recoverable Wealth Number */}
               {calculatedExtraWealth > 0 && (
-                <View style={styles.extraWealthCard}>
-                  <Ionicons name="trending-up" size={26} color="#10B981" />
-                  <View style={{ flex: 1, marginLeft: 14 }}>
-                    <Text style={styles.extraWealthSub}>TOTAL WEALTH RECOVERABLE OVER {sipYears} YEARS</Text>
-                    <Text style={styles.extraWealthAmount}>
-                      +₹{calculatedExtraWealth >= 100 ? (calculatedExtraWealth / 100).toFixed(2) + ' Crore' : calculatedExtraWealth.toFixed(1) + ' Lakh'}
-                    </Text>
-                    <Text style={styles.extraWealthNote}>
-                      {diagnosis?.statusType === 'SWITCH_TO_DIRECT'
-                        ? 'Saves 100% of distributor commission deductions in your family wealth.'
-                        : 'Compounded gain by eliminating commission drain & trailing benchmark alpha.'}
-                    </Text>
-                  </View>
+                <View style={styles.extraStatCard}>
+                  <Text style={styles.extraStatLabel}>POTENTIAL RECOVERABLE WEALTH ({sipYears}Y)</Text>
+                  <Text style={styles.extraStatValue}>
+                    +₹{calculatedExtraWealth >= 100 ? (calculatedExtraWealth / 100).toFixed(2) + ' Crore' : calculatedExtraWealth.toFixed(1) + ' Lakh'}
+                  </Text>
+                  <Text style={styles.extraStatSub}>
+                    By eliminating ~1% annual agent cut and moving to SEBI Direct Plan.
+                  </Text>
                 </View>
               )}
 
-              {/* HEAD-TO-HEAD BATTLE CARD: If Replacement exists */}
+              {/* Head-to-Head Compact Comparison */}
               {diagnosis?.replacement && (
-                <View style={styles.battleCard}>
-                  <Text style={styles.battleTitle}>RECOMMENDED DIRECT RESOLUTION</Text>
-                  <View style={styles.battleRow}>
-                    {/* LEFT: Current Fund */}
-                    <View style={styles.sideCol}>
-                      <View style={styles.currentTag}>
-                        <Text style={styles.currentTagText}>YOUR FUND</Text>
-                      </View>
-                      <Text style={styles.sideFundName} numberOfLines={2}>
-                        {selectedFund?.name}
-                      </Text>
-                      <Text style={styles.sideSub}>
-                        {planType === 'DIRECT' ? 'Direct Plan' : 'Regular Plan (Bank)'}
-                      </Text>
-
-                      <View style={styles.sideMetricItem}>
-                        <Text style={styles.sideMetricLbl}>Expense Ratio</Text>
-                        <Text style={[styles.sideMetricVal, { color: '#F59E0B' }]}>
-                          {selectedFund?.currentExpense}
-                        </Text>
-                      </View>
-
-                      <View style={styles.sideMetricItem}>
-                        <Text style={styles.sideMetricLbl}>5Y Return</Text>
-                        <Text style={styles.sideMetricVal}>{selectedFund?.currentCagr} CAGR</Text>
-                      </View>
-
-                      <View style={styles.sideWealthItem}>
-                        <Text style={styles.sideWealthLbl}>{sipYears}Y Corpus</Text>
-                        <Text style={styles.sideWealthVal}>
-                          ₹{baseWealthCur >= 100 ? (baseWealthCur / 100).toFixed(2) + ' Cr' : baseWealthCur.toFixed(1) + ' L'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* VS Divider */}
-                    <View style={styles.battleDivider}>
-                      <View style={styles.vsBadge}>
-                        <Text style={styles.vsText}>VS</Text>
-                      </View>
-                    </View>
-
-                    {/* RIGHT: Recommended Direct Solution */}
-                    <View style={[styles.sideCol, styles.sideColWinner]}>
-                      <View style={styles.winnerTag}>
-                        <Text style={styles.winnerTagText}>RECOMMENDED</Text>
-                      </View>
-                      <Text style={styles.sideFundName} numberOfLines={2}>
-                        {diagnosis.replacement.name}
-                      </Text>
-                      <Text style={[styles.sideSub, { color: '#38BDF8' }]}>
-                        Direct Plan (0% Commission)
-                      </Text>
-
-                      <View style={styles.sideMetricItem}>
-                        <Text style={styles.sideMetricLbl}>Expense Ratio</Text>
-                        <Text style={[styles.sideMetricVal, { color: '#10B981' }]}>
-                          {diagnosis.replacement.expenseRatio}
-                        </Text>
-                      </View>
-
-                      <View style={styles.sideMetricItem}>
-                        <Text style={styles.sideMetricLbl}>5Y Return</Text>
-                        <Text style={[styles.sideMetricVal, { color: '#10B981' }]}>
-                          {diagnosis.replacement.cagr5Y} CAGR
-                        </Text>
-                      </View>
-
-                      <View style={[styles.sideWealthItem, { backgroundColor: 'rgba(56, 189, 248, 0.12)' }]}>
-                        <Text style={[styles.sideWealthLbl, { color: '#38BDF8' }]}>
-                          {sipYears}Y Estimated
-                        </Text>
-                        <Text style={[styles.sideWealthVal, { color: '#38BDF8' }]}>
-                          ₹{baseWealthRep >= 100 ? (baseWealthRep / 100).toFixed(2) + ' Cr' : baseWealthRep.toFixed(1) + ' L'}
-                        </Text>
-                      </View>
-                    </View>
+                <View style={styles.comparisonCard}>
+                  <View style={styles.compCol}>
+                    <Text style={styles.compHead}>CURRENT</Text>
+                    <Text style={styles.compName} numberOfLines={1}>{selectedFund?.name}</Text>
+                    <Text style={styles.compStat}>{selectedFund?.currentExpense} Fee</Text>
+                    <Text style={styles.compStat}>{selectedFund?.currentCagr} CAGR</Text>
+                  </View>
+                  <View style={styles.compVs}>
+                    <Text style={styles.compVsText}>VS</Text>
+                  </View>
+                  <View style={[styles.compCol, { backgroundColor: 'rgba(56, 189, 248, 0.08)' }]}>
+                    <Text style={[styles.compHead, { color: '#38BDF8' }]}>DIRECT FIX</Text>
+                    <Text style={[styles.compName, { color: '#38BDF8' }]} numberOfLines={1}>
+                      {diagnosis.replacement.name}
+                    </Text>
+                    <Text style={[styles.compStat, { color: '#10B981' }]}>
+                      {diagnosis.replacement.expenseRatio} Fee
+                    </Text>
+                    <Text style={[styles.compStat, { color: '#10B981' }]}>
+                      {diagnosis.replacement.cagr5Y} CAGR
+                    </Text>
                   </View>
                 </View>
               )}
 
-              {/* ACTION BUTTONS */}
-              <View style={styles.resultActions}>
-                {/* 1. Direct Switch Roadmap */}
-                <TouchableOpacity
-                  style={styles.switchRoadmapBtn}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setMigratingFund({
-                      ...selectedFund,
-                      lossOver20Y: `₹${calculatedExtraWealth.toFixed(1)} Lakh`,
-                      hiddenAgentCommission: selectedFund?.agentCommissionCut || '0.95%',
-                    });
-                  }}
+              {/* Action Buttons */}
+              <TouchableOpacity
+                style={styles.actionPrimaryBtn}
+                activeOpacity={0.85}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setMigratingFund({
+                    ...selectedFund,
+                    lossOver20Y: `₹${calculatedExtraWealth.toFixed(1)} Lakh`,
+                    hiddenAgentCommission: selectedFund?.agentCommissionCut || '0.95%',
+                  });
+                }}
+              >
+                <LinearGradient
+                  colors={['#38BDF8', '#2563EB']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.actionPrimaryGrad}
                 >
-                  <LinearGradient
-                    colors={['#38BDF8', '#2563EB']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.switchRoadmapGrad}
-                  >
-                    <Ionicons name="flash" size={18} color="#FFFFFF" style={{ marginRight: 10 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.switchRoadmapTitle}>Zero-Tax Direct Switch Roadmap →</Text>
-                      <Text style={styles.switchRoadmapSub}>
-                        Paperless guide for MFCentral, Zerodha Coin & Groww Direct
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
-                  </LinearGradient>
-                </TouchableOpacity>
+                  <Ionicons name="flash" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.actionPrimaryText}>Direct Switch Guide (0% Cut) →</Text>
+                </LinearGradient>
+              </TouchableOpacity>
 
-                {/* 2. Tax Harvesting Helper */}
-                <TouchableOpacity
-                  style={styles.taxSwitchBanner}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                    setTaxModalVisible(true);
-                  }}
-                >
-                  <Ionicons name="calculator-outline" size={18} color="#38BDF8" style={{ marginRight: 10 }} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.taxSwitchTitle}>Claim ₹1.25L Tax-Free LTCG Harvest</Text>
-                    <Text style={styles.taxSwitchSub}>
-                      Section 112A lets you switch gains with ₹0 tax liability before March 31.
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color="#64748B" />
-                </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionSecondaryBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  setTaxModalVisible(true);
+                }}
+              >
+                <Ionicons name="calculator-outline" size={15} color="#38BDF8" style={{ marginRight: 6 }} />
+                <Text style={styles.actionSecondaryText}>Claim ₹1.25L Tax-Free LTCG Harvest</Text>
+              </TouchableOpacity>
 
-                {/* 3. Reset Button */}
-                <TouchableOpacity style={styles.resetBtn} activeOpacity={0.8} onPress={handleReset}>
-                  <Ionicons name="refresh" size={16} color="#94A3B8" style={{ marginRight: 8 }} />
-                  <Text style={styles.resetBtnText}>Audit Another Mutual Fund Scheme</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={styles.resetOutlineBtn} activeOpacity={0.8} onPress={handleReset}>
+                <Ionicons name="refresh" size={14} color="#94A3B8" style={{ marginRight: 6 }} />
+                <Text style={styles.resetOutlineBtnText}>Check Another Fund</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
       )}
 
-      {/* COMPREHENSIVE MUTUAL FUND SEARCH & SELECT MODAL */}
+      {/* COMPACT SEARCH & SELECT MODAL */}
       <Modal
         visible={searchModalVisible}
         animationType="slide"
@@ -880,46 +592,38 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Modal Header */}
             <View style={styles.modalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalTitle}>Select Mutual Fund Scheme</Text>
-                <Text style={styles.modalSub}>Search from 50+ SEBI registered schemes or enter custom fund</Text>
-              </View>
+              <Text style={styles.modalTitle}>Select Mutual Fund</Text>
               <TouchableOpacity
                 style={styles.modalCloseBtn}
                 onPress={() => setSearchModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Ionicons name="close" size={20} color="#94A3B8" />
+                <Ionicons name="close" size={18} color="#94A3B8" />
               </TouchableOpacity>
             </View>
 
-            {/* Search Input Field */}
             <View style={styles.modalSearchInputWrapper}>
-              <Ionicons name="search" size={16} color="#64748B" style={{ marginRight: 8 }} />
+              <Ionicons name="search" size={15} color="#64748B" style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.modalSearchTextInput}
-                placeholder="Search fund name, AMC, or category..."
+                placeholder="Search scheme name or AMC..."
                 placeholderTextColor="#64748B"
                 value={modalSearchText}
                 onChangeText={setModalSearchText}
                 autoFocus={true}
-                clearButtonMode="while-editing"
               />
               {modalSearchText.length > 0 && (
-                <TouchableOpacity onPress={() => setModalSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="close-circle" size={16} color="#64748B" />
+                <TouchableOpacity onPress={() => setModalSearchText('')}>
+                  <Ionicons name="close-circle" size={15} color="#64748B" />
                 </TouchableOpacity>
               )}
             </View>
 
-            {/* Category Filter Chips */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.modalCategoryScroll}
-              contentContainerStyle={{ paddingHorizontal: 4 }}
+              style={{ marginBottom: 10, maxHeight: 32 }}
             >
               {categories.map((cat) => {
                 const isCatActive = categoryFilter === cat.id;
@@ -941,8 +645,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
               })}
             </ScrollView>
 
-            {/* Funds List */}
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalFundsList}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
               {filteredModalFunds.map((fund) => {
                 const isSelected = selectedFund && selectedFund.id === fund.id;
                 return (
@@ -952,73 +655,51 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                     onPress={() => handleSelectFund(fund)}
                     activeOpacity={0.75}
                   >
-                    <View style={[styles.modalFundIcon, isSelected && styles.modalFundIconSelected]}>
-                      <Ionicons
-                        name={isSelected ? 'checkmark' : 'shield-checkmark-outline'}
-                        size={16}
-                        color={isSelected ? '#38BDF8' : '#64748B'}
-                      />
-                    </View>
-
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.modalFundName, isSelected && styles.modalFundNameSelected]}>
+                      <Text style={[styles.modalFundName, isSelected && { color: '#38BDF8' }]} numberOfLines={1}>
                         {fund.name}
                       </Text>
                       <Text style={styles.modalFundSub}>
-                        {fund.amc || 'AMC'} • {fund.category} • Fee: {fund.currentExpense}
+                        {fund.category} • Fee: {fund.currentExpense}
                       </Text>
                     </View>
-
                     <Ionicons name="chevron-forward" size={14} color="#64748B" />
                   </TouchableOpacity>
                 );
               })}
 
-              {/* Custom Fund Auditor Fallback */}
               {modalSearchText.trim().length > 2 && (
                 <TouchableOpacity
-                  style={styles.customAuditCard}
+                  style={styles.customAuditRow}
                   activeOpacity={0.85}
                   onPress={() => handleCustomFundSelect(modalSearchText)}
                 >
-                  <LinearGradient
-                    colors={['#131D2E', '#0B111E']}
-                    style={styles.customAuditGrad}
-                  >
-                    <Ionicons name="sparkles" size={18} color="#38BDF8" style={{ marginRight: 10 }} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.customAuditTitle}>
-                        Audit Custom Scheme: "{modalSearchText.trim()}"
-                      </Text>
-                      <Text style={styles.customAuditSub}>
-                        Algorithmically screen expense ratios and alpha for this unlisted fund.
-                      </Text>
-                    </View>
-                    <Ionicons name="arrow-forward" size={16} color="#38BDF8" />
-                  </LinearGradient>
+                  <Ionicons name="sparkles" size={15} color="#38BDF8" style={{ marginRight: 8 }} />
+                  <Text style={styles.customAuditText}>
+                    Audit "{modalSearchText.trim()}"
+                  </Text>
                 </TouchableOpacity>
               )}
-
-              <View style={{ height: 30 }} />
+              <View style={{ height: 20 }} />
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* MIGRATION ROADMAP MODAL */}
+      {/* MIGRATION MODAL */}
       <SIPMigrationModal
         visible={!!migratingFund}
         fund={migratingFund}
         onClose={() => setMigratingFund(null)}
       />
 
-      {/* TAX HARVESTING MODAL */}
+      {/* TAX MODAL */}
       <TaxHarvestingModal
         visible={taxModalVisible}
         onClose={() => setTaxModalVisible(false)}
       />
 
-      <View style={{ height: 125 }} />
+      <View style={{ height: 110 }} />
     </ScrollView>
   );
 }
@@ -1029,904 +710,446 @@ const styles = StyleSheet.create({
     backgroundColor: '#07090E',
     paddingHorizontal: 16,
   },
-  fiduciaryBanner: {
+  flowWrapper: {
+    gap: 0,
+    marginTop: 6,
+  },
+  miniLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  searchBarTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#0D111A',
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    marginTop: 4,
-    marginBottom: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  fiduciaryItem: {
+  searchPlaceholderText: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  fiduciaryText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  fiduciaryDivider: {
-    width: 1,
-    height: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  openContentWrapper: {
-    gap: 0,
-  },
-  heroSection: {
-    marginBottom: 18,
-  },
-  heroAuraPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderRadius: 20,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-    marginBottom: 8,
-    gap: 6,
-  },
-  heroPulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#38BDF8',
-  },
-  heroAuraText: {
-    fontSize: 9.5,
-    fontWeight: '900',
-    color: '#38BDF8',
-    letterSpacing: 0.6,
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.4,
-  },
-  heroSubtitle: {
     fontSize: 12.5,
     color: '#94A3B8',
-    marginTop: 5,
-    lineHeight: 18,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.8,
-  },
-  sectionActionText: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#38BDF8',
-  },
-  /* Empty state card when no fund selected */
-  emptyAssetCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1.5,
+  selectedFundCard: {
+    backgroundColor: '#0D111A',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.25)',
   },
-  emptyAssetGrad: {
-    padding: 16,
-  },
-  emptyAssetTopRow: {
+  selectedFundTop: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 14,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  emptySearchIconAperture: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-  },
-  emptyAssetTitle: {
+  selectedFundName: {
     fontSize: 15,
-    fontWeight: '900',
+    fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: -0.2,
   },
-  emptyAssetSub: {
-    fontSize: 11,
+  selectedFundMeta: {
+    fontSize: 10.5,
     color: '#94A3B8',
     marginTop: 2,
-    lineHeight: 15,
   },
-  emptySearchFakeInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#07090E',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+  clearBtn: {
+    padding: 2,
   },
-  emptySearchFakeText: {
-    flex: 1,
-    fontSize: 11.5,
-    color: '#94A3B8',
-  },
-  emptySearchBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 3,
-  },
-  emptySearchBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#38BDF8',
-  },
-  heroAssetCard: {
-    backgroundColor: '#0D111A',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  assetTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 10,
-  },
-  assetAmcBadge: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-  },
-  assetAmcText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#38BDF8',
-    letterSpacing: 0.4,
-  },
-  assetCategoryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  assetCategoryText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  assetStarBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  assetStarText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#F59E0B',
-  },
-  clearFundChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginLeft: 'auto',
-    gap: 3,
-  },
-  clearFundText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  assetTitle: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-    marginBottom: 14,
-  },
-  assetMetricsGrid: {
+  selectedMetricsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#131926',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
-    marginBottom: 12,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
   },
-  assetMetricCol: {
+  metricItem: {
     flex: 1,
     alignItems: 'center',
   },
-  assetMetricLabel: {
+  metricLabel: {
     fontSize: 8.5,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  metricVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  metricDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  changeAction: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  changeActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#38BDF8',
+  },
+  quickScroll: {
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  quickChip: {
+    backgroundColor: '#0D111A',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 7,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  quickChipActive: {
+    borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+  },
+  quickChipText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  quickChipTextActive: {
+    color: '#38BDF8',
+    fontWeight: '800',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#0D111A',
+    borderRadius: 10,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    marginBottom: 14,
+  },
+  segmentTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  segmentTabActiveDirect: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+  },
+  segmentTabActiveRegular: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
+  segmentText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  segmentTextActiveDirect: {
+    color: '#10B981',
+    fontWeight: '800',
+  },
+  segmentTextActiveRegular: {
+    color: '#F59E0B',
+    fontWeight: '800',
+  },
+  calcCard: {
+    backgroundColor: '#0D111A',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 16,
+  },
+  calcRowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  calcLabel: {
+    fontSize: 9.5,
     fontWeight: '800',
     color: '#64748B',
     letterSpacing: 0.5,
   },
-  assetMetricValue: {
-    fontSize: 13,
+  calcVal: {
+    fontSize: 14,
     fontWeight: '900',
     color: '#FFFFFF',
-    marginTop: 2,
   },
-  assetMetricSub: {
-    fontSize: 9,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  assetMetricDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  assetChangeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
-    borderRadius: 10,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-  },
-  assetChangeBtnText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#38BDF8',
-    marginRight: 4,
-  },
-  quickPickContainer: {
-    marginTop: 14,
-  },
-  quickPickHeaderLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-    marginBottom: 8,
-  },
-  quickPickPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0D111A',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 9,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  quickPickPillActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    borderColor: 'rgba(56, 189, 248, 0.4)',
-  },
-  quickPickPillText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#94A3B8',
-  },
-  quickPickPillTextActive: {
-    color: '#38BDF8',
-    fontWeight: '800',
-  },
-  planSelectorRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 10,
-  },
-  planOptionCard: {
-    flex: 1,
-    backgroundColor: '#0D111A',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  planOptionCardDirectActive: {
-    borderColor: '#10B981',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-  },
-  planOptionCardRegularActive: {
-    borderColor: '#F59E0B',
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-  },
-  planCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  planIconWrapper: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  planTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  planBadgeText: {
-    fontSize: 8.5,
-    fontWeight: '900',
-    color: '#10B981',
-    letterSpacing: 0.4,
-  },
-  planDescription: {
-    fontSize: 10,
-    color: '#94A3B8',
-    lineHeight: 14,
-  },
-  amountHorizonCard: {
-    backgroundColor: '#0D111A',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginTop: 16,
-  },
-  amountHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  amountSectionLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-  },
-  amountHeroDisplay: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginTop: 3,
-    letterSpacing: -0.4,
-  },
-  amountHeroUnit: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-  horizonBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-  },
-  horizonBadgeText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#38BDF8',
-  },
-  tierPillsRow: {
+  pillRow: {
     flexDirection: 'row',
     gap: 6,
   },
-  tierPillButton: {
+  pillBtn: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#131926',
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  tierPillButtonActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+  pillBtnActive: {
     borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
   },
-  tierPillButtonText: {
-    fontSize: 11.5,
+  pillBtnText: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#94A3B8',
   },
-  tierPillButtonTextActive: {
+  pillBtnTextActive: {
     color: '#38BDF8',
-    fontWeight: '900',
+    fontWeight: '800',
   },
-  cardSeparator: {
+  calcDivider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    marginVertical: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginVertical: 12,
   },
-  horizonSectionLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-    marginBottom: 10,
-  },
-  horizonPillsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  horizonPillButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#131926',
-    paddingVertical: 9,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  horizonPillButtonActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderColor: '#10B981',
-  },
-  horizonPillText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#94A3B8',
-  },
-  horizonPillTextActive: {
-    color: '#10B981',
-  },
-  horizonPillSub: {
-    fontSize: 8.5,
-    fontWeight: '700',
-    color: '#64748B',
-    marginTop: 2,
-  },
-  horizonPillSubActive: {
-    color: '#10B981',
-  },
-  runAuditButton: {
-    borderRadius: 14,
+  ctaButton: {
+    borderRadius: 12,
     overflow: 'hidden',
-    marginTop: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  runAuditGradient: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  runBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  runBtnIconAperture: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  ctaGradient: {
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  runBtnTitle: {
+  ctaInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: {
     fontSize: 13.5,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
-  runBtnSub: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.88)',
-    marginTop: 2,
+  reportWrapper: {
+    gap: 12,
+    marginTop: 6,
   },
-  resultsContainer: {
-    gap: 14,
-  },
-  diagnosticCard: {
+  scoreHeroCard: {
     backgroundColor: '#0D111A',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
   },
-  diagHeaderRow: {
+  scoreRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 12,
   },
-  diagSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-  },
-  diagFundName: {
-    fontSize: 17,
+  reportFundName: {
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -0.3,
-    marginTop: 2,
   },
-  diagCategory: {
+  reportFundSub: {
     fontSize: 11,
     color: '#94A3B8',
-    marginTop: 3,
+    marginTop: 2,
   },
-  healthScoreBadge: {
+  scoreBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
   },
-  healthScoreText: {
-    fontSize: 14,
+  scoreNumber: {
+    fontSize: 18,
     fontWeight: '900',
   },
-  leakNoteBox: {
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
+  scoreOutOf: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginLeft: 1,
   },
-  leakTagRow: {
+  verdictStrip: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
     gap: 6,
-    marginBottom: 5,
+    marginBottom: 8,
   },
-  leakDot: {
+  verdictDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
   },
-  leakTagTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  leakTagHeading: {
-    fontSize: 14.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 5,
-  },
-  leakTagReason: {
-    fontSize: 11.5,
-    color: '#CBD5E1',
-    lineHeight: 17,
-  },
-  prescriptionBox: {
-    backgroundColor: '#131926',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  prescriptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  prescriptionTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#38BDF8',
-    letterSpacing: 0.5,
-  },
-  prescriptionMainText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 10,
-  },
-  prescPointRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 7,
-    marginBottom: 5,
-  },
-  prescPointText: {
+  verdictHeading: {
     fontSize: 11,
-    color: '#94A3B8',
-    flex: 1,
-    lineHeight: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
-  healthyContainer: {
+  shortVerdictText: {
+    fontSize: 12,
+    color: '#CBD5E1',
+    lineHeight: 18,
+  },
+  healthyBlock: {
     gap: 12,
   },
-  healthyCard: {
+  milestoneCard: {
     backgroundColor: '#0D111A',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
-  healthyHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  healthyTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#F8FAFC',
-  },
-  healthySubText: {
-    fontSize: 11.5,
-    color: '#94A3B8',
-    lineHeight: 17,
-    marginBottom: 16,
-  },
-  milestoneHeading: {
-    fontSize: 10,
+  milestoneTitle: {
+    fontSize: 9.5,
     fontWeight: '800',
     color: '#64748B',
-    letterSpacing: 0.6,
     marginBottom: 10,
   },
-  milestoneGrid: {
+  milestoneRow: {
     flexDirection: 'row',
-    backgroundColor: '#131926',
-    borderRadius: 12,
-    padding: 12,
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
   },
-  milestoneItem: {
-    flex: 1,
+  milestoneCol: {
     alignItems: 'center',
+    flex: 1,
   },
-  milestoneYear: {
-    fontSize: 10.5,
+  mYear: {
+    fontSize: 10,
     color: '#64748B',
     fontWeight: '700',
   },
-  milestoneAmt: {
+  mAmt: {
     fontSize: 13.5,
     fontWeight: '900',
     color: '#FFFFFF',
-    marginTop: 3,
-  },
-  milestoneLabel: {
-    fontSize: 9,
-    color: '#94A3B8',
-    marginTop: 3,
-  },
-  extraWealthCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0D111A',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.35)',
-  },
-  extraWealthSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#10B981',
-    letterSpacing: 0.6,
-  },
-  extraWealthAmount: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginTop: 3,
-  },
-  extraWealthNote: {
-    fontSize: 10.5,
-    color: '#94A3B8',
-    marginTop: 3,
-    lineHeight: 15,
-  },
-  battleCard: {
-    backgroundColor: '#0D111A',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  battleTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.6,
-    marginBottom: 12,
-  },
-  battleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sideCol: {
-    flex: 1,
-    backgroundColor: '#131926',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  sideColWinner: {
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    backgroundColor: 'rgba(56, 189, 248, 0.06)',
-  },
-  currentTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 5,
-  },
-  currentTagText: {
-    fontSize: 8.5,
-    fontWeight: '800',
-    color: '#94A3B8',
-  },
-  winnerTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 5,
-  },
-  winnerTagText: {
-    fontSize: 8.5,
-    fontWeight: '800',
-    color: '#38BDF8',
-  },
-  sideFundName: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  sideSub: {
-    fontSize: 9.5,
-    color: '#64748B',
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  sideMetricItem: {
-    marginTop: 4,
-  },
-  sideMetricLbl: {
-    fontSize: 9,
-    color: '#64748B',
-  },
-  sideMetricVal: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  sideWealthItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 8,
-    padding: 7,
-    marginTop: 10,
-  },
-  sideWealthLbl: {
-    fontSize: 9,
-    color: '#64748B',
-  },
-  sideWealthVal: {
-    fontSize: 12.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
     marginTop: 2,
   },
-  battleDivider: {
-    paddingHorizontal: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
+  remedyBlock: {
+    gap: 12,
   },
-  vsBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#1E293B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  vsText: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#94A3B8',
-  },
-  resultActions: {
-    gap: 10,
-    marginTop: 4,
-  },
-  switchRoadmapBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  switchRoadmapGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  switchRoadmapTitle: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#FFFFFF',
-  },
-  switchRoadmapSub: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.88)',
-    marginTop: 2,
-  },
-  taxSwitchBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  extraStatCard: {
     backgroundColor: '#0D111A',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
   },
-  taxSwitchTitle: {
+  extraStatLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.5,
+  },
+  extraStatValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  extraStatSub: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  comparisonCard: {
+    flexDirection: 'row',
+    backgroundColor: '#0D111A',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    alignItems: 'center',
+  },
+  compCol: {
+    flex: 1,
+    backgroundColor: '#131926',
+    borderRadius: 10,
+    padding: 10,
+  },
+  compHead: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  compName: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  compStat: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  compVs: {
+    paddingHorizontal: 8,
+  },
+  compVsText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#64748B',
+  },
+  actionPrimaryBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  actionPrimaryGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  actionPrimaryText: {
     fontSize: 12.5,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  taxSwitchSub: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  resetBtn: {
+  actionSecondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0D111A',
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginTop: 4,
   },
-  resetBtnText: {
+  actionSecondaryText: {
     fontSize: 11.5,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
+  resetOutlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    paddingVertical: 8,
+  },
+  resetOutlineBtnText: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#94A3B8',
   },
@@ -1937,145 +1160,103 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: '#07090E',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
-    maxHeight: '88%',
-    paddingTop: 18,
+    paddingTop: 16,
     paddingHorizontal: 16,
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
-  modalSub: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
   modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 4,
   },
   modalSearchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0D111A',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   modalSearchTextInput: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12.5,
     color: '#FFFFFF',
-    fontWeight: '500',
     paddingVertical: 0,
   },
-  modalCategoryScroll: {
-    marginBottom: 12,
-    maxHeight: 36,
-  },
   modalCatChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
     backgroundColor: '#0D111A',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
     marginRight: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   modalCatChipActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
     borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
   },
   modalCatChipText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#64748B',
   },
   modalCatChipTextActive: {
     color: '#38BDF8',
   },
-  modalFundsList: {
-    paddingTop: 4,
-  },
   modalFundRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#0D111A',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 10,
+    padding: 11,
+    marginBottom: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   modalFundRowSelected: {
-    borderColor: 'rgba(56, 189, 248, 0.4)',
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
-  },
-  modalFundIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  modalFundIconSelected: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderColor: '#38BDF8',
   },
   modalFundName: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12.5,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
-  modalFundNameSelected: {
-    color: '#38BDF8',
-    fontWeight: '800',
-  },
   modalFundSub: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#94A3B8',
     marginTop: 2,
   },
-  customAuditCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginTop: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-  },
-  customAuditGrad: {
+  customAuditRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: '#0D111A',
+    borderRadius: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.2)',
   },
-  customAuditTitle: {
-    fontSize: 13,
+  customAuditText: {
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#38BDF8',
-  },
-  customAuditSub: {
-    fontSize: 10,
-    color: '#94A3B8',
-    marginTop: 3,
   },
 });
