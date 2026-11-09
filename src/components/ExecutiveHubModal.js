@@ -90,28 +90,6 @@ export default function ExecutiveHubModal({
 
   const bentoGrid = [
     {
-      id: 'ipos',
-      title: 'IPO & GMP Radar',
-      subtitle: 'Live Grey Market Premiums & Bids',
-      icon: 'trending-up-outline',
-      gradient: ['#131B2E', '#090E17'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#38BDF8',
-      category: 'PRIMARY',
-      isUpcoming: false,
-    },
-    {
-      id: 'notifications',
-      title: 'Market Alerts',
-      subtitle: 'Disclosures & Block Deals Feed',
-      icon: 'notifications-outline',
-      gradient: ['#171B24', '#0D1017'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#F59E0B',
-      category: 'ALERTS',
-      isUpcoming: false,
-    },
-    {
       id: 'stepup',
       title: 'Step-Up Calculator',
       subtitle: 'Annual SIP Increment Multiplier',
@@ -161,6 +139,28 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#22D3EE',
       category: 'INCOME',
+      isUpcoming: false,
+    },
+    {
+      id: 'ipos',
+      title: 'IPO & GMP Radar',
+      subtitle: 'Live Grey Market Premiums & Bids',
+      icon: 'trending-up-outline',
+      gradient: ['#131B2E', '#090E17'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#38BDF8',
+      category: 'PRIMARY',
+      isUpcoming: false,
+    },
+    {
+      id: 'notifications',
+      title: 'Market Alerts',
+      subtitle: 'Disclosures & Block Deals Feed',
+      icon: 'notifications-outline',
+      gradient: ['#171B24', '#0D1017'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#F59E0B',
+      category: 'ALERTS',
       isUpcoming: false,
     },
   ];
@@ -238,67 +238,7 @@ export default function ExecutiveHubModal({
               </View>
             </View>
 
-            {/* FEATURED HERO TILE: FINANCIAL POWER TOOLS & CALCULATORS */}
-            <View style={styles.heroSection}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeading}>FEATURED POWER HUB</Text>
-                <View style={styles.activeTag}>
-                  <Text style={styles.activeTagText}>PRIMARY DESK</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.heroToolCard,
-                  activePage === 'tools' && styles.heroToolCardActive,
-                ]}
-                activeOpacity={0.85}
-                onPress={() => handleItemPress('tools')}
-              >
-                <LinearGradient
-                  colors={['#081914', '#040F0C']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.heroToolGradient}
-                >
-                  <View style={styles.heroTopRow}>
-                    <View style={styles.heroIconBox}>
-                      <View style={styles.heroIconInner}>
-                        <Ionicons name="calculator-outline" size={22} color="#10B981" />
-                      </View>
-                    </View>
-
-                    <View style={styles.heroBadgeBox}>
-                      <View style={styles.taxSavePill}>
-                        <Text style={styles.taxSavePillText}>6 TOOLS INSIDE</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <Text style={styles.heroTitle}>Financial Power Tools Hub</Text>
-                  <Text style={styles.heroDescription}>
-                    Post-Budget 2024 Section 112A Tax-Free LTCG Harvestor, ELSS Tax
-                    Saver Planner, SIP Step-Up Multipliers, Dividend Cashflow & Loan
-                    Prepayment Analyzers.
-                  </Text>
-
-                  <View style={styles.heroFooter}>
-                    <View style={styles.heroToolsCount}>
-                      <Ionicons name="layers-outline" size={14} color="#64748B" />
-                      <Text style={styles.heroToolsCountText}>
-                        Calculators & Capital Planners
-                      </Text>
-                    </View>
-                    <View style={styles.launchButton}>
-                      <Text style={styles.launchButtonText}>Open Tools</Text>
-                      <Ionicons name="arrow-forward" size={13} color="#041F18" />
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-
-            {/* BENTO GRID: RADARS & UPCOMING TOOLS */}
+            {/* BENTO GRID: RADARS & TOOLS SUITE */}
             <View style={styles.bentoSection}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionHeading}>RADARS & TOOLS SUITE</Text>
@@ -594,120 +534,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 10,
     fontWeight: '600',
-  },
-  activeTag: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  activeTagText: {
-    color: '#10B981',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  heroSection: {
-    marginBottom: 20,
-  },
-  heroToolCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    backgroundColor: '#0A120E',
-  },
-  heroToolCardActive: {
-    borderColor: '#10B981',
-  },
-  heroToolGradient: {
-    padding: 16,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  heroIconBox: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  heroIconInner: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroBadgeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  taxSavePill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  taxSavePillText: {
-    color: '#94A3B8',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.2,
-    marginBottom: 6,
-  },
-  heroDescription: {
-    color: '#94A3B8',
-    fontSize: 11.5,
-    lineHeight: 17,
-    fontWeight: '400',
-    marginBottom: 14,
-  },
-  heroFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  heroToolsCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  heroToolsCountText: {
-    color: '#64748B',
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 5,
-  },
-  launchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  launchButtonText: {
-    color: '#041F18',
-    fontSize: 11,
-    fontWeight: '800',
-    marginRight: 4,
   },
   bentoSection: {
     marginBottom: 20,
