@@ -105,3 +105,50 @@ ON CONFLICT (id) DO UPDATE SET
   days_left = EXCLUDED.days_left,
   investor_count = EXCLUDED.investor_count,
   updated_at = NOW();
+
+-- ========================================================
+-- 6. ALL NSE LISTED STOCKS + 1Y OFFICIAL EOD HISTORY (PLAY STORE SAFE)
+-- ========================================================
+CREATE TABLE IF NOT EXISTS public.nse_stocks (
+  symbol text PRIMARY KEY,
+  name text NOT NULL,
+  isin text,
+  series text DEFAULT 'EQ',
+  listing_date text,
+  face_value numeric,
+  close_price numeric,
+  prev_close numeric,
+  open_price numeric,
+  high_price numeric,
+  low_price numeric,
+  last_price numeric,
+  day_change_pct numeric,
+  change_1y_pct numeric,
+  high_52w numeric,
+  low_52w numeric,
+  volume bigint DEFAULT 0,
+  turnover_lacs numeric DEFAULT 0,
+  delivery_pct numeric,
+  last_trade_date text,
+  history_points_count integer DEFAULT 0,
+  updated_at timestamptz DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.nse_stock_history (
+  symbol text PRIMARY KEY REFERENCES public.nse_stocks(symbol) ON DELETE CASCADE,
+  history jsonb DEFAULT '[]'::jsonb,
+  updated_at timestamptz DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_nse_stocks_name_lower ON public.nse_stocks (lower(name));
+CREATE INDEX IF NOT EXISTS idx_nse_stocks_turnover ON public.nse_stocks (turnover_lacs DESC NULLS LAST);
+
+ALTER TABLE public.nse_stocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nse_stock_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access for nse_stocks" ON public.nse_stocks;
+CREATE POLICY "Allow public read access for nse_stocks" ON public.nse_stocks FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for nse_stock_history" ON public.nse_stock_history;
+CREATE POLICY "Allow public read access for nse_stock_history" ON public.nse_stock_history FOR SELECT USING (true);
+

@@ -1,0 +1,54 @@
+name: PaisaBuddy Official NSE Stocks + 1Y History Sync
+
+on:
+  schedule:
+    # Daily Post-Market NSE Bhavcopy EOD Sync: 6:15 PM IST & 8:00 PM IST backup (Mon-Fri)
+    - cron: '45 12 * * 1-5'
+    - cron: '30 14 * * 1-5'
+  push:
+    branches:
+      - master
+    paths:
+      - 'scripts/sync_stocks_data.py'
+      - '.github/workflows/sync-stocks.yml'
+  workflow_dispatch:
+    inputs:
+      backfill:
+        description: 'Run full 1Y (370-day) Bhavcopy backfill'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: sync-nse-stocks-live
+  cancel-in-progress: true
+
+jobs:
+  sync-stocks:
+    name: Sync All 3,500+ NSE Stocks & 1Y Official EOD History
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Official NSE Bhavcopy Sync Engine
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://swnocdeyclhzevdgtdrz.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || secrets.SUPABASE_KEY || 'sb_publishable_r_NCnZLMgP24OLqNgdrnPg_MYzoskik' }}
+        run: |
+          if [ "${{ github.event.inputs.backfill }}" = "true" ]; then
+            python -u scripts/sync_stocks_data.py --backfill
+          else
+            python -u scripts/sync_stocks_data.py
+          fi

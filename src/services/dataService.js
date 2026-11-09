@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { mockWhales } from '../data/mockWhales';
 import { mockStartups } from '../data/mockStartups';
 import { mockConsensusStocks } from '../data/mockConsensus';
+import nseStocksSeed from '../data/nseStocksSeed.json';
 
 // Map of local bundled images for 100% reliable zero-lag display
 const localWhaleImages = {
@@ -611,4 +612,343 @@ export function subscribeToWhaleAlerts(onAlert) {
   } catch (err) {
     return null;
   }
+}
+
+// ========================================================
+// OFFICIAL NSE ALL-STOCKS + 1Y EOD HISTORY (PLAY STORE SAFE)
+// ========================================================
+
+let cachedNseStocks = null;
+let cachedNseStocksAt = 0;
+let cachedSeedStocks = null;
+const NSE_CACHE_TTL_MS = 5 * 60 * 1000;
+const stockHistoryCache = new Map();
+
+function toNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = typeof v === 'number' ? v : parseFloat(String(v));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Pure JS Indian currency formatter (Hermes-safe across all Android builds):
+ * e.g. 1324.4 -> "₹1,324.40", 125000.5 -> "₹1,25,000.50"
+ */
+export function formatInrPrice(price, decimals = 2) {
+  const n = toNum(price);
+  if (n === null) return '—';
+  const sign = n < 0 ? '-' : '';
+  const abs = Math.abs(n);
+  const fixed = abs.toFixed(decimals);
+  const [intPart, decPart] = fixed.split('.');
+  let formattedInt = intPart;
+  if (intPart.length > 3) {
+    const last3 = intPart.slice(-3);
+    let rest = intPart.slice(0, -3);
+    const groups = [];
+    while (rest.length > 2) {
+      groups.unshift(rest.slice(-2));
+      rest = rest.slice(0, -2);
+    }
+    if (rest.length > 0) groups.unshift(rest);
+    formattedInt = `${groups.join(',')},${last3}`;
+  }
+  return decimals > 0 ? `${sign}₹${formattedInt}.${decPart}` : `${sign}₹${formattedInt}`;
+}
+
+export function formatIndianVolume(vol) {
+  const n = toNum(vol);
+  if (n === null || n <= 0) return '—';
+  if (n >= 10000000) return `${(n / 10000000).toFixed(2)} Cr`;
+  if (n >= 100000) return `${(n / 100000).toFixed(2)} L`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(Math.round(n));
+}
+
+export function formatTurnoverCrores(lacs) {
+  const n = toNum(lacs);
+  if (n === null || n <= 0) return '—';
+  if (n >= 100) {
+    const cr = n / 100;
+    return cr >= 100 ? `${formatInrPrice(Math.round(cr), 0)} Cr` : `₹${cr.toFixed(1)} Cr`;
+  }
+  return `₹${n.toFixed(1)} L`;
+}
+
+export function mapNseStockRow(row) {
+  if (!row || !row.symbol) return null;
+  return {
+    symbol: String(row.symbol).toUpperCase().trim(),
+    name: row.name || row.symbol,
+    isin: row.isin || null,
+    series: row.series || 'EQ',
+    listingDate: row.listing_date || null,
+    faceValue: toNum(row.face_value),
+    closePrice: toNum(row.close_price),
+    prevClose: toNum(row.prev_close),
+    openPrice: toNum(row.open_price),
+    highPrice: toNum(row.high_price),
+    lowPrice: toNum(row.low_price),
+    lastPrice: toNum(row.last_price),
+    dayChangePct: toNum(row.day_change_pct) ?? 0,
+    change1yPct: toNum(row.change_1y_pct),
+    high52w: toNum(row.high_52w),
+    low52w: toNum(row.low_52w),
+    volume: toNum(row.volume) || 0,
+    turnoverLacs: toNum(row.turnover_lacs) || 0,
+    deliveryPct: toNum(row.delivery_pct),
+    lastTradeDate: row.last_trade_date || null,
+    historyPointsCount: toNum(row.history_points_count) || 0,
+    updatedAt: row.updated_at || null,
+    isSeedFallback: false,
+  };
+}
+
+export function unpackNseSeedStocks(seedObj = nseStocksSeed) {
+  const rows = Array.isArray(seedObj?.rows) ? seedObj.rows : [];
+  const defaultDate = seedObj?.date || null;
+  return rows
+    .map((r) => {
+      if (!Array.isArray(r) || !r[0]) return null;
+      return {
+        symbol: String(r[0]).toUpperCase().trim(),
+        name: r[1] || r[0],
+        series: r[2] || 'EQ',
+        isin: r[3] || null,
+        listingDate: null,
+        faceValue: null,
+        closePrice: toNum(r[4]),
+        prevClose: toNum(r[5]),
+        openPrice: toNum(r[6]),
+        highPrice: toNum(r[7]),
+        lowPrice: toNum(r[8]),
+        lastPrice: toNum(r[4]),
+        dayChangePct: toNum(r[9]) ?? 0,
+        turnoverLacs: toNum(r[10]) || 0,
+        volume: toNum(r[11]) || 0,
+        deliveryPct: toNum(r[12]),
+        lastTradeDate: r[13] || defaultDate,
+        high52w: null,
+        low52w: null,
+        change1yPct: null,
+        historyPointsCount: 0,
+        updatedAt: null,
+        isSeedFallback: true,
+      };
+    })
+    .filter(Boolean);
+}
+
+function getFallbackSeedStocks() {
+  if (!cachedSeedStocks) {
+    cachedSeedStocks = unpackNseSeedStocks(nseStocksSeed);
+  }
+  return cachedSeedStocks;
+}
+
+/**
+ * Fetch complete NSE stocks directory using PostgREST pagination (.range() chunks of 1,000)
+ * so all 3,500+ NSE listed stocks & ETFs are searchable locally with zero cap.
+ * Falls back cleanly to official offline seed snapshot when Supabase table isn't initialized yet.
+ */
+export async function fetchNseStocksIndex({ forceRefresh = false } = {}) {
+  const now = Date.now();
+  if (!forceRefresh && cachedNseStocks && now - cachedNseStocksAt < NSE_CACHE_TTL_MS) {
+    return cachedNseStocks;
+  }
+
+  if (!isSupabaseConfigured() || !supabase) {
+    return getFallbackSeedStocks();
+  }
+
+  try {
+    const pageSize = 1000;
+    const allRows = [];
+    for (let page = 0; page < 6; page++) {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const { data, error } = await supabase
+        .from('nse_stocks')
+        .select('*')
+        .order('turnover_lacs', { ascending: false, nullsFirst: false })
+        .range(from, to);
+
+      if (error || !Array.isArray(data)) {
+        if (allRows.length > 0) break;
+        return getFallbackSeedStocks();
+      }
+      allRows.push(...data);
+      if (data.length < pageSize) break;
+    }
+
+    if (allRows.length === 0) {
+      return getFallbackSeedStocks();
+    }
+
+    const mapped = allRows.map(mapNseStockRow).filter(Boolean);
+    cachedNseStocks = mapped;
+    cachedNseStocksAt = Date.now();
+    return mapped;
+  } catch (err) {
+    return getFallbackSeedStocks();
+  }
+}
+
+/**
+ * Fetch 1Y Official NSE Bhavcopy EOD history array for a single symbol.
+ */
+export async function fetchNseStockHistory(symbol) {
+  const cleanSym = String(symbol || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+  if (!cleanSym) return { points: [], source: 'none' };
+
+  if (stockHistoryCache.has(cleanSym)) {
+    return stockHistoryCache.get(cleanSym);
+  }
+
+  if (!isSupabaseConfigured() || !supabase) {
+    return { points: [], source: 'offline' };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('nse_stock_history')
+      .select('symbol,history,updated_at')
+      .eq('symbol', cleanSym)
+      .maybeSingle();
+
+    if (error || !data || !Array.isArray(data.history)) {
+      return { points: [], source: 'unavailable' };
+    }
+
+    const points = data.history
+      .map((pt) => {
+        if (!Array.isArray(pt) || pt.length < 2) return null;
+        const close = toNum(pt[1]);
+        if (close === null || close <= 0) return null;
+        return {
+          date: String(pt[0]),
+          close,
+          high: toNum(pt[2]) ?? close,
+          low: toNum(pt[3]) ?? close,
+          volume: toNum(pt[4]) ?? 0,
+        };
+      })
+      .filter(Boolean);
+
+    const result = {
+      points,
+      source: points.length > 0 ? 'nse_bhavcopy' : 'empty',
+      updatedAt: data.updated_at || null,
+    };
+    if (points.length > 0) {
+      stockHistoryCache.set(cleanSym, result);
+    }
+    return result;
+  } catch (err) {
+    return { points: [], source: 'error' };
+  }
+}
+
+/**
+ * Relevance-ranked NSE search + category filtering.
+ * Ensures exact ticker / prefix matches (e.g. "TCS", "TATAMOTORS", "RELIANCE") rank above small substrings.
+ */
+export function searchAndFilterNseStocks(stocksList = [], query = '', category = 'TOP', limit = 100) {
+  if (!Array.isArray(stocksList) || stocksList.length === 0) return [];
+  const q = String(query || '').trim().toLowerCase();
+
+  if (q) {
+    const scored = [];
+    for (let i = 0; i < stocksList.length; i++) {
+      const st = stocksList[i];
+      if (!st) continue;
+      const symL = (st.symbol || '').toLowerCase();
+      const nameL = (st.name || '').toLowerCase();
+      const isinL = (st.isin || '').toLowerCase();
+
+      let score = 0;
+      if (symL === q) score = 120;
+      else if (symL.startsWith(q)) score = 95;
+      else if (nameL.startsWith(q)) score = 80;
+      else if (nameL.includes(` ${q}`)) score = 65;
+      else if (symL.includes(q)) score = 50;
+      else if (nameL.includes(q)) score = 35;
+      else if (isinL && isinL === q) score = 90;
+
+      if (score > 0) {
+        // Prefer stocks that have an active closePrice over unlisted/untraded placeholders
+        const tradedBonus = st.closePrice !== null && st.closePrice > 0 ? 10 : 0;
+        scored.push({ st, score: score + tradedBonus, turn: st.turnoverLacs || 0 });
+      }
+    }
+    scored.sort((a, b) => b.score - a.score || b.turn - a.turn);
+    return scored.slice(0, limit).map((item) => item.st);
+  }
+
+  let filtered = stocksList;
+  if (category === 'GAINERS') {
+    filtered = stocksList
+      .filter((s) => s.closePrice > 0 && (s.turnoverLacs || 0) >= 50 && (s.dayChangePct || 0) > 0)
+      .sort((a, b) => (b.dayChangePct || 0) - (a.dayChangePct || 0));
+  } else if (category === 'LOSERS') {
+    filtered = stocksList
+      .filter((s) => s.closePrice > 0 && (s.turnoverLacs || 0) >= 50 && (s.dayChangePct || 0) < 0)
+      .sort((a, b) => (a.dayChangePct || 0) - (b.dayChangePct || 0));
+  } else if (category === 'ETF') {
+    filtered = stocksList
+      .filter((s) => (s.isin || '').startsWith('INF') || (s.name || '').toUpperCase().includes('ETF'))
+      .sort((a, b) => (b.turnoverLacs || 0) - (a.turnoverLacs || 0));
+  } else if (category === 'SME') {
+    filtered = stocksList
+      .filter((s) => s.series === 'SM' || s.series === 'ST')
+      .sort((a, b) => (b.turnoverLacs || 0) - (a.turnoverLacs || 0));
+  } else {
+    // TOP or ALL: sorted by daily institutional turnover
+    filtered = [...stocksList].sort((a, b) => (b.turnoverLacs || 0) - (a.turnoverLacs || 0));
+  }
+
+  return filtered.slice(0, limit);
+}
+
+/**
+ * Find tracked Super-Investors / Whales who concurrently hold this NSE stock.
+ */
+export function getWhalesHoldingStock(symbol, stockName, whalesList = []) {
+  if (!symbol || !Array.isArray(whalesList) || whalesList.length === 0) return [];
+  const targetSym = String(symbol).toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+  const normName = String(stockName || '')
+    .toLowerCase()
+    .replace(/\b(limited|ltd|industries|india|corp|company)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
+  const holders = [];
+  whalesList.forEach((w) => {
+    const isIndia = (w.tag || '').includes('🇮🇳');
+    if (!isIndia) return;
+    const holdings =
+      Array.isArray(w.allHoldings) && w.allHoldings.length > 0 ? w.allHoldings : (w.topHoldings || []);
+    const matched = holdings.find((h) => {
+      if (!h) return false;
+      const hSym = String(h.symbol || h.yahooSymbol || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+      if (hSym && hSym === targetSym) return true;
+      if (normName.length >= 4 && h.name) {
+        const hNorm = String(h.name)
+          .toLowerCase()
+          .replace(/\b(limited|ltd|industries|india|corp|company)\b/g, '')
+          .replace(/[^a-z0-9]/g, '');
+        return hNorm.length >= 4 && (hNorm === normName || hNorm.includes(normName) || normName.includes(hNorm));
+      }
+      return false;
+    });
+    if (matched) {
+      holders.push({
+        whaleId: w.id,
+        whaleName: w.name,
+        tag: w.tag,
+        stake: matched.stake || 'Held',
+        value: matched.value || null,
+      });
+    }
+  });
+  return holders;
 }

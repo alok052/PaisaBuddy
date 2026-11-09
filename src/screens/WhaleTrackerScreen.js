@@ -18,30 +18,43 @@ import { colors } from '../theme/colors';
 import WhaleAvatar from '../components/WhaleAvatar';
 import CloneWhaleModal from '../components/CloneWhaleModal';
 import WhaleBreakdownModal from '../components/WhaleBreakdownModal';
+import StockDetailModal from '../components/StockDetailModal';
 import {
   fetchLiveWhales,
   fetchLiveConsensusStocks,
   buildLiveConsensusStocks,
   subscribeToWhales,
   subscribeToConsensus,
+  fetchNseStocksIndex,
+  searchAndFilterNseStocks,
+  formatInrPrice,
+  formatIndianVolume,
 } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
 
-export default function WhaleTrackerScreen({ onOpenMenu }) {
+export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState('1'); // first one expanded by default
   const [whalesList, setWhalesList] = useState([]);
+  const [nseStocks, setNseStocks] = useState([]);
   const [consensusOverride, setConsensusOverride] = useState(null);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cloningWhale, setCloningWhale] = useState(null);
   const [viewingBreakdownWhale, setViewingBreakdownWhale] = useState(null);
+  const [selectedNseStock, setSelectedNseStock] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (forceStocks = false) => {
     try {
-      const whalesData = await fetchLiveWhales();
+      const [whalesData, stocksData] = await Promise.all([
+        fetchLiveWhales(),
+        fetchNseStocksIndex({ forceRefresh: forceStocks }),
+      ]);
       setWhalesList(whalesData);
+      if (Array.isArray(stocksData)) {
+        setNseStocks(stocksData);
+      }
       const consensusData = await fetchLiveConsensusStocks(whalesData);
       if (Array.isArray(consensusData) && consensusData.length > 0) {
         setConsensusOverride(consensusData);
@@ -90,7 +103,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    await loadData();
+    await loadData(true);
     setRefreshing(false);
   }, [loadData]);
 
@@ -106,10 +119,17 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         : 15,
     [whalesList]
   );
+  const stocksCountLabel = useMemo(() => {
+    if (nseStocks.length >= 100) {
+      return `${Math.floor(nseStocks.length / 100) * 100}+`;
+    }
+    return '3,500+';
+  }, [nseStocks]);
 
   const filters = [
     { id: 'ALL', label: `🌟 All ${totalCount} Whales` },
     { id: 'CONSENSUS', label: `💎 Consensus (${consensusList.length})` },
+    { id: 'STOCKS', label: `📈 All Stocks (${stocksCountLabel})` },
     { id: 'IN', label: `🇮🇳 India (${indiaCount})` },
     { id: 'US', label: `🇺🇸 Global (${globalCount})` },
     { id: 'BUYS', label: '🟢 Recent Buys' },
@@ -177,6 +197,68 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
     );
   }, [consensusList, searchQuery]);
 
+  const matchingNseStocks = useMemo(() => {
+    const limit = selectedFilter === 'STOCKS' ? 40 : 6;
+    if (selectedFilter !== 'STOCKS' && !searchQuery.trim()) return [];
+    return searchAndFilterNseStocks(nseStocks, searchQuery, 'TOP', limit);
+  }, [nseStocks, searchQuery, selectedFilter]);
+
+  const renderNseStockRow = (st) => {
+    const isPos = (st.dayChangePct ?? 0) >= 0;
+    const pctColor = isPos ? colors.primary : colors.danger;
+    const hasPrice = st.closePrice !== null && st.closePrice > 0;
+    return (
+      <TouchableOpacity
+        key={st.symbol}
+        style={styles.nseInlineCard}
+        activeOpacity={0.8}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setSelectedNseStock(st);
+        }}
+      >
+        <View style={{ flex: 1, marginRight: 10 }}>
+          <View style={styles.nseSymRow}>
+            <Text style={styles.nseSymText}>{st.symbol}</Text>
+            <View style={styles.nseSeriesPill}>
+              <Text style={styles.nseSeriesText}>{st.series || 'EQ'}</Text>
+            </View>
+            <View style={styles.nseEodBadge}>
+              <Text style={styles.nseEodBadgeText}>EOD CHART</Text>
+            </View>
+          </View>
+          <Text style={styles.nseCompanyText} numberOfLines={1}>
+            {st.name}
+          </Text>
+          <Text style={styles.nseMetaText} numberOfLines={1}>
+            Vol {formatIndianVolume(st.volume)}
+            {st.deliveryPct !== null && st.deliveryPct !== undefined ? ` • Deliv ${st.deliveryPct}%` : ''}
+            {st.lastTradeDate ? ` • ${st.lastTradeDate}` : ''}
+          </Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={styles.nsePriceText}>{hasPrice ? formatInrPrice(st.closePrice) : 'Unquoted'}</Text>
+          {hasPrice ? (
+            <View
+              style={[
+                styles.nsePctBadge,
+                { backgroundColor: isPos ? 'rgba(16, 185, 129, 0.14)' : 'rgba(239, 68, 68, 0.14)' },
+              ]}
+            >
+              <Text style={[styles.nsePctText, { color: pctColor }]}>
+                {isPos ? '+' : ''}
+                {(st.dayChangePct ?? 0).toFixed(2)}%
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.nseMetaText}>No Trade</Text>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#64748B" style={{ marginLeft: 6 }} />
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -196,12 +278,12 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         onMenuPress={onOpenMenu}
       />
 
-      {/* Sleek Search Bar for 50 Whales */}
+      {/* Sleek Search Bar for All NSE Stocks & 50 Whales */}
       <View style={styles.searchBarWrapper}>
         <Ionicons name="search" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchTextInput}
-          placeholder="Search 50 whales, stocks (e.g. Kedia, Titan, AAPL)..."
+          placeholder="Search any NSE share (Reliance, Zomato, TCS) or whales..."
           placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -238,8 +320,61 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         })}
       </ScrollView>
 
-      {/* Whale Consensus Screener OR Individual Investor Cards */}
-      {selectedFilter === 'CONSENSUS' ? (
+      {/* ALL NSE STOCKS INLINE DIRECTORY OR CONSENSUS OR WHALE CARDS */}
+      {selectedFilter === 'STOCKS' ? (
+        <View style={styles.nseDirectorySection}>
+          <View style={styles.nseDirBanner}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.nseDirTitle}>Official NSE All-Companies Price &amp; History</Text>
+              <Text style={styles.nseDirSub}>
+                Tap any share across {nseStocks.length > 0 ? nseStocks.length.toLocaleString('en-IN') : '3,500+'} NSE equities to inspect price, delivery %, &amp; 1Y EOD chart.
+              </Text>
+            </View>
+            {onOpenStocks && (
+              <TouchableOpacity
+                style={styles.fullTerminalBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onOpenStocks();
+                }}
+              >
+                <Text style={styles.fullTerminalBtnText}>Full View →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {matchingNseStocks.map(renderNseStockRow)}
+
+          {matchingNseStocks.length === 0 && (
+            <View style={styles.emptySearchBox}>
+              <Ionicons name="search-outline" size={28} color={colors.textMuted} />
+              <Text style={styles.emptySearchTitle}>No NSE Stock Found</Text>
+              <Text style={styles.emptySearchSub}>
+                No NSE symbol or company matched "{searchQuery}".
+              </Text>
+              <TouchableOpacity style={styles.resetFilterBtn} onPress={() => setSearchQuery('')}>
+                <Text style={styles.resetFilterBtnText}>Clear Search</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {onOpenStocks && matchingNseStocks.length > 0 && (
+            <TouchableOpacity
+              style={styles.viewAllStocksFooterBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onOpenStocks();
+              }}
+            >
+              <Text style={styles.viewAllStocksFooterText}>
+                Open Complete {nseStocks.length.toLocaleString('en-IN')} Stocks Explorer (Gainers, Losers &amp; ETFs) →
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : selectedFilter === 'CONSENSUS' ? (
         <View style={styles.consensusContainer}>
           {/* Consensus Explainer Banner */}
           <View style={styles.consensusHeaderBox}>
@@ -380,7 +515,14 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
             </View>
           ))}
 
-          {filteredConsensus.length === 0 && (
+          {filteredConsensus.length === 0 && searchQuery.trim().length > 0 && matchingNseStocks.length > 0 && (
+            <View style={styles.nseInlineBlock}>
+              <Text style={styles.nseInlineHeader}>📈 MATCHING NSE SHARES ({matchingNseStocks.length})</Text>
+              {matchingNseStocks.map(renderNseStockRow)}
+            </View>
+          )}
+
+          {filteredConsensus.length === 0 && matchingNseStocks.length === 0 && (
             <View style={styles.emptySearchBox}>
               <Ionicons name="search-outline" size={28} color={colors.textMuted} />
               <Text style={styles.emptySearchTitle}>No Matching Consensus Stocks</Text>
@@ -392,8 +534,29 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
           )}
         </View>
       ) : (
-        /* Investor Cards */
+        /* Investor Cards (+ Instant NSE Share Matches when searching) */
         <View style={styles.cardsList}>
+          {searchQuery.trim().length > 0 && matchingNseStocks.length > 0 && (
+            <View style={styles.nseInlineBlock}>
+              <View style={styles.nseInlineHeaderRow}>
+                <Text style={styles.nseInlineHeader}>
+                  📈 NSE LISTED SHARES ({matchingNseStocks.length} MATCH{matchingNseStocks.length === 1 ? '' : 'ES'})
+                </Text>
+                {onOpenStocks && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      onOpenStocks();
+                    }}
+                  >
+                    <Text style={styles.nseInlineMoreLink}>Full Terminal →</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              {matchingNseStocks.map(renderNseStockRow)}
+            </View>
+          )}
+
           {filteredWhales.map((whale) => {
             const isExpanded = expandedId === whale.id;
             const topHoldings = Array.isArray(whale.topHoldings) ? whale.topHoldings : [];
@@ -537,12 +700,12 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
             );
           })}
 
-          {filteredWhales.length === 0 && (
+          {filteredWhales.length === 0 && matchingNseStocks.length === 0 && (
             <View style={styles.emptySearchBox}>
               <Ionicons name="search-outline" size={28} color={colors.textMuted} />
-              <Text style={styles.emptySearchTitle}>No Super-Investors Found</Text>
+              <Text style={styles.emptySearchTitle}>No Matching Shares or Whales</Text>
               <Text style={styles.emptySearchSub}>
-                No matches for "{searchQuery || selectedFilter}" across {totalCount} tracked whales.
+                No matches for "{searchQuery || selectedFilter}" across NSE equities &amp; {totalCount} whales.
               </Text>
               <TouchableOpacity
                 style={styles.resetFilterBtn}
@@ -622,6 +785,16 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
           visible={!!viewingBreakdownWhale}
           whale={viewingBreakdownWhale}
           onClose={() => setViewingBreakdownWhale(null)}
+        />
+      )}
+
+      {/* Official NSE Stock Price, OHLC & 1Y Chart Modal */}
+      {selectedNseStock && (
+        <StockDetailModal
+          visible={!!selectedNseStock}
+          stock={selectedNseStock}
+          whalesList={whalesList}
+          onClose={() => setSelectedNseStock(null)}
         />
       )}
 
@@ -1225,5 +1398,149 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 12,
     fontWeight: '700',
+  },
+  nseDirectorySection: {
+    marginTop: 4,
+    gap: 8,
+  },
+  nseDirBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0D1527',
+    borderRadius: 16,
+    padding: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.28)',
+    marginBottom: 4,
+  },
+  nseDirTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  nseDirSub: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  fullTerminalBtn: {
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  fullTerminalBtnText: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  viewAllStocksFooterBtn: {
+    backgroundColor: '#0D1527',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    marginTop: 6,
+  },
+  viewAllStocksFooterText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  nseInlineBlock: {
+    gap: 8,
+    marginBottom: 6,
+  },
+  nseInlineHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  nseInlineHeader: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  nseInlineMoreLink: {
+    color: '#60A5FA',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  nseInlineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0D1527',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.22)',
+  },
+  nseSymRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  nseSymText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  nseSeriesPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+  },
+  nseSeriesText: {
+    color: '#94A3B8',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  nseEodBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
+  },
+  nseEodBadgeText: {
+    color: '#10B981',
+    fontSize: 8.5,
+    fontWeight: '800',
+  },
+  nseCompanyText: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  nseMetaText: {
+    color: '#64748B',
+    fontSize: 10.5,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  nsePriceText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '900',
+  },
+  nsePctBadge: {
+    marginTop: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  nsePctText: {
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

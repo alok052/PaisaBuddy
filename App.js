@@ -18,6 +18,7 @@ import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
 import AIPortfolioReviewScreen from './src/screens/AIPortfolioReviewScreen';
 import ToolsScreen from './src/screens/ToolsScreen';
 import IPORadarScreen from './src/screens/IPORadarScreen';
+import StocksScreen from './src/screens/StocksScreen';
 import StepUpCalculatorScreen from './src/screens/StepUpCalculatorScreen';
 import EMIPrepaymentScreen from './src/screens/EMIPrepaymentScreen';
 import FinancialGoalPlannerScreen from './src/screens/FinancialGoalPlannerScreen';
@@ -81,12 +82,18 @@ function MainApp() {
 
       {/* Screen Content */}
       <View style={styles.screenContainer}>
-        {activeTab === 'whales' && <WhaleTrackerScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'whales' && (
+          <WhaleTrackerScreen
+            onOpenMenu={openDrawer}
+            onOpenStocks={() => setActiveTab('stocks')}
+          />
+        )}
         {activeTab === 'startups' && <ExploreStartupsScreen onOpenMenu={openDrawer} />}
         {activeTab === 'sip' && <SIPDoctorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'tools' && <ToolsScreen onOpenMenu={openDrawer} onNavigatePage={setActiveTab} />}
         {activeTab === 'review' && <AIPortfolioReviewScreen onOpenMenu={openDrawer} />}
         {activeTab === 'ipos' && <IPORadarScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'stocks' && <StocksScreen onOpenMenu={openDrawer} />}
         {activeTab === 'stepup' && <StepUpCalculatorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'emi' && <EMIPrepaymentScreen onOpenMenu={openDrawer} />}
         {activeTab === 'goals' && <FinancialGoalPlannerScreen onOpenMenu={openDrawer} />}
