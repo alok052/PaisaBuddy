@@ -441,11 +441,11 @@ export default function StockDetailModal({ visible, stock, whalesList = [], onCl
                     <Text style={styles.chartAxisText}>
                       Low {formatInrPrice(chartGeom.minVal)} • High {formatInrPrice(chartGeom.maxVal)}
                     </Text>
-                    <Text style={styles.chartHintText}>
-                      {touchedPoint
-                        ? `H: ${formatInrPrice(touchedPoint.high)} • L: ${formatInrPrice(touchedPoint.low)}`
-                        : `${slicedPoints.length} trading days • Touch & drag chart`}
-                    </Text>
+                    {touchedPoint ? (
+                      <Text style={styles.chartHintText}>
+                        H: {formatInrPrice(touchedPoint.high)} • L: {formatInrPrice(touchedPoint.low)}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
               ) : (

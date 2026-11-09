@@ -90,32 +90,6 @@ export default function ExecutiveHubModal({
 
   const bentoGrid = [
     {
-      id: 'stocks',
-      title: 'All NSE Stocks',
-      subtitle: '3,500+ Equities, EOD Prices & 1Y Charts',
-      description:
-        'Search every NSE-listed company, ETF, and SME stock with official NSE Bhavcopy EOD prices, delivery %, and 1-year historical charts.',
-      icon: 'analytics-outline',
-      gradient: ['#0A1D24', '#051015'],
-      borderColor: 'rgba(16, 185, 129, 0.2)',
-      iconColor: '#10B981',
-      category: 'EQUITIES',
-      isUpcoming: false,
-    },
-    {
-      id: 'whales',
-      title: 'Whale Radar',
-      subtitle: '50 Super-Investors & Filings',
-      description:
-        'Track disclosed holdings, bulk deals, and multi-billionaire consensus overlaps across Indian & global super-investors.',
-      icon: 'layers-outline',
-      gradient: ['#11192D', '#090E1B'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#60A5FA',
-      category: 'WHALES',
-      isUpcoming: false,
-    },
-    {
       id: 'stepup',
       title: 'Step-Up Calculator',
       subtitle: 'Annual SIP Increment Multiplier',
@@ -188,6 +162,20 @@ export default function ExecutiveHubModal({
       iconColor: '#F59E0B',
       category: 'ALERTS',
       isUpcoming: false,
+    },
+    {
+      id: 'stocks',
+      title: 'All NSE Stocks',
+      subtitle: '3,740+ Equities, EOD Prices & 1Y Charts',
+      description:
+        'Search every NSE-listed company, ETF, and SME stock with official NSE Bhavcopy EOD prices, delivery %, and 1-year historical charts.',
+      icon: 'analytics-outline',
+      gradient: ['#0A1D24', '#051015'],
+      borderColor: 'rgba(16, 185, 129, 0.2)',
+      iconColor: '#10B981',
+      category: 'EQUITIES',
+      isUpcoming: false,
+      isWide: true,
     },
   ];
 
@@ -281,6 +269,7 @@ export default function ExecutiveHubModal({
                       key={item.id}
                       style={[
                         styles.bentoCard,
+                        item.isWide && styles.bentoCardWide,
                         isActive && { borderColor: 'rgba(16, 185, 129, 0.4)' },
                       ]}
                       activeOpacity={0.8}
@@ -576,6 +565,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
     marginBottom: 10,
+  },
+  bentoCardWide: {
+    width: '100%',
   },
   bentoGradient: {
     padding: 12,
