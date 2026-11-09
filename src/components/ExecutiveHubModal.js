@@ -138,7 +138,7 @@ export default function ExecutiveHubModal({
       isUpcoming: false,
     },
     {
-      id: 'goal_planner',
+      id: 'goals',
       title: 'Financial Goal Planner',
       subtitle: 'Inflation-Adjusted Life Milestones',
       description:
@@ -147,21 +147,21 @@ export default function ExecutiveHubModal({
       gradient: ['#1A160B', '#0F0D06'],
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F59E0B',
-      category: 'UPCOMING',
-      isUpcoming: true,
+      category: 'GOALS',
+      isUpcoming: false,
     },
     {
-      id: 'dividend_tracker',
+      id: 'dividend',
       title: 'Dividend Yield Tracker',
-      subtitle: 'Passive Cashflow & Ex-Dates',
+      subtitle: 'Passive Cashflow & DRIP Snowball',
       description:
-        'Track dividend income from your stock portfolio, projected annual yield, ex-dividend dates, and build a passive income cashflow.',
+        'Track dividend income from your stock & REIT portfolio, projected annual yield, quarterly payout dates, and Section 194 TDS insights.',
       icon: 'cash-outline',
       gradient: ['#09181C', '#050F12'],
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#22D3EE',
-      category: 'UPCOMING',
-      isUpcoming: true,
+      category: 'INCOME',
+      isUpcoming: false,
     },
   ];
 

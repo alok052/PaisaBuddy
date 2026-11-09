@@ -20,6 +20,8 @@ import ToolsScreen from './src/screens/ToolsScreen';
 import IPORadarScreen from './src/screens/IPORadarScreen';
 import StepUpCalculatorScreen from './src/screens/StepUpCalculatorScreen';
 import EMIPrepaymentScreen from './src/screens/EMIPrepaymentScreen';
+import FinancialGoalPlannerScreen from './src/screens/FinancialGoalPlannerScreen';
+import DividendYieldTrackerScreen from './src/screens/DividendYieldTrackerScreen';
 import ExecutiveHubModal from './src/components/ExecutiveHubModal';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
 
@@ -87,6 +89,8 @@ function MainApp() {
         {activeTab === 'ipos' && <IPORadarScreen onOpenMenu={openDrawer} />}
         {activeTab === 'stepup' && <StepUpCalculatorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'emi' && <EMIPrepaymentScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'goals' && <FinancialGoalPlannerScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'dividend' && <DividendYieldTrackerScreen onOpenMenu={openDrawer} />}
       </View>
 
       {/* Executive All-Pages Hub & Launchpad */}

@@ -75,15 +75,15 @@ export default function ToolsScreen({ onOpenMenu, onNavigatePage }) {
       id: 'dividend_tracker',
       category: 'WEALTH',
       title: 'Dividend Yield Tracker',
-      subtitle: 'Passive Income Dashboard',
+      subtitle: 'Passive Cashflow & DRIP',
       description:
-        'Track dividend income from your stock portfolio, projected annual yield, ex-dividend dates, and build a passive income cashflow.',
+        'Track dividend income from your stock & REIT portfolio, projected annual yield, quarterly payouts, and Section 194 TDS insights.',
       icon: 'cash',
       accentColor: '#22D3EE',
       gradientColors: ['#0A1A1E', '#061214'],
-      tag: 'COMING SOON',
+      tag: 'ACTIVE • PASSIVE YIELD',
       tagColor: '#22D3EE',
-      available: false,
+      available: true,
       stats: 'Passive Cashflow',
     },
     {
@@ -111,9 +111,9 @@ export default function ToolsScreen({ onOpenMenu, onNavigatePage }) {
       icon: 'flag',
       accentColor: colors.warning,
       gradientColors: ['#1E1A0E', '#141208'],
-      tag: 'COMING SOON',
+      tag: 'ACTIVE • INFLATION ADJ',
       tagColor: colors.warning,
-      available: false,
+      available: true,
       stats: 'Inflation-Adjusted',
     },
   ];
@@ -126,6 +126,10 @@ export default function ToolsScreen({ onOpenMenu, onNavigatePage }) {
       if (onNavigatePage) onNavigatePage('stepup');
     } else if (tool.available && tool.id === 'emi_calculator') {
       if (onNavigatePage) onNavigatePage('emi');
+    } else if (tool.available && tool.id === 'dividend_tracker') {
+      if (onNavigatePage) onNavigatePage('dividend');
+    } else if (tool.available && tool.id === 'goal_planner') {
+      if (onNavigatePage) onNavigatePage('goals');
     } else {
       Alert.alert(
         tool.title,
@@ -262,7 +266,7 @@ export default function ToolsScreen({ onOpenMenu, onNavigatePage }) {
                   </View>
 
                   <View style={styles.toolCtaBtn}>
-                    <Text style={styles.toolCtaText}>Launch Calculator</Text>
+                    <Text style={styles.toolCtaText}>Open Tool</Text>
                     <Ionicons
                       name="arrow-forward"
                       size={13}
