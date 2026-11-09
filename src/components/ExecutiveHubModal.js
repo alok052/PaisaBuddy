@@ -179,12 +179,6 @@ export default function ExecutiveHubModal({
     },
   ];
 
-  const pipelinePills = [
-    { id: 'heatmap', label: 'Sector Heatmap & FII Flows', icon: 'grid-outline' },
-    { id: 'fire', label: '30-Yr FIRE & Wealth Goal', icon: 'hourglass-outline' },
-    { id: 'gold', label: 'Digital Gold & SGB Tranches', icon: 'trophy-outline' },
-  ];
-
   return (
     <Modal
       visible={visible}
@@ -351,24 +345,6 @@ export default function ExecutiveHubModal({
                     </TouchableOpacity>
                   );
                 })}
-              </View>
-            </View>
-
-            {/* EXPANDABLE PIPELINE (COMING NEXT) */}
-            <View style={styles.pipelineSection}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeading}>EXPANDABLE PIPELINE</Text>
-                <Text style={styles.sectionSubCount}>Next Release</Text>
-              </View>
-
-              <View style={styles.pipelinePillsContainer}>
-                {pipelinePills.map((pill) => (
-                  <View key={pill.id} style={styles.pipelinePill}>
-                    <Ionicons name={pill.icon} size={15} color="#64748B" />
-                    <Text style={styles.pipelinePillText}>{pill.label}</Text>
-                    <Ionicons name="chevron-forward" size={13} color="#334155" />
-                  </View>
-                ))}
               </View>
             </View>
 
@@ -617,29 +593,6 @@ const styles = StyleSheet.create({
   bentoActionText: {
     fontSize: 9.5,
     fontWeight: '700',
-  },
-  pipelineSection: {
-    marginBottom: 20,
-  },
-  pipelinePillsContainer: {
-    gap: 8,
-  },
-  pipelinePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0D121D',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  pipelinePillText: {
-    color: '#CBD5E1',
-    fontSize: 11,
-    fontWeight: '500',
-    flex: 1,
-    marginLeft: 8,
   },
   footerContainer: {
     alignItems: 'center',
