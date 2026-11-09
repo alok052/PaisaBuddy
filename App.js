@@ -87,10 +87,7 @@ function MainApp() {
           />
         )}
         {activeTab === 'review' && (
-          <AIPortfolioReviewScreen
-            onOpenMenu={openDrawer}
-            onOpenOverlap={() => setActiveTab('overlap')}
-          />
+          <AIPortfolioReviewScreen onOpenMenu={openDrawer} />
         )}
         {activeTab === 'overlap' && (
           <MFOverlapScreen
