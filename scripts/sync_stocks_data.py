@@ -321,24 +321,36 @@ def supabase_batch_upsert(table, rows, batch_size=400):
     if not rows:
         return
     url = f"{SUPABASE_URL}/rest/v1/{table}?on_conflict=symbol"
-    for i in range(0, len(rows), batch_size):
+    total_batches = (len(rows) + batch_size - 1) // batch_size
+    for b_idx, i in enumerate(range(0, len(rows), batch_size), start=1):
         batch = rows[i:i + batch_size]
         data = json.dumps(batch, ensure_ascii=False).encode('utf-8')
         req = urllib.request.Request(url, data=data, headers=UPSERT_HEADERS, method='POST')
         last_err = None
         for attempt in range(3):
             try:
-                with urllib.request.urlopen(req, timeout=40) as resp:
+                with urllib.request.urlopen(req, timeout=45) as resp:
                     if resp.status not in (200, 201, 204):
                         raise RuntimeError(f"Unexpected status {resp.status}")
                     last_err = None
                     break
+            except urllib.error.HTTPError as e:
+                err_body = ''
+                try:
+                    err_body = e.read().decode('utf-8', 'ignore')
+                except Exception:
+                    pass
+                last_err = RuntimeError(f"HTTP {e.code} on {table} batch {b_idx}/{total_batches}: {err_body or e.reason}")
+                if e.code in (400, 401, 403, 404):
+                    raise last_err
             except Exception as e:
                 last_err = e
-                if attempt < 2:
-                    time.sleep(1.0 * (attempt + 1))
+            if attempt < 2:
+                time.sleep(1.0 * (attempt + 1))
         if last_err:
             raise last_err
+        if total_batches >= 10 and (b_idx % 5 == 0 or b_idx == total_batches):
+            print(f"     -> {table}: uploaded batch {b_idx}/{total_batches}")
 
 
 def generate_weekdays_back(end_date, calendar_days):
@@ -605,7 +617,7 @@ def main():
     print(f"\n[4/4] Upserting {len(stocks_rows)} stocks & {len(history_rows)} histories to Supabase...")
     supabase_batch_upsert('nse_stocks', stocks_rows, batch_size=400)
     print("  -> Upserted public.nse_stocks successfully.")
-    supabase_batch_upsert('nse_stock_history', history_rows, batch_size=200)
+    supabase_batch_upsert('nse_stock_history', history_rows, batch_size=120)
     print("  -> Upserted public.nse_stock_history successfully.")
     print(f"\nSYNC COMPLETE in {time.time() - t0:.2f}s! Latest EOD: {latest_market_date}")
 
