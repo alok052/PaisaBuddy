@@ -10,6 +10,13 @@ on:
     - cron: '0 14-21 * * 1-5'
     # Weekend Exchange Filing & FX Sync (Saturday & Sunday 5:30 PM IST)
     - cron: '0 12 * * 0,6'
+  push:
+    branches:
+      - master
+    paths:
+      - 'scripts/sync_whales_data.py'
+      - 'scripts/whales_registry.py'
+      - '.github/workflows/sync-whales.yml'
   workflow_dispatch: # 1-click manual sync anytime from GitHub Actions tab
 
 concurrency:
