@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { fetchLiveMarketAlerts } from '../services/dataService';
+import { getQuickCachedMoodSummary } from '../services/marketMoodEngine';
 import { sharePaisaBuddyApp, rateOnPlayStore } from '../services/shareService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -25,6 +26,7 @@ export default function ExecutiveHubModal({
   activePage = 'whales',
   onSelectPage,
 }) {
+  const quickMood = visible ? getQuickCachedMoodSummary() : null;
   const handleItemPress = async (itemOrId) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -213,25 +215,55 @@ export default function ExecutiveHubModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* Executive Status Banner */}
-            <View style={styles.vipBannerWrapper}>
-              <View style={styles.vipBanner}>
+            {/* Featured Live Market Mood & Smart Dip Terminal Banner */}
+            <TouchableOpacity
+              style={styles.vipBannerWrapper}
+              activeOpacity={0.84}
+              onPress={() => handleItemPress('mood')}
+            >
+              <View
+                style={[
+                  styles.vipBanner,
+                  activePage === 'mood' && { borderColor: 'rgba(16, 185, 129, 0.45)' },
+                ]}
+              >
                 <View style={styles.vipBannerLeft}>
                   <View style={styles.crownCircle}>
-                    <Ionicons name="apps-outline" size={16} color="#10B981" />
+                    <Ionicons
+                      name="speedometer-outline"
+                      size={16}
+                      color={quickMood?.overallRegime?.color || '#10B981'}
+                    />
                   </View>
                   <View style={styles.vipTextGroup}>
-                    <Text style={styles.vipTitle}>INSTITUTIONAL DIRECTORY</Text>
+                    <Text style={styles.vipTitle}>MARKET MOOD &amp; SMART DIP RADAR</Text>
                     <Text style={styles.vipSubtitle}>
-                      Curated Terminals & Financial Engines
+                      {quickMood
+                        ? `Live Index ${quickMood.overallMoodScore}/100 (${quickMood.overallRegime?.shortLabel}) • 200-DMA & Dips`
+                        : 'Live 200-DMA Regime, NSE Dip Scanner & SIP Planner'}
                     </Text>
                   </View>
                 </View>
-                <View style={styles.vipTag}>
-                  <Text style={styles.vipTagText}>SUITE</Text>
+                <View
+                  style={[
+                    styles.vipTag,
+                    quickMood && {
+                      borderColor: `${quickMood.overallRegime?.color || '#10B981'}55`,
+                      backgroundColor: quickMood.overallRegime?.bgColor || 'rgba(16,185,129,0.12)',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.vipTagText,
+                      quickMood && { color: quickMood.overallRegime?.color || '#10B981' },
+                    ]}
+                  >
+                    {quickMood ? `${quickMood.overallMoodScore}/100` : 'OPEN'}
+                  </Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
 
             {/* BENTO GRID: RADARS & TOOLS SUITE */}
             <View style={styles.bentoSection}>

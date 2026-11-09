@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from './src/theme/colors';
 import WhaleTrackerScreen from './src/screens/WhaleTrackerScreen';
+import MarketMoodScreen from './src/screens/MarketMoodScreen';
 import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
 import AIPortfolioReviewScreen from './src/screens/AIPortfolioReviewScreen';
 import StocksScreen from './src/screens/StocksScreen';
@@ -39,6 +40,12 @@ function MainApp() {
       label: 'Whales',
       iconName: 'layers-outline',
       activeIcon: 'layers',
+    },
+    {
+      id: 'mood',
+      label: 'Mood',
+      iconName: 'speedometer-outline',
+      activeIcon: 'speedometer',
     },
     {
       id: 'sip',
@@ -77,6 +84,13 @@ function MainApp() {
         {activeTab === 'whales' && (
           <WhaleTrackerScreen
             onOpenMenu={openDrawer}
+            onOpenStocks={() => setActiveTab('stocks')}
+          />
+        )}
+        {activeTab === 'mood' && (
+          <MarketMoodScreen
+            onOpenMenu={openDrawer}
+            onOpenSipDoctor={() => setActiveTab('sip')}
             onOpenStocks={() => setActiveTab('stocks')}
           />
         )}

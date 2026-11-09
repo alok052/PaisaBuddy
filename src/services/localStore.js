@@ -6,6 +6,7 @@ export const STORE_KEYS = {
   DIVIDEND_CONFIG: 'paisabuddy_dividend_v1.json',
   PORTFOLIO_HOLDINGS: 'paisabuddy_portfolio_v1.json',
   TAX_HARVEST_STATE: 'paisabuddy_tax_v1.json',
+  DIP_ALERT_CONFIG: 'paisabuddy_dip_alert_v1.json',
 };
 
 const memoryFallback = {};

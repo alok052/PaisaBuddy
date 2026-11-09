@@ -177,7 +177,7 @@ export async function sharePaisaBuddyApp() {
     `🚀 Check out PaisaBuddy — Free Indian Smart Money & Portfolio Audit App!`,
     `• Track 50 Billionaires (SEBI >1% & US SEC 13F Live)`,
     `• Audit MF Overlap & Regular-to-Direct Commission Leakage (45,000+ AMFI Funds)`,
-    `• Explore 3,700+ NSE Stocks with 1Y Charts, Tax Harvester & Dividend Tracker`,
+    `• Explore 3,700+ NSE Stocks with 1Y Charts, Market Mood & Smart Dip Radar`,
     '',
     `Zero broker login required:`,
     PLAY_STORE_WEB_URL,
@@ -186,6 +186,37 @@ export async function sharePaisaBuddyApp() {
   try {
     return await Share.share({
       title: 'PaisaBuddy — Smart Money & MF Audit',
+      message,
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function shareMarketMoodInsight(report) {
+  if (!report) return null;
+  const score = report.overallMoodScore ?? 50;
+  const regime = report.overallRegime?.label || 'Neutral';
+  const lines = (report.benchmarks || [])
+    .filter((b) => ['NIFTY50', 'MID150', 'SMALL250', 'GOLD'].includes(b.key))
+    .map((b) => {
+      const sign = b.distFrom200DmaPct >= 0 ? '+' : '';
+      return `• ${b.shortLabel}: Mood ${b.moodScore}/100 (${sign}${b.distFrom200DmaPct}% vs 200-DMA, ${b.drawdownFrom52WHighPct}% off High)`;
+    });
+
+  const message = [
+    `🌡️ India Market Mood Index: ${score}/100 (${regime})`,
+    `📅 Data as of ${report.latestDataDate || 'Latest EOD'}`,
+    ...lines,
+    `• Playbook: ${report.overallRegime?.headline || 'Disciplined Staggered Investing'}`,
+    '',
+    `Check Live 200-DMA, Smart Dip Radar & SIP Allocator free on PaisaBuddy:`,
+    PLAY_STORE_WEB_URL,
+  ].join('\n');
+
+  try {
+    return await Share.share({
+      title: `Market Mood ${score}/100 (${regime})`,
       message,
     });
   } catch (err) {
