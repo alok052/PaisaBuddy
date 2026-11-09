@@ -20,13 +20,10 @@ import CloneWhaleModal from '../components/CloneWhaleModal';
 import WhaleBreakdownModal from '../components/WhaleBreakdownModal';
 import {
   fetchLiveWhales,
-  fetchLiveAlert,
   fetchLiveConsensusStocks,
   buildLiveConsensusStocks,
   subscribeToWhales,
-  subscribeToWhaleAlerts,
   subscribeToConsensus,
-  formatSyncTimeAgo,
 } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
 
@@ -34,7 +31,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState('1'); // first one expanded by default
   const [whalesList, setWhalesList] = useState([]);
-  const [liveAlert, setLiveAlert] = useState(null);
   const [consensusOverride, setConsensusOverride] = useState(null);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,12 +40,8 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 
   const loadData = useCallback(async () => {
     try {
-      const [whalesData, alertData] = await Promise.all([
-        fetchLiveWhales(),
-        fetchLiveAlert(),
-      ]);
+      const whalesData = await fetchLiveWhales();
       setWhalesList(whalesData);
-      setLiveAlert(alertData);
       const consensusData = await fetchLiveConsensusStocks(whalesData);
       if (Array.isArray(consensusData) && consensusData.length > 0) {
         setConsensusOverride(consensusData);
@@ -75,12 +67,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
       });
     });
 
-    const alertsChannel = subscribeToWhaleAlerts((mappedAlert) => {
-      if (mappedAlert) {
-        setLiveAlert(mappedAlert);
-      }
-    });
-
     const consensusChannel = subscribeToConsensus(async () => {
       const refreshed = await fetchLiveConsensusStocks();
       if (Array.isArray(refreshed) && refreshed.length > 0) {
@@ -90,7 +76,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 
     return () => {
       if (whalesChannel?.unsubscribe) whalesChannel.unsubscribe();
-      if (alertsChannel?.unsubscribe) alertsChannel.unsubscribe();
       if (consensusChannel?.unsubscribe) consensusChannel.unsubscribe();
     };
   }, [loadData]);
@@ -108,20 +93,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
     await loadData();
     setRefreshing(false);
   }, [loadData]);
-
-  const latestSyncIso = useMemo(() => {
-    let maxTs = 0;
-    let bestIso = null;
-    (whalesList || []).forEach((w) => {
-      if (!w?.updatedAt) return;
-      const t = new Date(w.updatedAt).getTime();
-      if (Number.isFinite(t) && t > maxTs) {
-        maxTs = t;
-        bestIso = w.updatedAt;
-      }
-    });
-    return bestIso;
-  }, [whalesList]);
 
   const totalCount = whalesList.length > 0 ? whalesList.length : 50;
   const indiaCount = useMemo(
@@ -224,56 +195,6 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         subtitle="Billionaires & Institutional Radar"
         onMenuPress={onOpenMenu}
       />
-
-      {/* 24/7 Live Cloud Sync Telemetry Bar */}
-      <View style={styles.syncStatusBar}>
-        <View style={styles.syncStatusLeft}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.syncStatusTitle}>
-            LIVE 24/7 • {totalCount} WHALES • NSE + SEC 13F
-          </Text>
-        </View>
-        <Text style={styles.syncStatusTime}>
-          {latestSyncIso ? `Synced ${formatSyncTimeAgo(latestSyncIso)}` : 'Syncing...'}
-        </Text>
-      </View>
-
-      {/* Live NSE / SEC EDGAR Disclosure Alert Card */}
-      {liveAlert && alertsEnabled && (
-        <View style={styles.alertCardWrapper}>
-          <LinearGradient
-            colors={['#0F1D2C', '#0A131E']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.alertCard}
-          >
-            <View style={styles.alertHeader}>
-              <View style={styles.liveTagContainer}>
-                <View style={styles.livePulseDot} />
-                <Text style={styles.liveTagText}>LIVE EXCHANGE DISCLOSURE</Text>
-              </View>
-              <View style={styles.sourcePill}>
-                <Text style={styles.sourcePillText}>
-                  {liveAlert.source} • {liveAlert.timeAgo}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.alertTitle} numberOfLines={2}>
-              {liveAlert.title}
-            </Text>
-            {liveAlert.subtitle ? (
-              <View style={styles.alertDetailRow}>
-                <View style={styles.detailPill}>
-                  <Text style={styles.detailPillText} numberOfLines={2}>
-                    {liveAlert.subtitle}
-                  </Text>
-                </View>
-                <Ionicons name="radio-outline" size={14} color={colors.primary} />
-              </View>
-            ) : null}
-          </LinearGradient>
-        </View>
-      )}
 
       {/* Sleek Search Bar for 50 Whales */}
       <View style={styles.searchBarWrapper}>
@@ -736,42 +657,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     paddingVertical: 0,
   },
-  syncStatusBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-    marginTop: 2,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
-  },
-  syncStatusLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  livePulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
-  syncStatusTitle: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: 0.6,
-  },
-  syncStatusTime: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    letterSpacing: 0.3,
-  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -814,79 +699,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderWidth: 1.5,
     borderColor: colors.card,
-  },
-  alertCardWrapper: {
-    borderRadius: 18,
-    overflow: 'hidden',
-    marginTop: 2,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.28)',
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  alertCard: {
-    padding: 14,
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  liveTagContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  liveTagText: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
-  sourcePill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  sourcePillText: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '600',
-  },
-  alertTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-  alertDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  detailPill: {
-    flex: 1,
-    marginRight: 6,
-  },
-  detailPillText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '600',
   },
   filterScroll: {
     marginTop: 6,
