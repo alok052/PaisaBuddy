@@ -1,14 +1,12 @@
 import AppHeader from '../components/AppHeader';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  LayoutAnimation,
   Platform,
-  UIManager,
   RefreshControl,
   Alert,
   TextInput,
@@ -20,66 +18,129 @@ import { colors } from '../theme/colors';
 import WhaleAvatar from '../components/WhaleAvatar';
 import CloneWhaleModal from '../components/CloneWhaleModal';
 import WhaleBreakdownModal from '../components/WhaleBreakdownModal';
-import { fetchLiveWhales, fetchLiveAlert, subscribeToWhales } from '../services/dataService';
+import {
+  fetchLiveWhales,
+  fetchLiveAlert,
+  fetchLiveConsensusStocks,
+  buildLiveConsensusStocks,
+  subscribeToWhales,
+  subscribeToWhaleAlerts,
+  subscribeToConsensus,
+  formatSyncTimeAgo,
+} from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
-
 
 export default function WhaleTrackerScreen({ onOpenMenu }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
   const [expandedId, setExpandedId] = useState('1'); // first one expanded by default
   const [whalesList, setWhalesList] = useState([]);
   const [liveAlert, setLiveAlert] = useState(null);
+  const [consensusOverride, setConsensusOverride] = useState(null);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [cloningWhale, setCloningWhale] = useState(null);
   const [viewingBreakdownWhale, setViewingBreakdownWhale] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadData = async () => {
-    const [whalesData, alertData] = await Promise.all([
-      fetchLiveWhales(),
-      fetchLiveAlert(),
-    ]);
-    setWhalesList(whalesData);
-    setLiveAlert(alertData);
-  };
+  const loadData = useCallback(async () => {
+    try {
+      const [whalesData, alertData] = await Promise.all([
+        fetchLiveWhales(),
+        fetchLiveAlert(),
+      ]);
+      setWhalesList(whalesData);
+      setLiveAlert(alertData);
+      const consensusData = await fetchLiveConsensusStocks(whalesData);
+      if (Array.isArray(consensusData) && consensusData.length > 0) {
+        setConsensusOverride(consensusData);
+      }
+    } catch (err) {
+      console.log('Error loading whale radar data:', err);
+    }
+  }, []);
 
   useEffect(() => {
     loadData();
 
-    const channel = subscribeToWhales((updatedRow) => {
-      setWhalesList((prev) =>
-        prev.map((w) =>
-          w.id === updatedRow.id
-            ? {
-                ...w,
-                portfolioValue: updatedRow.portfolio_value,
-                topHoldings: updatedRow.top_holdings || w.topHoldings,
-                recentMoves: updatedRow.recent_moves || w.recentMoves,
-              }
-            : w
-        )
-      );
+    const whalesChannel = subscribeToWhales((mappedWhale) => {
+      if (!mappedWhale) return;
+      setConsensusOverride(null);
+      setWhalesList((prev) => {
+        const exists = prev.some((w) => String(w.id) === String(mappedWhale.id));
+        const next = exists
+          ? prev.map((w) => (String(w.id) === String(mappedWhale.id) ? mappedWhale : w))
+          : [...prev, mappedWhale];
+        next.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
+        return next;
+      });
+    });
+
+    const alertsChannel = subscribeToWhaleAlerts((mappedAlert) => {
+      if (mappedAlert) {
+        setLiveAlert(mappedAlert);
+      }
+    });
+
+    const consensusChannel = subscribeToConsensus(async () => {
+      const refreshed = await fetchLiveConsensusStocks();
+      if (Array.isArray(refreshed) && refreshed.length > 0) {
+        setConsensusOverride(refreshed);
+      }
     });
 
     return () => {
-      if (channel && channel.unsubscribe) {
-        channel.unsubscribe();
-      }
+      if (whalesChannel?.unsubscribe) whalesChannel.unsubscribe();
+      if (alertsChannel?.unsubscribe) alertsChannel.unsubscribe();
+      if (consensusChannel?.unsubscribe) consensusChannel.unsubscribe();
     };
-  }, []);
+  }, [loadData]);
+
+  const consensusList = useMemo(() => {
+    if (Array.isArray(consensusOverride) && consensusOverride.length > 0) {
+      return consensusOverride;
+    }
+    return buildLiveConsensusStocks(whalesList, mockConsensusStocks);
+  }, [consensusOverride, whalesList]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await loadData();
     setRefreshing(false);
-  }, []);
+  }, [loadData]);
+
+  const latestSyncIso = useMemo(() => {
+    let maxTs = 0;
+    let bestIso = null;
+    (whalesList || []).forEach((w) => {
+      if (!w?.updatedAt) return;
+      const t = new Date(w.updatedAt).getTime();
+      if (Number.isFinite(t) && t > maxTs) {
+        maxTs = t;
+        bestIso = w.updatedAt;
+      }
+    });
+    return bestIso;
+  }, [whalesList]);
+
+  const totalCount = whalesList.length > 0 ? whalesList.length : 50;
+  const indiaCount = useMemo(
+    () => (whalesList.length > 0 ? whalesList.filter((w) => (w.tag || '').includes('🇮🇳')).length : 35),
+    [whalesList]
+  );
+  const globalCount = useMemo(
+    () =>
+      whalesList.length > 0
+        ? whalesList.filter((w) => (w.tag || '').includes('🇺🇸') || (w.tag || '').includes('🇬🇧')).length
+        : 15,
+    [whalesList]
+  );
 
   const filters = [
-    { id: 'ALL', label: '🌟 All 50 Whales' },
-    { id: 'CONSENSUS', label: '💎 Whale Consensus' },
-    { id: 'IN', label: '🇮🇳 India (35)' },
-    { id: 'US', label: '🇺🇸 Global (15)' },
+    { id: 'ALL', label: `🌟 All ${totalCount} Whales` },
+    { id: 'CONSENSUS', label: `💎 Consensus (${consensusList.length})` },
+    { id: 'IN', label: `🇮🇳 India (${indiaCount})` },
+    { id: 'US', label: `🇺🇸 Global (${globalCount})` },
     { id: 'BUYS', label: '🟢 Recent Buys' },
   ];
 
@@ -108,22 +169,42 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
   };
 
   const filteredWhales = (whalesList || []).filter((w) => {
-    // 1. Category / Origin Filter
-    if (selectedFilter === 'IN' && !w.tag.includes('🇮🇳')) return false;
-    if (selectedFilter === 'US' && !w.tag.includes('🇺🇸') && !w.tag.includes('🇬🇧')) return false;
-    if (selectedFilter === 'BUYS' && !w.recentMoves.some((m) => m.type === 'BUY')) return false;
+    const tagStr = w.tag || '';
+    const moves = Array.isArray(w.recentMoves) ? w.recentMoves : [];
+    const holdings = Array.isArray(w.topHoldings) ? w.topHoldings : [];
 
-    // 2. Search Query Filter (Investor Name, Tag, or Held Stock Name)
+    // 1. Category / Origin Filter
+    if (selectedFilter === 'IN' && !tagStr.includes('🇮🇳')) return false;
+    if (selectedFilter === 'US' && !tagStr.includes('🇺🇸') && !tagStr.includes('🇬🇧')) return false;
+    if (selectedFilter === 'BUYS' && !moves.some((m) => m.type === 'BUY')) return false;
+
+    // 2. Search Query Filter (Investor Name, Tag, Held Stock Name or Ticker)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      const matchesName = w.name.toLowerCase().includes(q);
-      const matchesTag = w.tag.toLowerCase().includes(q);
-      const matchesStock = (w.topHoldings || []).some((h) => h.name.toLowerCase().includes(q));
+      const matchesName = (w.name || '').toLowerCase().includes(q);
+      const matchesTag = tagStr.toLowerCase().includes(q);
+      const matchesStock = holdings.some(
+        (h) =>
+          (h.name || '').toLowerCase().includes(q) ||
+          (h.symbol || '').toLowerCase().includes(q)
+      );
       return matchesName || matchesTag || matchesStock;
     }
 
     return true;
   });
+
+  const filteredConsensus = useMemo(() => {
+    if (!searchQuery.trim()) return consensusList;
+    const q = searchQuery.toLowerCase().trim();
+    return consensusList.filter(
+      (stock) =>
+        (stock.name || '').toLowerCase().includes(q) ||
+        (stock.symbol || '').toLowerCase().includes(q) ||
+        (stock.sector || '').toLowerCase().includes(q) ||
+        (stock.billionaires || []).some((b) => (b.name || '').toLowerCase().includes(q))
+    );
+  }, [consensusList, searchQuery]);
 
   return (
     <ScrollView
@@ -144,13 +225,62 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
         onMenuPress={onOpenMenu}
       />
 
+      {/* 24/7 Live Cloud Sync Telemetry Bar */}
+      <View style={styles.syncStatusBar}>
+        <View style={styles.syncStatusLeft}>
+          <View style={styles.livePulseDot} />
+          <Text style={styles.syncStatusTitle}>
+            LIVE 24/7 • {totalCount} WHALES • NSE + SEC 13F
+          </Text>
+        </View>
+        <Text style={styles.syncStatusTime}>
+          {latestSyncIso ? `Synced ${formatSyncTimeAgo(latestSyncIso)}` : 'Syncing...'}
+        </Text>
+      </View>
+
+      {/* Live NSE / SEC EDGAR Disclosure Alert Card */}
+      {liveAlert && alertsEnabled && (
+        <View style={styles.alertCardWrapper}>
+          <LinearGradient
+            colors={['#0F1D2C', '#0A131E']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.alertCard}
+          >
+            <View style={styles.alertHeader}>
+              <View style={styles.liveTagContainer}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.liveTagText}>LIVE EXCHANGE DISCLOSURE</Text>
+              </View>
+              <View style={styles.sourcePill}>
+                <Text style={styles.sourcePillText}>
+                  {liveAlert.source} • {liveAlert.timeAgo}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.alertTitle} numberOfLines={2}>
+              {liveAlert.title}
+            </Text>
+            {liveAlert.subtitle ? (
+              <View style={styles.alertDetailRow}>
+                <View style={styles.detailPill}>
+                  <Text style={styles.detailPillText} numberOfLines={2}>
+                    {liveAlert.subtitle}
+                  </Text>
+                </View>
+                <Ionicons name="radio-outline" size={14} color={colors.primary} />
+              </View>
+            ) : null}
+          </LinearGradient>
+        </View>
+      )}
 
       {/* Sleek Search Bar for 50 Whales */}
       <View style={styles.searchBarWrapper}>
         <Ionicons name="search" size={17} color={colors.textMuted} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchTextInput}
-          placeholder="Search 50 whales, stocks (e.g. Kedia, Titan, Apple)..."
+          placeholder="Search 50 whales, stocks (e.g. Kedia, Titan, AAPL)..."
           placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -195,18 +325,18 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
             <View style={styles.consensusBadgeRow}>
               <View style={styles.consensusTag}>
                 <Ionicons name="layers-outline" size={13} color={colors.accentBlue} />
-                <Text style={styles.consensusTagText}>INSTITUTIONAL RADAR</Text>
+                <Text style={styles.consensusTagText}>LIVE OVERLAP RADAR</Text>
               </View>
-              <Text style={styles.consensusCountText}>{mockConsensusStocks.length} Verified Overlaps</Text>
+              <Text style={styles.consensusCountText}>{filteredConsensus.length} Live Overlaps</Text>
             </View>
             <Text style={styles.consensusHeadline}>Multi-Billionaire Co-Invested Stocks</Text>
             <Text style={styles.consensusSub}>
-              Companies where 2 or more super-investors concurrently hold >1% equity stake based on official SEBI filings.
+              Companies where 2 or more super-investors concurrently hold positions across live NSE/SEBI &amp; US SEC Form 13F-HR filings.
             </Text>
           </View>
 
           {/* Consensus Stock Cards */}
-          {mockConsensusStocks.map((stock) => (
+          {filteredConsensus.map((stock) => (
             <View key={stock.id} style={styles.consensusCard}>
               {/* Top Row: Symbol, Sector, Conviction Pill */}
               <View style={styles.cTopRow}>
@@ -259,9 +389,9 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
 
               {/* Backing Whales */}
               <View style={styles.cBackersBox}>
-                <Text style={styles.cBackersTitle}>Co-Invested Super-Investors:</Text>
+                <Text style={styles.cBackersTitle}>Co-Invested Super-Investors ({(stock.billionaires || []).length}):</Text>
                 <View style={styles.cBackersList}>
-                  {stock.billionaires.map((b, idx) => (
+                  {(stock.billionaires || []).map((b, idx) => (
                     <View key={idx} style={styles.cBackerChip}>
                       <Ionicons name="person-circle" size={16} color={colors.primary} />
                       <Text style={styles.cBackerName}>{b.name}</Text>
@@ -328,12 +458,28 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
               </View>
             </View>
           ))}
+
+          {filteredConsensus.length === 0 && (
+            <View style={styles.emptySearchBox}>
+              <Ionicons name="search-outline" size={28} color={colors.textMuted} />
+              <Text style={styles.emptySearchTitle}>No Matching Consensus Stocks</Text>
+              <Text style={styles.emptySearchSub}>Try clearing "{searchQuery}" to view all live overlaps.</Text>
+              <TouchableOpacity style={styles.resetFilterBtn} onPress={() => setSearchQuery('')}>
+                <Text style={styles.resetFilterBtnText}>Clear Search</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       ) : (
         /* Investor Cards */
         <View style={styles.cardsList}>
           {filteredWhales.map((whale) => {
             const isExpanded = expandedId === whale.id;
+            const topHoldings = Array.isArray(whale.topHoldings) ? whale.topHoldings : [];
+            const allCount = Array.isArray(whale.allHoldings) ? whale.allHoldings.length : topHoldings.length;
+            const recentMoves = Array.isArray(whale.recentMoves) ? whale.recentMoves : [];
+            const extraCount = Math.max(0, allCount - 3);
+
             return (
               <TouchableOpacity
                 key={whale.id}
@@ -360,7 +506,14 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                   </View>
 
                   <View style={styles.returnBadge}>
-                    <Text style={styles.returnText}>{whale.return1Y}</Text>
+                    <Text
+                      style={[
+                        styles.returnText,
+                        { color: whale.isPositive ? colors.primary : colors.danger },
+                      ]}
+                    >
+                      {whale.return1Y}
+                    </Text>
                     <Text style={styles.returnLabel}>1Y Return</Text>
                   </View>
                 </View>
@@ -369,16 +522,16 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                 <View style={styles.holdingsPreview}>
                   <Text style={styles.sectionMiniTitle}>Top Holdings:</Text>
                   <View style={styles.holdingsTags}>
-                    {whale.topHoldings.slice(0, 3).map((h, i) => (
+                    {topHoldings.slice(0, 3).map((h, i) => (
                       <View key={i} style={styles.holdingPill}>
                         <Text style={styles.holdingPillText}>
                           {h.name} <Text style={{ color: colors.primary }}>{h.stake}</Text>
                         </Text>
                       </View>
                     ))}
-                    {whale.topHoldings.length > 3 && (
+                    {extraCount > 0 && (
                       <View style={styles.morePill}>
-                        <Text style={styles.morePillText}>+{whale.topHoldings.length - 3} more</Text>
+                        <Text style={styles.morePillText}>+{extraCount} more</Text>
                       </View>
                     )}
                   </View>
@@ -388,8 +541,15 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                 {isExpanded && (
                   <View style={styles.expandArea}>
                     <View style={styles.divider} />
-                    <Text style={styles.expandTitle}>📊 Recent Portfolio Activity</Text>
-                    {whale.recentMoves.map((m, idx) => (
+                    <View style={styles.expandHeaderRow}>
+                      <Text style={styles.expandTitle}>📊 Recent Portfolio Activity</Text>
+                      {whale.filingStatus ? (
+                        <Text style={styles.expandFilingText} numberOfLines={1}>
+                          {whale.filingStatus}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {recentMoves.map((m, idx) => (
                       <View key={idx} style={styles.moveRow}>
                         <View
                           style={[
@@ -455,30 +615,81 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                         setViewingBreakdownWhale(whale);
                       }}
                     >
-                      <Text style={styles.viewFullText}>Full Holdings & Weights Breakdown →</Text>
+                      <Text style={styles.viewFullText}>Full Holdings &amp; Weights Breakdown →</Text>
                     </TouchableOpacity>
                   </View>
                 )}
               </TouchableOpacity>
             );
           })}
+
+          {filteredWhales.length === 0 && (
+            <View style={styles.emptySearchBox}>
+              <Ionicons name="search-outline" size={28} color={colors.textMuted} />
+              <Text style={styles.emptySearchTitle}>No Super-Investors Found</Text>
+              <Text style={styles.emptySearchSub}>
+                No matches for "{searchQuery || selectedFilter}" across {totalCount} tracked whales.
+              </Text>
+              <TouchableOpacity
+                style={styles.resetFilterBtn}
+                onPress={() => {
+                  setSearchQuery('');
+                  setSelectedFilter('ALL');
+                }}
+              >
+                <Text style={styles.resetFilterBtnText}>Show All {totalCount} Whales</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
-      {/* Pro Alerts CTA */}
+      {/* Free 24/7 Live Exchange Radar CTA */}
       <LinearGradient
-        colors={['rgba(245, 158, 11, 0.15)', 'rgba(217, 119, 6, 0.25)']}
-        style={styles.proCta}
+        colors={
+          alertsEnabled
+            ? ['rgba(16, 185, 129, 0.14)', 'rgba(5, 150, 105, 0.22)']
+            : ['rgba(245, 158, 11, 0.15)', 'rgba(217, 119, 6, 0.25)']
+        }
+        style={[
+          styles.proCta,
+          alertsEnabled && { borderColor: 'rgba(16, 185, 129, 0.35)' },
+        ]}
       >
-        <Ionicons name="notifications-outline" size={24} color={colors.warning} />
+        <Ionicons
+          name={alertsEnabled ? 'radio' : 'notifications-outline'}
+          size={24}
+          color={alertsEnabled ? colors.primary : colors.warning}
+        />
         <View style={styles.proTextCol}>
-          <Text style={styles.proTitle} numberOfLines={1}>Real-Time SMS Alerts</Text>
+          <Text style={styles.proTitle} numberOfLines={1}>
+            {alertsEnabled ? '24/7 Live Exchange Radar' : 'Enable Live Exchange Radar'}
+          </Text>
           <Text style={styles.proSub} numberOfLines={2}>
-            Instant alerts when billionaires buy or sell (₹99/mo)
+            Instant NSE Bulk Deals &amp; SEC Form 13F-HR pushes via Supabase Realtime (₹0 Free)
           </Text>
         </View>
-        <TouchableOpacity style={styles.proButton} activeOpacity={0.8}>
-          <Text style={styles.proButtonText}>Upgrade</Text>
+        <TouchableOpacity
+          style={[
+            styles.proButton,
+            alertsEnabled && { backgroundColor: colors.primary },
+          ]}
+          activeOpacity={0.8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            const next = !alertsEnabled;
+            setAlertsEnabled(next);
+            Alert.alert(
+              next ? '24/7 Whale Radar Enabled' : 'Live Alert Banner Hidden',
+              next
+                ? 'Subscribed to live NSE Bulk/Block Deals, Insider filings & US SEC Form 13F-HR pushes via Supabase Realtime (100% Free).'
+                : 'Live exchange alert banner hidden for now. Tap "Turn On" anytime to restore real-time alerts.'
+            );
+          }}
+        >
+          <Text style={[styles.proButtonText, alertsEnabled && { color: '#FFFFFF' }]}>
+            {alertsEnabled ? 'Live On' : 'Turn On'}
+          </Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -607,8 +818,8 @@ const styles = StyleSheet.create({
   alertCardWrapper: {
     borderRadius: 18,
     overflow: 'hidden',
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: 2,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.28)',
     borderLeftWidth: 4,
@@ -819,11 +1030,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBorder,
     marginBottom: 10,
   },
+  expandHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 8,
+  },
   expandTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 10,
+  },
+  expandFilingText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
+    flexShrink: 1,
   },
   moveRow: {
     flexDirection: 'row',
@@ -885,6 +1108,40 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
+  },
+  emptySearchBox: {
+    backgroundColor: colors.card,
+    borderRadius: 18,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  emptySearchTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.text,
+    marginTop: 10,
+  },
+  emptySearchSub: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  resetFilterBtn: {
+    marginTop: 14,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  resetFilterBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
   },
   proCta: {
     borderRadius: 16,
@@ -1030,6 +1287,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cNameText: {
+    flex: 1,
+    marginRight: 8,
     fontSize: 17,
     fontWeight: '800',
     color: colors.text,

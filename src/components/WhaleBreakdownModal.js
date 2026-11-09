@@ -34,8 +34,8 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
           sector: h.sector || 'Equities & Holdings',
           stake: h.stake,
           value: h.value,
-          cmp: h.cmp || '₹' + (1200 + i * 450),
-          change1Y: h.change1Y || '+24.5%',
+          cmp: h.cmp || 'Market Rate',
+          change1Y: h.change1Y || '—',
           weightPercent: h.weightPercent || Math.max(5, 35 - i * 8),
         }))
       : [];
@@ -233,7 +233,9 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                     {whale.name}
                   </Text>
                   <View style={styles.sebiTag}>
-                    <Text style={styles.sebiTagText}>SEBI DISCLOSED</Text>
+                    <Text style={styles.sebiTagText}>
+                      {(whale.tag || '').includes('🇮🇳') ? 'SEBI / NSE LIVE' : 'SEC 13F LIVE'}
+                    </Text>
                   </View>
                 </View>
                 <Text style={styles.whaleTag} numberOfLines={1}>
@@ -463,7 +465,9 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
 
                             <View style={styles.drawerItem}>
                               <Text style={styles.drawerLabel}>Filing Status</Text>
-                              <Text style={styles.drawerValue}>SEBI Q2 FY25 Filings</Text>
+                              <Text style={styles.drawerValue} numberOfLines={2}>
+                                {whale.filingStatus || ((whale.tag || '').includes('🇮🇳') ? 'NSE/BSE Live • SHP' : 'SEC Form 13F-HR')}
+                              </Text>
                             </View>
                           </View>
 
@@ -832,7 +836,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
             <View style={styles.footerNote}>
               <Ionicons name="shield-checkmark-outline" size={13} color="#475569" />
               <Text style={styles.footerNoteText}>
-                Data synchronized from SEBI Quarterly Disclosures & Ministry of Corporate Affairs Form PAS-3 filings.
+                Live prices via Yahoo Finance; disclosures synced from SEBI / NSE Bulk Deals, US SEC Form 13F-HR & MCA Form PAS-3 filings.
               </Text>
             </View>
 

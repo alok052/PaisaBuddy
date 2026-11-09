@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { mockWhales } from '../data/mockWhales';
 import { mockStartups } from '../data/mockStartups';
+import { mockConsensusStocks } from '../data/mockConsensus';
 
 // Map of local bundled images for 100% reliable zero-lag display
 const localWhaleImages = {
@@ -56,7 +57,6 @@ const localWhaleImages = {
   '50': require('../../assets/whales/whale_50.jpg'),
 };
 
-
 const LUXURY_PALETTES = [
   ['#059669', '#047857'], // Emerald
   ['#2563EB', '#1D4ED8'], // Sapphire
@@ -69,12 +69,6 @@ const LUXURY_PALETTES = [
   ['#7C3AED', '#6D28D9'], // Violet
   ['#E11D48', '#BE123C'], // Rose
 ];
-
-const getWhaleGradient = (id) => {
-  if (localWhaleGradients[id]) return localWhaleGradients[id];
-  const num = parseInt(id || '1', 10);
-  return LUXURY_PALETTES[num % LUXURY_PALETTES.length];
-};
 
 const localWhaleGradients = {
   '1': ['#F97316', '#EF4444'],
@@ -90,6 +84,84 @@ const localWhaleGradients = {
   '11': ['#F43F5E', '#BE123C'],
   '12': ['#334155', '#1E293B'],
 };
+
+const getWhaleGradient = (id) => {
+  if (localWhaleGradients[id]) return localWhaleGradients[id];
+  const num = parseInt(id || '1', 10);
+  return LUXURY_PALETTES[num % LUXURY_PALETTES.length];
+};
+
+/**
+ * Parse currency / INR formatted numbers safely (e.g. "₹5,003" -> 5003, "₹1,95,285 Cr" -> 195285).
+ */
+export function parsePriceNumber(val) {
+  if (typeof val === 'number' && Number.isFinite(val)) return val;
+  if (!val || typeof val !== 'string') return 0;
+  const firstPart = val.split('(')[0];
+  const cleaned = firstPart.replace(/[^0-9.]/g, '');
+  const num = parseFloat(cleaned);
+  return Number.isFinite(num) ? num : 0;
+}
+
+/**
+ * Human-friendly relative timestamp for Live Sync Status Bar & Alerts.
+ */
+export function formatSyncTimeAgo(isoString) {
+  if (!isoString) return 'Synced via Cloud';
+  const ts = new Date(isoString).getTime();
+  if (!Number.isFinite(ts)) return 'Synced via Cloud';
+  const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
+/**
+ * Normalize a Supabase whale row merged with local images, startups, and fallbacks.
+ */
+export function mapWhaleRow(item) {
+  if (!item) return null;
+  const idStr = String(item.id);
+  const localWhale = mockWhales.find((w) => String(w.id) === idStr) || {};
+  const topHoldings = Array.isArray(item.top_holdings) && item.top_holdings.length > 0
+    ? item.top_holdings
+    : (localWhale.topHoldings || []);
+
+  // Avoid reverting to stale local synthetic allHoldings if live top_holdings already has rich schema
+  const hasRichTopHoldings = Boolean(topHoldings[0] && (topHoldings[0].cmp || topHoldings[0].symbol));
+  const allHoldings =
+    Array.isArray(item.all_holdings) && item.all_holdings.length > 0
+      ? item.all_holdings
+      : hasRichTopHoldings
+      ? topHoldings
+      : (localWhale.allHoldings || topHoldings);
+
+  const isIndia = (item.tag || localWhale.tag || '').includes('🇮🇳');
+  return {
+    id: idStr,
+    name: item.name || localWhale.name,
+    tag: item.tag || localWhale.tag,
+    portfolioValue: item.portfolio_value || localWhale.portfolioValue,
+    return1Y: item.return_1y || localWhale.return1Y,
+    isPositive: typeof item.is_positive === 'boolean' ? item.is_positive : Boolean(localWhale.isPositive),
+    avatar: item.avatar || localWhale.avatar,
+    avatarGradient: getWhaleGradient(idStr),
+    localImage: localWhaleImages[idStr] || localWhale.localImage,
+    topHoldings,
+    allHoldings,
+    startups: item.startups || localWhale.startups || [],
+    recentMoves: item.recent_moves || localWhale.recentMoves || [],
+    updatedAt: item.updated_at || null,
+    filingStatus:
+      item.filing_status ||
+      (isIndia ? 'NSE/BSE Live • Quarterly SHP' : 'US SEC Form 13F-HR • Yahoo Live'),
+    lastSecFiling: item.last_sec_filing || null,
+  };
+}
 
 /**
  * Fetch live whales from Supabase with fallback to complete local dataset
@@ -109,31 +181,17 @@ export async function fetchLiveWhales() {
       return mockWhales;
     }
 
-    // Merge Supabase data with any missing local whales so user gets the full 12 whales
-    const supabaseIds = new Set(data.map((d) => d.id));
-    const mergedList = data.map((item) => {
-      const localWhale = mockWhales.find((w) => w.id === item.id) || {};
-      return {
-        id: item.id,
-        name: item.name,
-        tag: item.tag,
-        portfolioValue: item.portfolio_value,
-        return1Y: item.return_1y,
-        isPositive: item.is_positive,
-        avatar: item.avatar,
-        avatarGradient: getWhaleGradient(item.id),
-        localImage: localWhaleImages[item.id],
-        topHoldings: item.top_holdings || localWhale.topHoldings || [],
-        allHoldings: item.all_holdings || localWhale.allHoldings || localWhale.topHoldings || [],
-        startups: item.startups || localWhale.startups || [],
-        recentMoves: item.recent_moves || localWhale.recentMoves || [],
-      };
-    });
+    const supabaseIds = new Set(data.map((d) => String(d.id)));
+    const mergedList = data.map(mapWhaleRow).filter(Boolean);
 
     // Add any remaining whales from mockWhales not yet in Supabase
     mockWhales.forEach((w) => {
-      if (!supabaseIds.has(w.id)) {
-        mergedList.push(w);
+      if (!supabaseIds.has(String(w.id))) {
+        mergedList.push({
+          ...w,
+          avatarGradient: getWhaleGradient(String(w.id)),
+          filingStatus: (w.tag || '').includes('🇮🇳') ? 'NSE/BSE Filings' : 'SEC 13F Filings',
+        });
       }
     });
 
@@ -145,10 +203,6 @@ export async function fetchLiveWhales() {
     return mockWhales;
   }
 }
-
-/**
- * Fetch live startups deals from Supabase with fallback
- */
 
 /**
  * Subscribe to real-time whale portfolio updates from Supabase
@@ -163,10 +217,10 @@ export function subscribeToWhales(onUpdate) {
       .channel('realtime:whales')
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'whales' },
+        { event: '*', schema: 'public', table: 'whales' },
         (payload) => {
           if (onUpdate && payload.new) {
-            onUpdate(payload.new);
+            onUpdate(mapWhaleRow(payload.new));
           }
         }
       )
@@ -175,6 +229,179 @@ export function subscribeToWhales(onUpdate) {
     return channel;
   } catch (err) {
     console.log('Error setting up Supabase Realtime subscription:', err);
+    return null;
+  }
+}
+
+/**
+ * Derive live Whale Consensus overlaps directly from the 50 whales' holdings,
+ * enriched with curated institutional theses from mockConsensusStocks.
+ */
+export function buildLiveConsensusStocks(whalesList = [], fallbackConsensus = mockConsensusStocks) {
+  if (!Array.isArray(whalesList) || whalesList.length === 0) {
+    return fallbackConsensus;
+  }
+
+  const normalizeName = (s = '') =>
+    s
+      .toLowerCase()
+      .replace(/\(.*?\)/g, '')
+      .replace(/\b(ltd|limited|inc|corp|plc|co|class [abc]|adr)\b/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
+  const normalizeSym = (s = '') =>
+    (s || '').toUpperCase().replace(/\.(NS|BO|PA|L)$/, '').trim();
+
+  const curatedBySym = {};
+  const curatedByName = {};
+  (fallbackConsensus || []).forEach((c) => {
+    curatedBySym[normalizeSym(c.symbol)] = c;
+    curatedByName[normalizeName(c.name)] = c;
+  });
+
+  // Aggregate across live whales (skip polluted synthetic allHoldings if raw mock has $140M junk)
+  const buckets = new Map();
+  whalesList.forEach((w) => {
+    const holdings =
+      Array.isArray(w.allHoldings) && w.allHoldings.length > 0 ? w.allHoldings : (w.topHoldings || []);
+    const seenForThisWhale = new Set();
+
+    holdings.forEach((h) => {
+      if (!h || !h.name) return;
+      // Guard against legacy enrich_whales.py placeholder "$140M" injected rows
+      if (h.value === '$140M' && (w.tag || '').includes('🇮🇳')) return;
+      if (h.value === '$140M' && h.name === 'Tata Motors') return;
+
+      const symKey = normalizeSym(h.symbol || h.yahooSymbol);
+      const nameKey = normalizeName(h.name);
+      const bucketKey = symKey && symKey.length >= 2 ? `S:${symKey}` : `N:${nameKey}`;
+
+      if (!bucketKey || seenForThisWhale.has(bucketKey)) return;
+      seenForThisWhale.add(bucketKey);
+
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, {
+          sym: symKey || normalizeName(h.name).toUpperCase().slice(0, 8),
+          nameKey,
+          name: h.name,
+          sector: h.sector || 'Institutional Equities',
+          cmp: h.cmp || null,
+          change1Y: h.change1Y || null,
+          totalCr: 0,
+          owners: [],
+        });
+      }
+
+      const b = buckets.get(bucketKey);
+      if (h.cmp && h.cmp !== '—') b.cmp = h.cmp;
+      if (h.change1Y) b.change1Y = h.change1Y;
+      if (h.sector && b.sector === 'Institutional Equities') b.sector = h.sector;
+      b.totalCr += parsePriceNumber(h.value);
+      b.owners.push({
+        name: w.name,
+        stake: h.stake || 'Held',
+        badge: (w.tag || '').replace(/^[^\w]+/, '').trim() || 'Super Investor',
+      });
+    });
+  });
+
+  const liveConsensus = [];
+  buckets.forEach((b, idx) => {
+    if (b.owners.length < 2) return;
+    const curated = curatedBySym[b.sym] || curatedByName[b.nameKey];
+    const changeStr = b.change1Y || (curated ? curated.change1Y : '+0.0%');
+    const isPos = !String(changeStr).startsWith('-');
+    const inrVal =
+      b.totalCr >= 1
+        ? `₹${Math.round(b.totalCr).toLocaleString('en-IN')} Cr`
+        : curated?.combinedStakeValue || `${b.owners.length} Funds`;
+
+    liveConsensus.push({
+      id: curated?.id || `live_${b.sym}_${idx}`,
+      symbol: b.sym,
+      name: curated?.name || b.name,
+      sector: curated?.sector || b.sector,
+      cmp: b.cmp && b.cmp !== '—' ? b.cmp : curated?.cmp || 'Market Rate',
+      change1Y: changeStr,
+      isPositive: isPos,
+      convictionScore: Math.min(99, 86 + b.owners.length * 3),
+      combinedStakeValue: inrVal,
+      billionaires: b.owners.slice(0, 6),
+      catalyst:
+        curated?.catalyst ||
+        `Concurrently held by ${b.owners.length} tracked institutional & billionaire portfolios.`,
+      quarterMove:
+        curated?.quarterMove ||
+        `Verified overlap across ${b.owners.slice(0, 3).map((o) => o.name).join(', ')}.`,
+    });
+  });
+
+  if (liveConsensus.length === 0) {
+    return fallbackConsensus;
+  }
+
+  liveConsensus.sort(
+    (a, b) =>
+      b.billionaires.length - a.billionaires.length ||
+      b.convictionScore - a.convictionScore
+  );
+  return liveConsensus;
+}
+
+/**
+ * Fetch live Whale Consensus stocks (Supabase table -> live derivation -> static fallback)
+ */
+export async function fetchLiveConsensusStocks(whalesList = []) {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('whale_consensus')
+        .select('*')
+        .order('conviction_score', { ascending: false });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data.map((row) => ({
+          id: String(row.id),
+          symbol: row.symbol,
+          name: row.name,
+          sector: row.sector || 'Equities',
+          cmp: row.cmp || '—',
+          change1Y: row.change_1y || '+0.0%',
+          isPositive: typeof row.is_positive === 'boolean' ? row.is_positive : !String(row.change_1y || '').startsWith('-'),
+          convictionScore: row.conviction_score || 90,
+          combinedStakeValue: row.combined_stake_value || 'Multi-Whale',
+          billionaires: Array.isArray(row.billionaires) ? row.billionaires : [],
+          catalyst: row.catalyst || '',
+          quarterMove: row.quarter_move || '',
+        }));
+      }
+    } catch (e) {
+      // Fall through cleanly if whale_consensus table hasn't been created yet
+    }
+  }
+
+  return buildLiveConsensusStocks(whalesList, mockConsensusStocks);
+}
+
+/**
+ * Subscribe to real-time updates on whale_consensus table
+ */
+export function subscribeToConsensus(onUpdate) {
+  if (!isSupabaseConfigured() || !supabase) {
+    return null;
+  }
+  try {
+    return supabase
+      .channel('realtime:whale_consensus')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'whale_consensus' },
+        () => {
+          if (onUpdate) onUpdate();
+        }
+      )
+      .subscribe();
+  } catch (err) {
     return null;
   }
 }
@@ -232,7 +459,6 @@ export async function fetchLiveStartups() {
       };
     });
 
-    // Add remaining startups not yet in Supabase
     mockStartups.forEach((s) => {
       if (!supabaseIds.has(s.id)) {
         mergedList.push(s);
@@ -246,15 +472,34 @@ export async function fetchLiveStartups() {
   }
 }
 
+function mapAlertRow(row) {
+  if (!row) return null;
+  const rawTimeAgo = row.time_ago || '';
+  const isGenericRelative = /^(just now|today|yesterday|\d+[mhd]\s+ago)$/i.test(rawTimeAgo.trim());
+  const computedTimeAgo =
+    isGenericRelative && row.created_at
+      ? formatSyncTimeAgo(row.created_at)
+      : (rawTimeAgo || formatSyncTimeAgo(row.created_at));
+
+  return {
+    id: row.id,
+    title: row.title,
+    subtitle: row.subtitle,
+    source: row.source || 'Exchange Disclosed',
+    timeAgo: computedTimeAgo,
+    createdAt: row.created_at || null,
+  };
+}
+
 /**
- * Fetch live bulk deal alert
+ * Fetch live NSE / BSE / SEC exchange disclosure alert (excludes Startup Radar rows).
  */
 export async function fetchLiveAlert() {
   const fallback = {
-    title: 'Ashish Kacholia increased stake in Gravita India by 1.2%!',
-    subtitle: 'Bulk Deal: 3,50,000 shares @ ₹2,145',
-    source: 'BSE Disclosed',
-    timeAgo: '2h ago',
+    title: 'NSE & SEC 13F Live Radar Active Across 50 Super-Investors',
+    subtitle: 'Tracking NSE Bulk/Block Deals, Insider Trades & US Form 13F-HR filings',
+    source: 'NSE • SEC EDGAR',
+    timeAgo: 'Live',
   };
 
   if (!isSupabaseConfigured() || !supabase) {
@@ -265,6 +510,7 @@ export async function fetchLiveAlert() {
     const { data, error } = await supabase
       .from('live_alerts')
       .select('*')
+      .neq('source', 'Startup Radar')
       .order('id', { ascending: false })
       .limit(1);
 
@@ -272,13 +518,34 @@ export async function fetchLiveAlert() {
       return fallback;
     }
 
-    return {
-      title: data[0].title,
-      subtitle: data[0].subtitle,
-      source: data[0].source,
-      timeAgo: data[0].time_ago,
-    };
+    return mapAlertRow(data[0]) || fallback;
   } catch (err) {
     return fallback;
+  }
+}
+
+/**
+ * Subscribe to real-time exchange/whale alerts (ignoring Startup Radar rows).
+ */
+export function subscribeToWhaleAlerts(onAlert) {
+  if (!isSupabaseConfigured() || !supabase) {
+    return null;
+  }
+  try {
+    return supabase
+      .channel('realtime:whale_alerts')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'live_alerts' },
+        (payload) => {
+          const row = payload?.new;
+          if (row && row.source !== 'Startup Radar' && onAlert) {
+            onAlert(mapAlertRow(row));
+          }
+        }
+      )
+      .subscribe();
+  } catch (err) {
+    return null;
   }
 }

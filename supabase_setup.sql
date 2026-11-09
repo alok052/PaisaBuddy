@@ -1,9 +1,45 @@
 -- ========================================================
--- PAISABUDDY FULL PRODUCTION DATABASE SEED (14 STARTUPS + 12 WHALES)
--- Copy & Run in Supabase SQL Editor anytime
+-- PAISABUDDY 24/7 LIVE WHALES & DATABASE SCHEMA
+-- Copy & Run in Supabase SQL Editor anytime (100% Idempotent)
 -- ========================================================
 
--- Allow Public Write / Upsert for automated sync scripts
+-- 1. Upgrade `whales` table for full live holdings & SEC/NSE filing tracking
+ALTER TABLE public.whales ADD COLUMN IF NOT EXISTS all_holdings jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.whales ADD COLUMN IF NOT EXISTS filing_status text DEFAULT 'NSE/BSE Live • Quarterly SHP';
+ALTER TABLE public.whales ADD COLUMN IF NOT EXISTS last_sec_filing text;
+
+-- 2. Create `whale_consensus` table for multi-billionaire stock overlaps
+CREATE TABLE IF NOT EXISTS public.whale_consensus (
+  id text PRIMARY KEY,
+  symbol text NOT NULL,
+  name text NOT NULL,
+  sector text,
+  cmp text,
+  change_1y text,
+  is_positive boolean DEFAULT true,
+  conviction_score integer DEFAULT 90,
+  combined_stake_value text,
+  billionaires jsonb DEFAULT '[]'::jsonb,
+  catalyst text,
+  quarter_move text,
+  updated_at timestamptz DEFAULT NOW()
+);
+
+-- 3. Enable Row Level Security + Read Access for App Anon Key
+ALTER TABLE public.whales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.live_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whale_consensus ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access for whales" ON public.whales;
+CREATE POLICY "Allow public read access for whales" ON public.whales FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for alerts" ON public.live_alerts;
+CREATE POLICY "Allow public read access for alerts" ON public.live_alerts FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for consensus" ON public.whale_consensus;
+CREATE POLICY "Allow public read access for consensus" ON public.whale_consensus FOR SELECT USING (true);
+
+-- Temporary / Local Sync Policies (Safe to lock down in Step 5 once GitHub Secret is set)
 DROP POLICY IF EXISTS "Allow public write access for whales" ON public.whales;
 CREATE POLICY "Allow public write access for whales" ON public.whales FOR ALL USING (true);
 
@@ -13,7 +49,38 @@ CREATE POLICY "Allow public write access for startups" ON public.startups FOR AL
 DROP POLICY IF EXISTS "Allow public write access for alerts" ON public.live_alerts;
 CREATE POLICY "Allow public write access for alerts" ON public.live_alerts FOR ALL USING (true);
 
--- Insert All 14 Top Indian Startups
+DROP POLICY IF EXISTS "Allow public write access for consensus" ON public.whale_consensus;
+CREATE POLICY "Allow public write access for consensus" ON public.whale_consensus FOR ALL USING (true);
+
+-- 4. Enable Realtime Broadcasts for Phone App Instant Updates
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.whales;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.live_alerts;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.whale_consensus;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ========================================================
+-- 5. OPTIONAL PRODUCTION SECURITY LOCK (RECOMMENDED!)
+-- Run these 6 lines AFTER saving `SUPABASE_SERVICE_ROLE_KEY` in GitHub Secrets:
+--   DROP POLICY IF EXISTS "Allow public write access for whales" ON public.whales;
+--   DROP POLICY IF EXISTS "Allow public write access for alerts" ON public.live_alerts;
+--   DROP POLICY IF EXISTS "Allow public write access for consensus" ON public.whale_consensus;
+--   (service_role bypasses RLS automatically, so GitHub Actions keeps writing while app users only read!)
+-- ========================================================
+
+-- Preserve All 14 Top Indian Startups Seed
 INSERT INTO public.startups (id, name, category, city, stage, is_unicorn, valuation, total_raised, min_investment, invest_status, raised_so_far, target_amount, progress_percent, days_left, investor_count, icon_bg, icon_emoji, investors, growth_metric)
 VALUES
   ('1', 'Zepto', 'Quick Commerce • 10-Min Delivery', 'Mumbai', 'Series G (Pre-IPO)', true, '$5.0 Billion', '$1.4 Billion', '₹10,000', 'Open for Syndicates', '₹12.4 Cr', '₹15.0 Cr', 82, 8, 1420, '#10B981', '🥬', '["StepStone", "Nexus VP", "Glade Brook", "Goodwater Capital"]'::jsonb, '220% YoY Revenue Growth'),

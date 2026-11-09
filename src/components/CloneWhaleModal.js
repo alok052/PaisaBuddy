@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from './WhaleAvatar';
+import { parsePriceNumber } from '../services/dataService';
 
 export default function CloneWhaleModal({ visible, whale, onClose }) {
   const [selectedBudget, setSelectedBudget] = useState(25000);
@@ -26,26 +27,68 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
     { label: '₹1,00,000', value: 100000 },
   ];
 
-  // Dynamic weights based on whale top holdings
-  const topHoldings = whale.topHoldings || [];
-  const stockCount = Math.max(topHoldings.length, 1);
+  // Dynamic weights & live prices based on whale allHoldings (fallback to topHoldings)
+  const sourceHoldings =
+    Array.isArray(whale.allHoldings) && whale.allHoldings.length > 0
+      ? whale.allHoldings.slice(0, 6)
+      : (whale.topHoldings || []);
 
-  // Generate weighted stock basket based on selected budget
-  const weights = [0.35, 0.25, 0.20, 0.12, 0.08];
-  const calculatedBasket = topHoldings.map((h, idx) => {
-    const weight = weights[idx] || 1 / stockCount;
+  const fallbackWeights = [35, 25, 18, 12, 6, 4];
+  const rawWeights = sourceHoldings.map((h, idx) =>
+    typeof h.weightPercent === 'number' && h.weightPercent > 0
+      ? h.weightPercent
+      : fallbackWeights[idx] || Math.round(100 / Math.max(sourceHoldings.length, 1))
+  );
+  const totalRawWeight = rawWeights.reduce((sum, w) => sum + w, 0) || 100;
+
+  const isGlobalWhale =
+    (whale.tag || '').includes('🇺🇸') || (whale.tag || '').includes('🇬🇧');
+
+  const resolveInrPrice = (h, idx) => {
+    if (typeof h.cmpInr === 'number' && h.cmpInr > 0) return h.cmpInr;
+    const rawCmp = String(h.cmp || '');
+    const parsed = parsePriceNumber(rawCmp);
+    if (parsed > 0) {
+      if (rawCmp.includes('$')) return parsed * 94;
+      if (rawCmp.includes('£')) return parsed * 126;
+      if (rawCmp.includes('€')) return parsed * 105;
+      return parsed;
+    }
+    return idx === 0 ? 980 : idx === 1 ? 540 : idx === 2 ? 1420 : 360;
+  };
+
+  // Generate live-priced weighted stock basket based on selected budget
+  const calculatedBasket = sourceHoldings.map((h, idx) => {
+    const weight = rawWeights[idx] / totalRawWeight;
     const allocatedAmount = Math.floor(selectedBudget * weight);
-    // Estimated approximate stock share price
-    const approxPrice = idx === 0 ? 980 : idx === 1 ? 540 : idx === 2 ? 1420 : 360;
-    const sharesCount = Math.max(1, Math.floor(allocatedAmount / approxPrice));
-    const totalVal = sharesCount * approxPrice;
+    const livePriceInr = resolveInrPrice(h, idx);
+    const approxPrice = Math.max(1, Math.round(livePriceInr));
+
+    const isFractionalStock =
+      isGlobalWhale ||
+      String(h.cmp || '').includes('$') ||
+      String(h.cmp || '').includes('£') ||
+      String(h.cmp || '').includes('€');
+
+    let sharesCount = 0;
+    let totalVal = 0;
+    if (isFractionalStock) {
+      sharesCount = Number((allocatedAmount / livePriceInr).toFixed(3));
+      totalVal = sharesCount > 0 ? Math.round(sharesCount * livePriceInr) : 0;
+    } else {
+      sharesCount = Math.floor(allocatedAmount / approxPrice);
+      totalVal = sharesCount * approxPrice;
+    }
 
     return {
       name: h.name,
-      stake: h.stake,
+      symbol: h.symbol || '',
+      stake: h.stake || 'Held',
+      cmpDisplay: h.cmp && h.cmp !== '—' ? h.cmp : `₹${approxPrice.toLocaleString('en-IN')}`,
       weightPercent: Math.round(weight * 100),
       approxPrice,
       sharesCount,
+      isFractional: isFractionalStock,
       totalVal,
     };
   });
@@ -59,10 +102,18 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
   };
 
   const handleDeployBasket = (brokerName) => {
+    const activeOrders = calculatedBasket.filter((item) => item.sharesCount > 0);
+    if (activeOrders.length === 0) {
+      Alert.alert(
+        'Increase Basket Budget',
+        `At ₹${selectedBudget.toLocaleString('en-IN')}, per-stock allocations are below 1 share price. Select ₹50,000 or ₹1,00,000 above.`
+      );
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Alert.alert(
       `Basket Ready for ${brokerName}!`,
-      `Deploying ${calculatedBasket.length} stock orders (Total: ₹${totalBasketCost.toLocaleString('en-IN')}) directly to ${brokerName} Basket API.\n\nOrders will be queued for market execution at best bid/ask.`,
+      `Deploying ${activeOrders.length} stock orders (Total: ₹${totalBasketCost.toLocaleString('en-IN')}) directly to ${brokerName} Basket API.\n\nOrders use latest market prices and will execute at best bid/ask.`,
       [
         { text: `Open ${brokerName} App`, style: 'default' },
         { text: 'Done', style: 'cancel' },
@@ -112,7 +163,7 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
             <View style={styles.titleSection}>
               <Text style={styles.sectionHeading}>🎯 Select Investment Capital</Text>
               <Text style={styles.sectionSub}>
-                Algorithm automatically calculates exact share quantities and risk-weighted allocations based on {whale.name}'s verified filings.
+                Algorithm automatically calculates exact share quantities and live price allocations based on {whale.name}'s verified filings.
               </Text>
             </View>
 
@@ -156,9 +207,25 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
                 </View>
 
                 <View style={styles.summaryRight}>
-                  <View style={styles.returnBadge}>
-                    <Ionicons name="trending-up" size={13} color={colors.primary} />
-                    <Text style={styles.returnText}>{whale.return1Y} 1Y</Text>
+                  <View
+                    style={[
+                      styles.returnBadge,
+                      !whale.isPositive && { backgroundColor: 'rgba(239, 68, 68, 0.15)' },
+                    ]}
+                  >
+                    <Ionicons
+                      name={whale.isPositive ? 'trending-up' : 'trending-down'}
+                      size={13}
+                      color={whale.isPositive ? colors.primary : colors.danger}
+                    />
+                    <Text
+                      style={[
+                        styles.returnText,
+                        !whale.isPositive && { color: colors.danger },
+                      ]}
+                    >
+                      {whale.return1Y} 1Y
+                    </Text>
                   </View>
                   <Text style={styles.cashBufferText}>
                     Cash Buffer: ₹{remainingCash.toLocaleString('en-IN')}
@@ -179,14 +246,16 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
 
                   <View style={styles.stockMainInfo}>
                     <View style={styles.stockTitleRow}>
-                      <Text style={styles.stockName}>{stock.name}</Text>
+                      <Text style={styles.stockName} numberOfLines={1}>{stock.name}</Text>
                       <View style={styles.weightBadge}>
                         <Text style={styles.weightText}>{stock.weightPercent}% Weight</Text>
                       </View>
                     </View>
 
                     <Text style={styles.sharesSub}>
-                      {stock.sharesCount} shares @ ₹{stock.approxPrice.toLocaleString('en-IN')}
+                      {stock.sharesCount > 0
+                        ? `${stock.isFractional ? `${stock.sharesCount} frac. sh` : `${stock.sharesCount} shares`} @ ₹${stock.approxPrice.toLocaleString('en-IN')}${stock.isFractional && stock.cmpDisplay !== `₹${stock.approxPrice.toLocaleString('en-IN')}` ? ` (${stock.cmpDisplay})` : ''}`
+                        : `CMP ₹${stock.approxPrice.toLocaleString('en-IN')} > slice (Increase budget)`}
                     </Text>
                   </View>
 
@@ -461,6 +530,7 @@ const styles = StyleSheet.create({
   },
   stockMainInfo: {
     flex: 1,
+    marginRight: 8,
   },
   stockTitleRow: {
     flexDirection: 'row',
@@ -471,6 +541,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.text,
+    flexShrink: 1,
   },
   weightBadge: {
     backgroundColor: 'rgba(16, 185, 129, 0.12)',
