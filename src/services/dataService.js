@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { mockWhales } from '../data/mockWhales';
-import { mockStartups } from '../data/mockStartups';
 import { mockConsensusStocks } from '../data/mockConsensus';
 import nseStocksSeed from '../data/nseStocksSeed.json';
 
@@ -467,72 +466,6 @@ export function subscribeToConsensus(onUpdate) {
       .subscribe();
   } catch (err) {
     return null;
-  }
-}
-
-export async function fetchLiveStartups() {
-  if (!isSupabaseConfigured() || !supabase) {
-    return mockStartups;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('startups')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error || !data || data.length === 0) {
-      return mockStartups;
-    }
-
-    const supabaseIds = new Set(data.map((d) => String(d.id)));
-    const mergedList = data.map((item) => {
-      const local = mockStartups.find((m) =>
-        m.name.toLowerCase().trim() === (item.name || '').toLowerCase().trim() ||
-        String(m.id) === String(item.id)
-      ) || {};
-      return {
-        ...local,
-        id: String(item.id),
-        name: item.name || local.name,
-        shortIntro: local.shortIntro || (item.category ? item.category.split('•')[0].trim() : 'Growth Venture'),
-        category: item.category || local.category,
-        city: item.city || local.city,
-        stage: item.stage || local.stage,
-        isUnicorn: local.isUnicorn !== undefined ? local.isUnicorn : (item.is_unicorn !== undefined ? item.is_unicorn : false),
-        valuation: item.valuation || local.valuation,
-        totalRaised: item.total_raised || local.totalRaised,
-        minInvestment: item.min_investment || local.minInvestment,
-        investStatus: item.invest_status || local.investStatus,
-        raisedSoFar: item.raised_so_far || local.raisedSoFar,
-        targetAmount: item.target_amount || local.targetAmount,
-        progressPercent: item.progress_percent || local.progressPercent,
-        daysLeft: item.days_left || local.daysLeft,
-        investorCount: item.investor_count || local.investorCount,
-        iconBg: local.iconBg || item.icon_bg || '#1E293B',
-        iconEmoji: local.iconEmoji || item.icon_emoji || '🚀',
-        investors: item.investors || local.investors || [],
-        growthMetric: item.growth_metric || local.growthMetric,
-        whaleBacker: local.whaleBacker || item.whale_backer || 'Top VC Syndicate',
-        arrRevenue: local.arrRevenue || '₹250 Cr ARR',
-        grossMargin: local.grossMargin,
-        targetExit: local.targetExit || 'IPO / Strategic Exit',
-        pitchThesis: local.pitchThesis || 'Category leader with dominant market share.',
-        escrowBank: local.escrowBank || 'ICICI Bank Escrow / Axis Trustee',
-        instrument: local.instrument || 'CCPS in CDSL/NSDL Demat',
-      };
-    });
-
-    mockStartups.forEach((s) => {
-      if (!supabaseIds.has(s.id)) {
-        mergedList.push(s);
-      }
-    });
-
-    return mergedList;
-  } catch (err) {
-    console.log('Error fetching startups from Supabase:', err);
-    return mockStartups;
   }
 }
 

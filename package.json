@@ -28,9 +28,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "sync-data": "node scripts/syncLiveMarket.js",
-    "radar": "node scripts/autoStartupRadar.js"
+    "web": "expo start --web"
   },
   "private": true
 }

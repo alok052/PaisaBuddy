@@ -37,28 +37,6 @@ export default function ExecutiveHubModal({
       return;
     }
 
-    if (itemOrId.isUpcoming) {
-      Alert.alert(
-        itemOrId.title,
-        `${itemOrId.description}\n\nStatus: Currently under active development. It will be released in the upcoming update.`,
-        [
-          {
-            text: 'Open Tools Hub',
-            onPress: () => {
-              if (onSelectPage) {
-                onSelectPage('tools');
-              }
-              if (onClose) {
-                onClose();
-              }
-            },
-          },
-          { text: 'Got It', style: 'cancel' },
-        ]
-      );
-      return;
-    }
-
     if (itemOrId.id === 'notifications') {
       const liveAlerts = await fetchLiveMarketAlerts(4).catch(() => []);
       const alertSummary =
@@ -113,7 +91,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#10B981',
       category: 'WEALTH',
-      isUpcoming: false,
     },
     {
       id: 'emi',
@@ -126,7 +103,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F472B6',
       category: 'LOANS',
-      isUpcoming: false,
     },
     {
       id: 'goals',
@@ -139,7 +115,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F59E0B',
       category: 'GOALS',
-      isUpcoming: false,
     },
     {
       id: 'dividend',
@@ -152,7 +127,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#22D3EE',
       category: 'INCOME',
-      isUpcoming: false,
     },
     {
       id: 'notifications',
@@ -163,7 +137,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F59E0B',
       category: 'ALERTS',
-      isUpcoming: false,
       isWide: true,
     },
     {
@@ -177,7 +150,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(16, 185, 129, 0.2)',
       iconColor: '#10B981',
       category: 'EQUITIES',
-      isUpcoming: false,
       isWide: true,
     },
   ];
@@ -260,7 +232,7 @@ export default function ExecutiveHubModal({
 
               <View style={styles.bentoGrid}>
                 {bentoGrid.map((item) => {
-                  const isActive = !item.isUpcoming && activePage === item.id;
+                  const isActive = activePage === item.id;
                   return (
                     <TouchableOpacity
                       key={item.id}
@@ -291,12 +263,7 @@ export default function ExecutiveHubModal({
                               color={item.iconColor}
                             />
                           </View>
-                          <Text
-                            style={[
-                              styles.bentoCategoryText,
-                              item.isUpcoming && { color: '#F59E0B' },
-                            ]}
-                          >
+                          <Text style={styles.bentoCategoryText}>
                             {item.category}
                           </Text>
                         </View>
@@ -320,28 +287,12 @@ export default function ExecutiveHubModal({
                               { color: isActive ? '#10B981' : '#94A3B8' },
                             ]}
                           >
-                            {item.isUpcoming
-                              ? 'Coming Soon'
-                              : isActive
-                              ? 'Current Desk'
-                              : 'Open Desk'}
+                            {isActive ? 'Current Desk' : 'Open Desk'}
                           </Text>
                           <Ionicons
-                            name={
-                              item.isUpcoming
-                                ? 'time-outline'
-                                : isActive
-                                ? 'checkmark-outline'
-                                : 'chevron-forward'
-                            }
+                            name={isActive ? 'checkmark-outline' : 'chevron-forward'}
                             size={13}
-                            color={
-                              item.isUpcoming
-                                ? '#F59E0B'
-                                : isActive
-                                ? '#10B981'
-                                : '#64748B'
-                            }
+                            color={isActive ? '#10B981' : '#64748B'}
                           />
                         </View>
                       </LinearGradient>
