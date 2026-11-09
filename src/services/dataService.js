@@ -104,6 +104,44 @@ export function parsePriceNumber(val) {
 }
 
 /**
+ * Strip INR conversion prefixes from global (USD/GBP/EUR) portfolio/stake strings
+ * e.g. "₹27,96,256 Cr ($297.7B)" -> "$297.7B".
+ */
+export function formatGlobalPureCurrency(val) {
+  if (!val || typeof val !== 'string') return val;
+  const parenMatch = val.match(/\(([$£€][^)]+)\)/);
+  if (parenMatch && parenMatch[1]) return parenMatch[1].trim();
+  return val;
+}
+
+function normalizeGlobalHoldings(holdings = [], isIndia = true) {
+  if (isIndia || !Array.isArray(holdings)) return holdings;
+  return holdings.map((h) => (h ? { ...h, value: formatGlobalPureCurrency(h.value) } : h));
+}
+
+function parseForeignBillions(valStr) {
+  if (!valStr || typeof valStr !== 'string') return 0;
+  const target = formatGlobalPureCurrency(valStr);
+  const m = target.match(/([$£€])\s*([0-9,.]+)\s*([TBM])?/i);
+  if (!m) return 0;
+  const num = parseFloat(m[2].replace(/,/g, ''));
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  const usdMult = m[1] === '£' ? 1.34 : m[1] === '€' ? 1.12 : 1.0;
+  const unit = (m[3] || '').toUpperCase();
+  if (unit === 'T') return num * 1000 * usdMult;
+  if (unit === 'M') return (num / 1000) * usdMult;
+  return num * usdMult;
+}
+
+function formatUsdCompact(valInBillions) {
+  if (!(valInBillions > 0)) return 'Global Consensus';
+  if (valInBillions >= 1000) return `$${(valInBillions / 1000).toFixed(2)}T`;
+  if (valInBillions >= 10) return `$${valInBillions.toFixed(1)}B`;
+  if (valInBillions >= 1) return `$${valInBillions.toFixed(2)}B`;
+  return `$${Math.round(valInBillions * 1000)}M`;
+}
+
+/**
  * Human-friendly relative timestamp for Live Sync Status Bar & Alerts.
  */
 export function formatSyncTimeAgo(isoString) {
@@ -127,32 +165,33 @@ export function mapWhaleRow(item) {
   if (!item) return null;
   const idStr = String(item.id);
   const localWhale = mockWhales.find((w) => String(w.id) === idStr) || {};
-  const topHoldings = Array.isArray(item.top_holdings) && item.top_holdings.length > 0
+  const isIndia = (item.tag || localWhale.tag || '').includes('🇮🇳');
+  const rawTopHoldings = Array.isArray(item.top_holdings) && item.top_holdings.length > 0
     ? item.top_holdings
     : (localWhale.topHoldings || []);
 
   // Avoid reverting to stale local synthetic allHoldings if live top_holdings already has rich schema
-  const hasRichTopHoldings = Boolean(topHoldings[0] && (topHoldings[0].cmp || topHoldings[0].symbol));
-  const allHoldings =
+  const hasRichTopHoldings = Boolean(rawTopHoldings[0] && (rawTopHoldings[0].cmp || rawTopHoldings[0].symbol));
+  const rawAllHoldings =
     Array.isArray(item.all_holdings) && item.all_holdings.length > 0
       ? item.all_holdings
       : hasRichTopHoldings
-      ? topHoldings
-      : (localWhale.allHoldings || topHoldings);
+      ? rawTopHoldings
+      : (localWhale.allHoldings || rawTopHoldings);
 
-  const isIndia = (item.tag || localWhale.tag || '').includes('🇮🇳');
+  const rawPortfolioVal = item.portfolio_value || localWhale.portfolioValue;
   return {
     id: idStr,
     name: item.name || localWhale.name,
     tag: item.tag || localWhale.tag,
-    portfolioValue: item.portfolio_value || localWhale.portfolioValue,
+    portfolioValue: isIndia ? rawPortfolioVal : formatGlobalPureCurrency(rawPortfolioVal),
     return1Y: item.return_1y || localWhale.return1Y,
     isPositive: typeof item.is_positive === 'boolean' ? item.is_positive : Boolean(localWhale.isPositive),
     avatar: item.avatar || localWhale.avatar,
     avatarGradient: getWhaleGradient(idStr),
     localImage: localWhaleImages[idStr] || localWhale.localImage,
-    topHoldings,
-    allHoldings,
+    topHoldings: normalizeGlobalHoldings(rawTopHoldings, isIndia),
+    allHoldings: normalizeGlobalHoldings(rawAllHoldings, isIndia),
     startups: item.startups || localWhale.startups || [],
     recentMoves: item.recent_moves || localWhale.recentMoves || [],
     updatedAt: item.updated_at || null,
@@ -163,12 +202,25 @@ export function mapWhaleRow(item) {
   };
 }
 
+function normalizeLocalWhale(w) {
+  if (!w) return w;
+  const isIndia = (w.tag || '').includes('🇮🇳');
+  return {
+    ...w,
+    portfolioValue: isIndia ? w.portfolioValue : formatGlobalPureCurrency(w.portfolioValue),
+    topHoldings: normalizeGlobalHoldings(w.topHoldings || [], isIndia),
+    allHoldings: normalizeGlobalHoldings(w.allHoldings || w.topHoldings || [], isIndia),
+    avatarGradient: w.avatarGradient || getWhaleGradient(String(w.id)),
+    filingStatus: w.filingStatus || (isIndia ? 'NSE/BSE Filings' : 'SEC 13F Filings'),
+  };
+}
+
 /**
  * Fetch live whales from Supabase with fallback to complete local dataset
  */
 export async function fetchLiveWhales() {
   if (!isSupabaseConfigured() || !supabase) {
-    return mockWhales;
+    return mockWhales.map(normalizeLocalWhale);
   }
 
   try {
@@ -178,7 +230,7 @@ export async function fetchLiveWhales() {
       .order('id', { ascending: true });
 
     if (error || !data || data.length === 0) {
-      return mockWhales;
+      return mockWhales.map(normalizeLocalWhale);
     }
 
     const supabaseIds = new Set(data.map((d) => String(d.id)));
@@ -187,11 +239,7 @@ export async function fetchLiveWhales() {
     // Add any remaining whales from mockWhales not yet in Supabase
     mockWhales.forEach((w) => {
       if (!supabaseIds.has(String(w.id))) {
-        mergedList.push({
-          ...w,
-          avatarGradient: getWhaleGradient(String(w.id)),
-          filingStatus: (w.tag || '').includes('🇮🇳') ? 'NSE/BSE Filings' : 'SEC 13F Filings',
-        });
+        mergedList.push(normalizeLocalWhale(w));
       }
     });
 
@@ -200,7 +248,7 @@ export async function fetchLiveWhales() {
     return mergedList;
   } catch (err) {
     console.log('Error fetching whales from Supabase:', err);
-    return mockWhales;
+    return mockWhales.map(normalizeLocalWhale);
   }
 }
 
@@ -280,6 +328,10 @@ export function buildLiveConsensusStocks(whalesList = [], fallbackConsensus = mo
       seenForThisWhale.add(bucketKey);
 
       if (!buckets.has(bucketKey)) {
+        const rawYahooSym = String(h.yahooSymbol || h.symbol || '').toUpperCase();
+        const isGlobalBucket =
+          (!rawYahooSym.endsWith('.NS') && !rawYahooSym.endsWith('.BO')) &&
+          (!(w.tag || '').includes('🇮🇳') || String(h.cmp || '').startsWith('$') || String(h.value || '').includes('$'));
         buckets.set(bucketKey, {
           sym: symKey || normalizeName(h.name).toUpperCase().slice(0, 8),
           nameKey,
@@ -287,7 +339,9 @@ export function buildLiveConsensusStocks(whalesList = [], fallbackConsensus = mo
           sector: h.sector || 'Institutional Equities',
           cmp: h.cmp || null,
           change1Y: h.change1Y || null,
+          isGlobal: isGlobalBucket,
           totalCr: 0,
+          totalUsdB: 0,
           owners: [],
         });
       }
@@ -296,7 +350,12 @@ export function buildLiveConsensusStocks(whalesList = [], fallbackConsensus = mo
       if (h.cmp && h.cmp !== '—') b.cmp = h.cmp;
       if (h.change1Y) b.change1Y = h.change1Y;
       if (h.sector && b.sector === 'Institutional Equities') b.sector = h.sector;
-      b.totalCr += parsePriceNumber(h.value);
+      if (b.isGlobal || String(h.value || '').includes('$') || String(h.value || '').includes('£')) {
+        b.isGlobal = true;
+        b.totalUsdB += parseForeignBillions(h.value);
+      } else {
+        b.totalCr += parsePriceNumber(h.value);
+      }
       b.owners.push({
         name: w.name,
         stake: h.stake || 'Held',
@@ -311,10 +370,14 @@ export function buildLiveConsensusStocks(whalesList = [], fallbackConsensus = mo
     const curated = curatedBySym[b.sym] || curatedByName[b.nameKey];
     const changeStr = b.change1Y || (curated ? curated.change1Y : '+0.0%');
     const isPos = !String(changeStr).startsWith('-');
-    const inrVal =
-      b.totalCr >= 1
-        ? `₹${Math.round(b.totalCr).toLocaleString('en-IN')} Cr`
-        : curated?.combinedStakeValue || `${b.owners.length} Funds`;
+    let stakeVal;
+    if (b.isGlobal && b.totalUsdB > 0) {
+      stakeVal = formatUsdCompact(b.totalUsdB);
+    } else if (b.totalCr >= 1) {
+      stakeVal = `₹${Math.round(b.totalCr).toLocaleString('en-IN')} Cr`;
+    } else {
+      stakeVal = curated?.combinedStakeValue || `${b.owners.length} Funds`;
+    }
 
     liveConsensus.push({
       id: curated?.id || `live_${b.sym}_${idx}`,
@@ -325,7 +388,7 @@ export function buildLiveConsensusStocks(whalesList = [], fallbackConsensus = mo
       change1Y: changeStr,
       isPositive: isPos,
       convictionScore: Math.min(99, 86 + b.owners.length * 3),
-      combinedStakeValue: inrVal,
+      combinedStakeValue: stakeVal,
       billionaires: b.owners.slice(0, 6),
       catalyst:
         curated?.catalyst ||

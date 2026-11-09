@@ -120,22 +120,17 @@ def format_cmp(price, currency='INR'):
     return f"${price:,.2f}"
 
 
-def format_fx_inr_and_foreign(val_in_billions, currency, fx_rates, show_billion_word=False):
-    """Format USD/GBP fund/position value as Indian Cr + foreign ($B / $M / £B)."""
-    rate = fx_rates.get(currency, 93.94 if currency == 'USD' else 125.96)
-    val_inr_cr = (val_in_billions * 1e9 * rate) / 1e7  # 1 Cr = 1e7
-    inr_str = f"₹{format_indian_int(val_inr_cr)} Cr"
+def format_foreign_value(val_in_billions, currency='USD', show_billion_word=False):
+    """Format global (USD/GBP) fund/position value purely in native currency ($B/$M/£B)."""
     sym = '£' if currency == 'GBP' else '$'
     if val_in_billions >= 1000:
-        f_str = f"{sym}{val_in_billions / 1000.0:.2f}T"
-    elif val_in_billions >= 1.0:
+        return f"{sym}{val_in_billions / 1000.0:.2f}T"
+    if val_in_billions >= 1.0:
         unit = ' Billion' if show_billion_word else 'B'
-        f_str = f"{sym}{val_in_billions:.2f}{unit}" if val_in_billions < 10 else f"{sym}{val_in_billions:.1f}{unit}"
-    else:
-        val_m = val_in_billions * 1000.0
-        unit = ' Million' if show_billion_word else 'M'
-        f_str = f"{sym}{val_m:.0f}{unit}"
-    return f"{inr_str} ({f_str})"
+        return f"{sym}{val_in_billions:.2f}{unit}" if val_in_billions < 10 else f"{sym}{val_in_billions:.1f}{unit}"
+    val_m = val_in_billions * 1000.0
+    unit = ' Million' if show_billion_word else 'M'
+    return f"{sym}{val_m:.0f}{unit}"
 
 
 def http_read_with_retry(req, timeout=12, retries=2):
@@ -692,8 +687,10 @@ def sync_consensus_table(synced_whales, fx_rates, has_consensus_table, dry_run=F
         # Deduplicate whales in case of multiple share classes
         unique_backers = {}
         total_inr_cr = 0.0
+        total_usd_b = 0.0
         for w, h in owners:
             total_inr_cr += float(h.get('_val_inr_cr') or 0.0)
+            total_usd_b += float(h.get('_val_usd_b') or 0.0)
             if w['name'] not in unique_backers:
                 unique_backers[w['name']] = {
                     'name': w['name'],
@@ -705,6 +702,11 @@ def sync_consensus_table(synced_whales, fx_rates, has_consensus_table, dry_run=F
         score = min(99, 86 + len(backers) * 3)
         name = cmeta.get('name') or (owners[0][1]['name'] if owners else sym)
         sector = cmeta.get('sector') or (owners[0][1].get('sector') if owners else 'Equities')
+        is_indian_sym = sym.endswith(('.NS', '.BO')) or currency == 'INR'
+        if is_indian_sym:
+            combined_stake_str = f"₹{format_indian_int(total_inr_cr)} Cr" if total_inr_cr > 0 else 'Institutional Consensus'
+        else:
+            combined_stake_str = format_foreign_value(total_usd_b, 'USD') if total_usd_b > 0 else 'Global Consensus'
 
         consensus_rows.append({
             'id': cmeta.get('id') or f"live_{idx + 1}",
@@ -715,7 +717,7 @@ def sync_consensus_table(synced_whales, fx_rates, has_consensus_table, dry_run=F
             'change_1y': f"{ret_1y:+.1f}%",
             'is_positive': bool(ret_1y >= 0),
             'conviction_score': score,
-            'combined_stake_value': f"₹{format_indian_int(total_inr_cr)} Cr" if total_inr_cr > 0 else 'Institutional Consensus',
+            'combined_stake_value': combined_stake_str,
             'billionaires': backers[:6],
             'catalyst': cmeta.get('catalyst') or f"Held concurrently across {len(backers)} institutional & super-investor portfolios.",
             'quarter_move': cmeta.get('default_move') or f"Confirmed active position across {', '.join(b['name'] for b in backers[:3])}.",
@@ -945,12 +947,16 @@ def sync_all_whales(dry_run=False):
                 chg1y_str = '+0.0%'
                 chg1d_str = '0.00%'
 
+            usd_rate = fx_rates.get('USD', 93.94) or 93.94
+            curr_rate = fx_rates.get(currency, usd_rate)
             if currency == 'INR':
                 val_str = f"₹{format_indian_int(live_v)} Cr"
                 val_inr_cr = live_v
+                val_usd_b = 0.0
             else:
-                val_str = format_fx_inr_and_foreign(live_v, currency, fx_rates, show_billion_word=False)
-                val_inr_cr = (live_v * 1e9 * fx_rates.get(currency, 93.94)) / 1e7
+                val_str = format_foreign_value(live_v, currency, show_billion_word=False)
+                val_inr_cr = (live_v * 1e9 * curr_rate) / 1e7
+                val_usd_b = (live_v * curr_rate) / usd_rate
 
             # Normalized weight % across displayed portfolio
             wt_pct = h['_weight_pct'] if h['_weight_pct'] is not None else round((base_v / total_tracked_val) * 100.0, 1)
@@ -968,6 +974,7 @@ def sync_all_whales(dry_run=False):
                 'change1D': chg1d_str,
                 'weightPercent': wt_pct,
                 '_val_inr_cr': val_inr_cr,
+                '_val_usd_b': val_usd_b,
             })
 
         avg_1d = (weighted_1d_sum / weighted_1d_wt) if weighted_1d_wt > 0 else 0.0
@@ -978,7 +985,7 @@ def sync_all_whales(dry_run=False):
             formatted_portfolio = f"₹{format_indian_int(live_pv)} Cr"
         else:
             live_pv = base_portfolio_val * (1.0 + avg_1d / 100.0)
-            formatted_portfolio = format_fx_inr_and_foreign(live_pv, currency, fx_rates, show_billion_word=False)
+            formatted_portfolio = format_foreign_value(live_pv, currency, show_billion_word=False)
 
         formatted_1y = f"{avg_1y:+.1f}%"
         is_positive = bool(avg_1y >= 0.0)
