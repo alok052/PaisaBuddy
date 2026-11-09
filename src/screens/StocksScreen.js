@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
+  Alert,
   View,
   Text,
   StyleSheet,
@@ -26,7 +27,11 @@ import {
 import {
   loadWatchlist,
   isItemSavedInWatchlist,
+  enrichWatchlistItems,
+  removeWatchlistEntry,
 } from '../services/watchlistService';
+import { openBrokerTerminal } from '../services/externalLinks';
+import { shareNseStockInsight } from '../services/shareService';
 
 const FILTERS = [
   { id: 'TOP', label: '🔥 Most Active' },
@@ -81,10 +86,27 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
 
   const displayedStocks = useMemo(() => {
     if (selectedFilter === 'SAVED' && !searchQuery.trim()) {
-      return stocks.filter((st) => isItemSavedInWatchlist(savedWatchlist, st));
+      const enriched = enrichWatchlistItems(savedWatchlist, stocks, whalesList);
+      return enriched.map((entry) => {
+        if (entry.nseMatch) return entry.nseMatch;
+        return {
+          isWatchlistCustom: true,
+          symbol: entry.resolvedSymbol || entry.key,
+          name: entry.displayName,
+          series: entry.stage || 'TRACKED',
+          closePrice: entry.livePrice,
+          displayPriceText: entry.displayPriceText,
+          cmp: entry.cmp,
+          dayChangePct: entry.dayChangePct,
+          change1Y: entry.change1Y,
+          sector: entry.sector,
+          whaleHolders: entry.whaleHolders || [],
+          watchlistKey: entry.key,
+        };
+      });
     }
     return searchAndFilterNseStocks(stocks, searchQuery, selectedFilter, searchQuery.trim() ? 120 : 100);
-  }, [stocks, searchQuery, selectedFilter, savedWatchlist]);
+  }, [stocks, whalesList, searchQuery, selectedFilter, savedWatchlist]);
 
   const latestDate = useMemo(() => {
     const firstWithDate = stocks.find((s) => s.lastTradeDate);
@@ -93,11 +115,47 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
 
   const isSeedMode = useMemo(() => Boolean(stocks[0]?.isSeedFallback), [stocks]);
 
+  const handleCustomWatchlistPress = useCallback((item) => {
+    const ticker = item.symbol || item.name;
+    Alert.alert(
+      `${item.name} (${ticker})`,
+      `Tracked Price: ${item.displayPriceText || item.cmp || 'Track Only'}${
+        item.whaleHolders?.length ? `\nWhale Holders: ${item.whaleHolders.map((w) => w.whaleName).slice(0, 3).join(', ')}` : ''
+      }`,
+      [
+        { text: 'Open Quote / Broker', onPress: () => openBrokerTerminal('NSE Quote', ticker) },
+        {
+          text: 'Share',
+          onPress: () =>
+            shareNseStockInsight(
+              {
+                symbol: ticker,
+                name: item.name,
+                cmp: item.cmp,
+                dayChangePct: item.dayChangePct,
+              },
+              item.whaleHolders || []
+            ),
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const next = await removeWatchlistEntry(savedWatchlist, item.watchlistKey || ticker);
+            setSavedWatchlist(next);
+          },
+        },
+        { text: 'Close', style: 'cancel' },
+      ]
+    );
+  }, [savedWatchlist]);
+
   const renderStockItem = useCallback(({ item }) => {
     const isPos = (item.dayChangePct ?? 0) >= 0;
     const pctColor = isPos ? '#10B981' : '#EF4444';
     const hasPrice = item.closePrice !== null && item.closePrice > 0;
-    const saved = isItemSavedInWatchlist(savedWatchlist, item);
+    const saved = item.isWatchlistCustom || isItemSavedInWatchlist(savedWatchlist, item);
+    const priceLabel = item.displayPriceText || (hasPrice ? formatInrPrice(item.closePrice) : item.cmp || 'Unquoted');
 
     return (
       <TouchableOpacity
@@ -105,7 +163,11 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
         activeOpacity={0.78}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          setSelectedStock(item);
+          if (item.isWatchlistCustom) {
+            handleCustomWatchlistPress(item);
+          } else {
+            setSelectedStock(item);
+          }
         }}
       >
         <View style={styles.cardLeft}>
@@ -122,21 +184,28 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
             {item.name}
           </Text>
           <Text style={styles.metaLine} numberOfLines={1}>
-            Vol {formatIndianVolume(item.volume)}
-            {item.deliveryPct !== null && item.deliveryPct !== undefined
-              ? ` • Deliv ${item.deliveryPct}%`
-              : ''}
-            {item.change1yPct !== null && item.change1yPct !== undefined
-              ? ` • 1Y ${item.change1yPct >= 0 ? '+' : ''}${item.change1yPct}%`
-              : ''}
+            {item.isWatchlistCustom ? (
+              <>
+                {item.sector || 'Saved Watchlist Item'}
+                {item.whaleHolders?.length ? ` • 🐋 ${item.whaleHolders.length} Whale${item.whaleHolders.length > 1 ? 's' : ''}` : ''}
+              </>
+            ) : (
+              <>
+                Vol {formatIndianVolume(item.volume)}
+                {item.deliveryPct !== null && item.deliveryPct !== undefined
+                  ? ` • Deliv ${item.deliveryPct}%`
+                  : ''}
+                {item.change1yPct !== null && item.change1yPct !== undefined
+                  ? ` • 1Y ${item.change1yPct >= 0 ? '+' : ''}${item.change1yPct}%`
+                  : ''}
+              </>
+            )}
           </Text>
         </View>
 
         <View style={styles.cardRight}>
-          <Text style={styles.priceText}>
-            {hasPrice ? formatInrPrice(item.closePrice) : 'Unquoted'}
-          </Text>
-          {hasPrice ? (
+          <Text style={styles.priceText}>{priceLabel}</Text>
+          {(hasPrice || item.isWatchlistCustom) && item.dayChangePct !== null && item.dayChangePct !== undefined ? (
             <View
               style={[
                 styles.pctPill,
@@ -152,15 +221,21 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
                 {(item.dayChangePct ?? 0).toFixed(2)}%
               </Text>
             </View>
+          ) : item.change1Y ? (
+            <Text style={[styles.inactiveSub, { color: '#10B981', fontWeight: '700' }]}>
+              {item.change1Y} 1Y
+            </Text>
           ) : (
-            <Text style={styles.inactiveSub}>No Recent Trade</Text>
+            <Text style={styles.inactiveSub}>
+              {item.isWatchlistCustom ? 'Tracked' : hasPrice ? 'EOD Close' : 'No Recent Trade'}
+            </Text>
           )}
         </View>
 
         <Ionicons name="chevron-forward" size={16} color="#475569" style={{ marginLeft: 6 }} />
       </TouchableOpacity>
     );
-  }, [savedWatchlist]);
+  }, [savedWatchlist, handleCustomWatchlistPress]);
 
   const ListHeader = (
     <View>
@@ -260,7 +335,7 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
       ) : (
         <FlatList
           data={displayedStocks}
-          keyExtractor={(item) => item.symbol}
+          keyExtractor={(item, idx) => String(item.watchlistKey || item.symbol || idx)}
           renderItem={renderStockItem}
           ListHeaderComponent={ListHeader}
           showsVerticalScrollIndicator={false}
@@ -286,7 +361,7 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
               />
               <Text style={styles.emptyTitle}>
                 {selectedFilter === 'SAVED' && !searchQuery
-                  ? 'No Saved NSE Stocks Yet'
+                  ? 'No Saved Watchlist Stocks Yet'
                   : 'No Matching NSE Company Found'}
               </Text>
               <Text style={styles.emptySub}>
