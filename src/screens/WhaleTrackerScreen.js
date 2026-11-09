@@ -462,14 +462,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                 {isExpanded && (
                   <View style={styles.expandArea}>
                     <View style={styles.divider} />
-                    <View style={styles.expandHeaderRow}>
-                      <Text style={styles.expandTitle}>📊 Recent Portfolio Activity</Text>
-                      {whale.filingStatus ? (
-                        <Text style={styles.expandFilingText} numberOfLines={1}>
-                          {whale.filingStatus}
-                        </Text>
-                      ) : null}
-                    </View>
+                    <Text style={styles.expandTitle}>📊 Recent Portfolio Activity</Text>
                     {recentMoves.map((m, idx) => (
                       <View key={idx} style={styles.moveRow}>
                         <View
@@ -536,7 +529,7 @@ export default function WhaleTrackerScreen({ onOpenMenu }) {
                         setViewingBreakdownWhale(whale);
                       }}
                     >
-                      <Text style={styles.viewFullText}>Full Holdings &amp; Weights Breakdown →</Text>
+                      <Text style={styles.viewFullText}>Full Holdings Breakdown →</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -842,23 +835,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBorder,
     marginBottom: 10,
   },
-  expandHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-    gap: 8,
-  },
   expandTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.text,
-  },
-  expandFilingText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.textMuted,
-    flexShrink: 1,
+    marginBottom: 10,
   },
   moveRow: {
     flexDirection: 'row',

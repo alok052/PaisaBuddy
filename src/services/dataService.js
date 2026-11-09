@@ -195,9 +195,9 @@ export function mapWhaleRow(item) {
     startups: item.startups || localWhale.startups || [],
     recentMoves: item.recent_moves || localWhale.recentMoves || [],
     updatedAt: item.updated_at || null,
-    filingStatus:
-      item.filing_status ||
-      (isIndia ? 'NSE/BSE Live • Quarterly SHP' : 'US SEC Form 13F-HR • Yahoo Live'),
+    filingStatus: isIndia
+      ? 'SEBI Quarterly SHP'
+      : (item.filing_status || 'US SEC Form 13F-HR • Yahoo Live'),
     lastSecFiling: item.last_sec_filing || null,
   };
 }
@@ -211,7 +211,7 @@ function normalizeLocalWhale(w) {
     topHoldings: normalizeGlobalHoldings(w.topHoldings || [], isIndia),
     allHoldings: normalizeGlobalHoldings(w.allHoldings || w.topHoldings || [], isIndia),
     avatarGradient: w.avatarGradient || getWhaleGradient(String(w.id)),
-    filingStatus: w.filingStatus || (isIndia ? 'NSE/BSE Filings' : 'SEC 13F Filings'),
+    filingStatus: w.filingStatus || (isIndia ? 'SEBI Filings' : 'SEC 13F Filings'),
   };
 }
 

@@ -234,7 +234,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                   </Text>
                   <View style={styles.sebiTag}>
                     <Text style={styles.sebiTagText}>
-                      {(whale.tag || '').includes('🇮🇳') ? 'SEBI / NSE LIVE' : 'SEC 13F LIVE'}
+                      {(whale.tag || '').includes('🇮🇳') ? 'SEBI DISCLOSED' : 'SEC 13F FILINGS'}
                     </Text>
                   </View>
                 </View>
@@ -407,16 +407,11 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                           </Text>
                         </View>
 
-                        {/* Main Info: Name + Weight Badge + Subtitle */}
+                        {/* Main Info: Name + Subtitle */}
                         <View style={styles.stockMainInfo}>
-                          <View style={styles.stockTitleRow}>
-                            <Text style={styles.stockName} numberOfLines={1}>
-                              {stock.name}
-                            </Text>
-                            <View style={styles.weightBadge}>
-                              <Text style={styles.weightText}>{stock.weightPercent}% Weight</Text>
-                            </View>
-                          </View>
+                          <Text style={styles.stockName} numberOfLines={1}>
+                            {stock.name}
+                          </Text>
 
                           <Text style={styles.sharesSub} numberOfLines={1}>
                             {stock.symbol || 'EQUITY'} • {stock.sector} • CMP {stock.cmp || '—'}
@@ -466,7 +461,9 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                             <View style={styles.drawerItem}>
                               <Text style={styles.drawerLabel}>Filing Status</Text>
                               <Text style={styles.drawerValue} numberOfLines={2}>
-                                {whale.filingStatus || ((whale.tag || '').includes('🇮🇳') ? 'NSE/BSE Live • SHP' : 'SEC Form 13F-HR')}
+                                {(whale.tag || '').includes('🇮🇳')
+                                  ? 'SEBI Quarterly SHP'
+                                  : (whale.filingStatus || 'SEC Form 13F-HR')}
                               </Text>
                             </View>
                           </View>
@@ -1088,17 +1085,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#F8FAFC',
     flexShrink: 1,
-  },
-  weightBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  weightText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#10B981',
   },
   sharesSub: {
     fontSize: 11,
