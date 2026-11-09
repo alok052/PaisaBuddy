@@ -17,7 +17,7 @@ import WhaleTrackerScreen from './src/screens/WhaleTrackerScreen';
 import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
 import AIPortfolioReviewScreen from './src/screens/AIPortfolioReviewScreen';
 import ToolsScreen from './src/screens/ToolsScreen';
-import IPORadarScreen from './src/screens/IPORadarScreen';
+// Temporarily hidden: import IPORadarScreen from './src/screens/IPORadarScreen';
 import StocksScreen from './src/screens/StocksScreen';
 import StepUpCalculatorScreen from './src/screens/StepUpCalculatorScreen';
 import EMIPrepaymentScreen from './src/screens/EMIPrepaymentScreen';
@@ -93,7 +93,7 @@ function MainApp() {
         {activeTab === 'sip' && <SIPDoctorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'tools' && <ToolsScreen onOpenMenu={openDrawer} onNavigatePage={setActiveTab} />}
         {activeTab === 'review' && <AIPortfolioReviewScreen onOpenMenu={openDrawer} />}
-        {activeTab === 'ipos' && <IPORadarScreen onOpenMenu={openDrawer} />}
+        {/* Temporarily hidden: {activeTab === 'ipos' && <IPORadarScreen onOpenMenu={openDrawer} />} */}
         {activeTab === 'stocks' && <StocksScreen onOpenMenu={openDrawer} />}
         {activeTab === 'stepup' && <StepUpCalculatorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'emi' && <EMIPrepaymentScreen onOpenMenu={openDrawer} />}

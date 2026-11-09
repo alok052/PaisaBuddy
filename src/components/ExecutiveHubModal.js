@@ -142,17 +142,6 @@ export default function ExecutiveHubModal({
       isUpcoming: false,
     },
     {
-      id: 'ipos',
-      title: 'IPO & GMP Radar',
-      subtitle: 'Live Grey Market Premiums & Bids',
-      icon: 'trending-up-outline',
-      gradient: ['#131B2E', '#090E17'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#38BDF8',
-      category: 'PRIMARY',
-      isUpcoming: false,
-    },
-    {
       id: 'notifications',
       title: 'Market Alerts',
       subtitle: 'Disclosures & Block Deals Feed',
@@ -162,6 +151,7 @@ export default function ExecutiveHubModal({
       iconColor: '#F59E0B',
       category: 'ALERTS',
       isUpcoming: false,
+      isWide: true,
     },
     {
       id: 'stocks',
