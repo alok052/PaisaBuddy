@@ -20,6 +20,7 @@ import StepUpCalculatorScreen from './src/screens/StepUpCalculatorScreen';
 import EMIPrepaymentScreen from './src/screens/EMIPrepaymentScreen';
 import FinancialGoalPlannerScreen from './src/screens/FinancialGoalPlannerScreen';
 import DividendYieldTrackerScreen from './src/screens/DividendYieldTrackerScreen';
+import MFOverlapScreen from './src/screens/MFOverlapScreen';
 import ExecutiveHubModal from './src/components/ExecutiveHubModal';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
 
@@ -79,8 +80,24 @@ function MainApp() {
             onOpenStocks={() => setActiveTab('stocks')}
           />
         )}
-        {activeTab === 'sip' && <SIPDoctorScreen onOpenMenu={openDrawer} />}
-        {activeTab === 'review' && <AIPortfolioReviewScreen onOpenMenu={openDrawer} />}
+        {activeTab === 'sip' && (
+          <SIPDoctorScreen
+            onOpenMenu={openDrawer}
+            onOpenOverlap={() => setActiveTab('overlap')}
+          />
+        )}
+        {activeTab === 'review' && (
+          <AIPortfolioReviewScreen
+            onOpenMenu={openDrawer}
+            onOpenOverlap={() => setActiveTab('overlap')}
+          />
+        )}
+        {activeTab === 'overlap' && (
+          <MFOverlapScreen
+            onOpenMenu={openDrawer}
+            onOpenSipDoctor={() => setActiveTab('sip')}
+          />
+        )}
         {activeTab === 'stocks' && <StocksScreen onOpenMenu={openDrawer} />}
         {activeTab === 'stepup' && <StepUpCalculatorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'emi' && <EMIPrepaymentScreen onOpenMenu={openDrawer} />}

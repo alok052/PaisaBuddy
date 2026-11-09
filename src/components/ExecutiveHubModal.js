@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import { fetchLiveMarketAlerts } from '../services/dataService';
+import { sharePaisaBuddyApp, rateOnPlayStore } from '../services/shareService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -127,6 +128,19 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#22D3EE',
       category: 'INCOME',
+    },
+    {
+      id: 'overlap',
+      title: 'MF Overlap Scanner',
+      subtitle: 'Compare Any 2 Mutual Funds (Weighted Holdings & Sectors)',
+      description:
+        'Pick any 2 Mutual Funds across 45,000+ AMFI schemes to detect stock duplication, concentration risk & consolidation tips without uploading files.',
+      icon: 'git-compare-outline',
+      gradient: ['#091523', '#050B14'],
+      borderColor: 'rgba(56, 189, 248, 0.22)',
+      iconColor: '#38BDF8',
+      category: 'OVERLAP',
+      isWide: true,
     },
     {
       id: 'notifications',
@@ -300,6 +314,35 @@ export default function ExecutiveHubModal({
                   );
                 })}
               </View>
+            </View>
+
+            {/* COMMUNITY SHARE & PLAY STORE RATING BAR */}
+            <View style={styles.growthStripRow}>
+              <TouchableOpacity
+                style={styles.growthBtn}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  sharePaisaBuddyApp();
+                }}
+              >
+                <Ionicons name="share-social-outline" size={16} color="#10B981" />
+                <Text style={styles.growthBtnText}>Share PaisaBuddy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.growthBtn, styles.growthRateBtn]}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  rateOnPlayStore();
+                }}
+              >
+                <Ionicons name="star-outline" size={16} color="#F59E0B" />
+                <Text style={[styles.growthBtnText, { color: '#FBBF24' }]}>
+                  Rate App 5★
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {/* LUXURY FOOTER BRANDING */}
@@ -568,5 +611,31 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.2)',
     fontSize: 9,
     marginTop: 2,
+  },
+  growthStripRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  growthBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.28)',
+  },
+  growthRateBtn: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: 'rgba(245, 158, 11, 0.28)',
+  },
+  growthBtnText: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

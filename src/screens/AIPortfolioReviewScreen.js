@@ -56,7 +56,7 @@ async function readUriAsBase64(uri) {
   }
 }
 
-export default function AIPortfolioReviewScreen({ onOpenMenu }) {
+export default function AIPortfolioReviewScreen({ onOpenMenu, onOpenOverlap }) {
   const [whalesList, setWhalesList] = useState(mockWhales);
   const [auditReport, setAuditReport] = useState(null);
   const [stagedHoldings, setStagedHoldings] = useState([]);
@@ -670,6 +670,28 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
             </TouchableOpacity>
+
+            {onOpenOverlap && (
+              <TouchableOpacity
+                style={styles.quickOverlapBanner}
+                activeOpacity={0.82}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onOpenOverlap();
+                }}
+              >
+                <View style={styles.quickOverlapIconCircle}>
+                  <Ionicons name="git-compare-outline" size={18} color="#38BDF8" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.manualTitle}>2-Fund Mutual Fund Overlap Check</Text>
+                  <Text style={styles.manualSub}>
+                    Compare any 2 Mutual Funds directly without importing a portfolio
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#38BDF8" />
+              </TouchableOpacity>
+            )}
 
             {/* Explicit Sample Preview Link (Transparently labeled!) */}
             <TouchableOpacity
@@ -2774,5 +2796,26 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 5,
     borderWidth: 1,
+  },
+  quickOverlapBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0B1322',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.28)',
+    marginTop: 10,
+    gap: 10,
+  },
+  quickOverlapIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

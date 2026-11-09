@@ -31,8 +31,19 @@ import {
   formatIndianVolume,
 } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
-import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
+import { readJsonStore, STORE_KEYS } from '../services/localStore';
 import { openBrokerTerminal } from '../services/externalLinks';
+import {
+  toggleWatchlistEntry,
+  removeWatchlistEntry,
+  isItemSavedInWatchlist,
+  enrichWatchlistItems,
+} from '../services/watchlistService';
+import {
+  shareConsensusStockInsight,
+  shareNseStockInsight,
+  shareWhaleInsight,
+} from '../services/shareService';
 
 export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
@@ -137,6 +148,7 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
 
   const filters = [
     { id: 'ALL', label: `🌟 All ${totalCount} Whales` },
+    { id: 'WATCHLIST', label: `🔖 Watchlist (${savedWatchlist.length})` },
     { id: 'CONSENSUS', label: `💎 Consensus (${consensusList.length})` },
     { id: 'STOCKS', label: `📈 All Stocks (${stocksCountLabel})` },
     { id: 'IN', label: `🇮🇳 India (${indiaCount})` },
@@ -150,19 +162,19 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
   };
 
   const isInWatchlist = useCallback(
-    (stock) => {
-      const key = String(stock?.symbol || stock?.name || '').toUpperCase().trim();
-      return savedWatchlist.some((item) => item.key === key);
-    },
+    (stock) => isItemSavedInWatchlist(savedWatchlist, stock),
     [savedWatchlist]
   );
 
   const handleBrokerTrade = (stock) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const ticker = stock.symbol || stock.name;
+    const ticker = stock.resolvedSymbol || stock.symbol || stock.name;
+    const priceLabel = stock.livePrice > 0 ? formatInrPrice(stock.livePrice) : stock.cmp || 'Market Rate';
     Alert.alert(
-      `Trade ${stock.name} (${stock.symbol})`,
-      `Current Price: ${stock.cmp} (${stock.change1Y} in 1Y)\nCombined Whale Stake: ${stock.combinedStakeValue}\n\nOpen real broker / exchange portal:`,
+      `Trade ${stock.displayName || stock.name} (${ticker})`,
+      `Current Price: ${priceLabel}${stock.change1Y ? ` (${stock.change1Y} in 1Y)` : ''}${
+        stock.combinedStakeValue ? `\nCombined Whale Stake: ${stock.combinedStakeValue}` : ''
+      }\n\nOpen real broker / exchange portal:`,
       [
         { text: 'Zerodha Kite', onPress: () => openBrokerTerminal('Zerodha Kite', ticker) },
         { text: 'Groww', onPress: () => openBrokerTerminal('Groww', ticker) },
@@ -175,30 +187,37 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
 
   const handleAddToWatchlist = async (stock) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const key = String(stock?.symbol || stock?.name || '').toUpperCase().trim();
-    if (!key) return;
-    const exists = savedWatchlist.some((item) => item.key === key);
-    const nextList = exists
-      ? savedWatchlist.filter((item) => item.key !== key)
-      : [
-          {
-            key,
-            symbol: stock.symbol || '',
-            name: stock.name || key,
-            cmp: stock.cmp || null,
-            addedAt: new Date().toISOString(),
-          },
-          ...savedWatchlist,
-        ];
+    const { nextList, added } = await toggleWatchlistEntry(savedWatchlist, stock);
     setSavedWatchlist(nextList);
-    await writeJsonStore(STORE_KEYS.WATCHLIST, nextList);
     Alert.alert(
-      exists ? 'Removed from Watchlist' : 'Saved to Watchlist',
-      exists
-        ? `Removed ${stock.name} (${stock.symbol}) from your saved watchlist.`
-        : `Saved ${stock.name} (${stock.symbol}) persistently on this device.`
+      added ? 'Saved to Watchlist' : 'Removed from Watchlist',
+      added
+        ? `Saved ${stock.name} (${stock.symbol || 'Tracked'}) persistently on this device.`
+        : `Removed ${stock.name} (${stock.symbol || 'Tracked'}) from your saved watchlist.`
     );
   };
+
+  const handleRemoveWatchlistItem = async (item) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const nextList = await removeWatchlistEntry(savedWatchlist, item.key);
+    setSavedWatchlist(nextList);
+  };
+
+  const enrichedWatchlist = useMemo(
+    () => enrichWatchlistItems(savedWatchlist, nseStocks, whalesList),
+    [savedWatchlist, nseStocks, whalesList]
+  );
+
+  const filteredWatchlist = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return enrichedWatchlist;
+    return enrichedWatchlist.filter(
+      (item) =>
+        (item.displayName || '').toLowerCase().includes(q) ||
+        (item.resolvedSymbol || '').toLowerCase().includes(q) ||
+        (item.sector || '').toLowerCase().includes(q)
+    );
+  }, [enrichedWatchlist, searchQuery]);
 
   const filteredWhales = (whalesList || []).filter((w) => {
     const tagStr = w.tag || '';
@@ -361,8 +380,219 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
         })}
       </ScrollView>
 
-      {/* ALL NSE STOCKS INLINE DIRECTORY OR CONSENSUS OR WHALE CARDS */}
-      {selectedFilter === 'STOCKS' ? (
+      {/* SAVED WATCHLIST OR ALL NSE STOCKS OR CONSENSUS OR WHALE CARDS */}
+      {selectedFilter === 'WATCHLIST' ? (
+        <View style={styles.watchlistSection}>
+          <View style={styles.watchlistHeroCard}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <View style={styles.watchlistTagRow}>
+                <Ionicons name="bookmark" size={13} color={colors.primary} />
+                <Text style={styles.watchlistTagText}>SAVED WATCHLIST TERMINAL</Text>
+              </View>
+              <Text style={styles.watchlistHeroTitle}>
+                Tracked Stocks &amp; Private Picks ({filteredWatchlist.length})
+              </Text>
+              <Text style={styles.watchlistHeroSub}>
+                Live NSE EOD prices &amp; 50-Whale ownership automatically synced on-device.
+              </Text>
+            </View>
+            <View style={styles.watchlistCountBox}>
+              <Text style={styles.watchlistCountNum}>{savedWatchlist.length}</Text>
+              <Text style={styles.watchlistCountLbl}>SAVED</Text>
+            </View>
+          </View>
+
+          {filteredWatchlist.map((item) => {
+            const hasLive = item.livePrice !== null && item.livePrice > 0;
+            const pct = item.dayChangePct;
+            const isPos = (pct ?? 0) >= 0;
+            const badgeText =
+              item.stage === 'PRE-IPO' || item.stage === 'PRIVATE'
+                ? item.stage
+                : item.nseMatch
+                ? `NSE • ${item.nseMatch.series || 'EQ'}`
+                : item.stage || 'TRACKED';
+
+            return (
+              <TouchableOpacity
+                key={item.key}
+                style={styles.wlCard}
+                activeOpacity={0.86}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (item.nseMatch) {
+                    setSelectedNseStock(item.nseMatch);
+                  } else if (item.resolvedSymbol) {
+                    openBrokerTerminal('NSE Quote', item.resolvedSymbol);
+                  }
+                }}
+              >
+                <View style={styles.wlTopRow}>
+                  <View style={{ flex: 1, marginRight: 10 }}>
+                    <View style={styles.wlBadgeRow}>
+                      <View style={styles.wlSymBadge}>
+                        <Text style={styles.wlSymText}>
+                          {item.resolvedSymbol || item.key}
+                        </Text>
+                      </View>
+                      <View style={styles.wlStagePill}>
+                        <Text style={styles.wlStageText}>{badgeText}</Text>
+                      </View>
+                      {item.whaleHolders.length > 0 && (
+                        <View style={styles.wlWhalePill}>
+                          <Text style={styles.wlWhaleText}>
+                            🐋 {item.whaleHolders.length} Whale
+                            {item.whaleHolders.length > 1 ? 's' : ''}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.wlName} numberOfLines={1}>
+                      {item.displayName}
+                    </Text>
+                    {item.sector && (
+                      <Text style={styles.wlMeta} numberOfLines={1}>
+                        {item.sector}
+                        {item.deliveryPct != null ? ` • Delivery ${item.deliveryPct}%` : ''}
+                      </Text>
+                    )}
+                  </View>
+
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.wlPrice}>
+                      {item.displayPriceText ||
+                        (hasLive && !item.isUsdPrice
+                          ? formatInrPrice(item.livePrice)
+                          : item.cmp || 'Track Only')}
+                    </Text>
+                    {pct !== null && pct !== undefined ? (
+                      <View
+                        style={[
+                          styles.wlPctBadge,
+                          {
+                            backgroundColor: isPos
+                              ? 'rgba(16, 185, 129, 0.14)'
+                              : 'rgba(239, 68, 68, 0.14)',
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.wlPctText,
+                            { color: isPos ? colors.primary : colors.danger },
+                          ]}
+                        >
+                          {isPos ? '+' : ''}
+                          {pct.toFixed(2)}%
+                        </Text>
+                      </View>
+                    ) : item.change1Y ? (
+                      <Text style={styles.wlChangeSub}>{item.change1Y} 1Y</Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                <View style={styles.wlActionRow}>
+                  <TouchableOpacity
+                    style={styles.wlPrimaryBtn}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      if (item.nseMatch) {
+                        setSelectedNseStock(item.nseMatch);
+                      } else {
+                        handleBrokerTrade(item);
+                      }
+                    }}
+                  >
+                    <Ionicons
+                      name={item.nseMatch ? 'analytics-outline' : 'open-outline'}
+                      size={14}
+                      color="#10B981"
+                    />
+                    <Text style={styles.wlPrimaryBtnText}>
+                      {item.nseMatch ? '1Y Chart & Whales' : 'Research Quote'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.wlIconBtn}
+                    activeOpacity={0.8}
+                    onPress={() => handleBrokerTrade(item)}
+                  >
+                    <Ionicons name="flash-outline" size={15} color="#CBD5E1" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.wlIconBtn}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      shareNseStockInsight(
+                        item.nseMatch || {
+                          symbol: item.resolvedSymbol || item.key,
+                          name: item.displayName,
+                          closePrice: !item.isUsdPrice ? item.livePrice : null,
+                          cmp: item.cmp,
+                          dayChangePct: item.dayChangePct,
+                          deliveryPct: item.deliveryPct,
+                        },
+                        item.whaleHolders
+                      );
+                    }}
+                  >
+                    <Ionicons name="share-social-outline" size={15} color="#38BDF8" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.wlIconBtn, styles.wlRemoveBtn]}
+                    activeOpacity={0.8}
+                    onPress={() => handleRemoveWatchlistItem(item)}
+                  >
+                    <Ionicons name="trash-outline" size={15} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+
+          {filteredWatchlist.length === 0 && (
+            <View style={styles.emptySearchBox}>
+              <Ionicons name="bookmark-outline" size={30} color={colors.primary} />
+              <Text style={styles.emptySearchTitle}>
+                {searchQuery.trim() ? 'No Watchlist Match' : 'Your Watchlist Is Empty'}
+              </Text>
+              <Text style={styles.emptySearchSub}>
+                {searchQuery.trim()
+                  ? `No saved stock matched "${searchQuery}".`
+                  : 'Tap "Watchlist" on Consensus stocks, NSE Shares, or Whale Holdings to track prices & super-investor moves here.'}
+              </Text>
+              <View style={styles.wlEmptyActions}>
+                <TouchableOpacity
+                  style={styles.resetFilterBtn}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedFilter('CONSENSUS');
+                  }}
+                >
+                  <Text style={styles.resetFilterBtnText}>💎 Browse Consensus</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.resetFilterBtn, { borderColor: 'rgba(56, 189, 248, 0.4)' }]}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedFilter('STOCKS');
+                  }}
+                >
+                  <Text style={[styles.resetFilterBtnText, { color: '#38BDF8' }]}>
+                    📈 Explore NSE Stocks
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      ) : selectedFilter === 'STOCKS' ? (
         <View style={styles.nseDirectorySection}>
           <View style={styles.nseDirBanner}>
             <View style={{ flex: 1, marginRight: 8 }}>
@@ -563,6 +793,17 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
                     {isInWatchlist(stock) ? 'Saved' : 'Watchlist'}
                   </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.cShareIconBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    shareConsensusStockInsight(stock);
+                  }}
+                >
+                  <Ionicons name="share-social-outline" size={16} color="#38BDF8" />
+                </TouchableOpacity>
               </View>
             </View>
           ))}
@@ -736,16 +977,28 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
                       </LinearGradient>
                     </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.viewFullButton}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        setViewingBreakdownWhale(whale);
-                      }}
-                    >
-                      <Text style={styles.viewFullText}>Full Holdings Breakdown →</Text>
-                    </TouchableOpacity>
+                    <View style={styles.expandFooterActions}>
+                      <TouchableOpacity
+                        style={[styles.viewFullButton, { flex: 1 }]}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setViewingBreakdownWhale(whale);
+                        }}
+                      >
+                        <Text style={styles.viewFullText}>Full Holdings Breakdown →</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.whaleShareBtn}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          shareWhaleInsight(whale);
+                        }}
+                      >
+                        <Ionicons name="share-social-outline" size={16} color="#38BDF8" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
               </TouchableOpacity>
@@ -836,6 +1089,7 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
         <WhaleBreakdownModal
           visible={!!viewingBreakdownWhale}
           whale={viewingBreakdownWhale}
+          onWatchlistChange={setSavedWatchlist}
           onClose={() => setViewingBreakdownWhale(null)}
         />
       )}
@@ -846,6 +1100,7 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
           visible={!!selectedNseStock}
           stock={selectedNseStock}
           whalesList={whalesList}
+          onWatchlistChange={setSavedWatchlist}
           onClose={() => setSelectedNseStock(null)}
         />
       )}
@@ -1594,5 +1849,217 @@ const styles = StyleSheet.create({
   nsePctText: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  cShareIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expandFooterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  whaleShareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  watchlistSection: {
+    gap: 10,
+    marginTop: 4,
+  },
+  watchlistHeroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0D1527',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.28)',
+  },
+  watchlistTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  watchlistTagText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  watchlistHeroTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  watchlistHeroSub: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 3,
+    lineHeight: 15,
+  },
+  watchlistCountBox: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  watchlistCountNum: {
+    color: colors.primary,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  watchlistCountLbl: {
+    color: '#94A3B8',
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  wlCard: {
+    backgroundColor: '#0D1527',
+    borderRadius: 16,
+    padding: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  wlTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  wlBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginBottom: 5,
+  },
+  wlSymBadge: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  wlSymText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  wlStagePill: {
+    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  wlStageText: {
+    color: '#60A5FA',
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+  wlWhalePill: {
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    paddingHorizontal: 6,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  wlWhaleText: {
+    color: '#10B981',
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
+  wlName: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  wlMeta: {
+    color: '#64748B',
+    fontSize: 10.5,
+    marginTop: 2,
+  },
+  wlPrice: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  wlPctBadge: {
+    marginTop: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  wlPctText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  wlChangeSub: {
+    color: colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  wlActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  wlPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderRadius: 10,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  wlPrimaryBtnText: {
+    color: '#10B981',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  wlIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#141E30',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wlRemoveBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  wlEmptyActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 6,
   },
 });

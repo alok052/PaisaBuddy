@@ -23,11 +23,16 @@ import {
   formatInrPrice,
   formatIndianVolume,
 } from '../services/dataService';
+import {
+  loadWatchlist,
+  isItemSavedInWatchlist,
+} from '../services/watchlistService';
 
 const FILTERS = [
   { id: 'TOP', label: '🔥 Most Active' },
   { id: 'GAINERS', label: '🟢 Top Gainers' },
   { id: 'LOSERS', label: '🔴 Top Losers' },
+  { id: 'SAVED', label: '🔖 Watchlist' },
   { id: 'ETF', label: '📊 ETFs' },
   { id: 'SME', label: '🚀 NSE SME' },
 ];
@@ -35,6 +40,7 @@ const FILTERS = [
 export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
   const [stocks, setStocks] = useState([]);
   const [whalesList, setWhalesList] = useState([]);
+  const [savedWatchlist, setSavedWatchlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -43,12 +49,14 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
 
   const loadStocks = useCallback(async (force = false) => {
     try {
-      const [nseData, whalesData] = await Promise.all([
+      const [nseData, whalesData, wlData] = await Promise.all([
         fetchNseStocksIndex({ forceRefresh: force }),
         fetchLiveWhales(),
+        loadWatchlist().catch(() => []),
       ]);
       if (Array.isArray(nseData)) setStocks(nseData);
       if (Array.isArray(whalesData)) setWhalesList(whalesData);
+      if (Array.isArray(wlData)) setSavedWatchlist(wlData);
     } catch (err) {
       console.log('Error loading NSE stocks directory:', err);
     } finally {
@@ -71,10 +79,12 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
     setRefreshing(false);
   }, [loadStocks]);
 
-  const displayedStocks = useMemo(
-    () => searchAndFilterNseStocks(stocks, searchQuery, selectedFilter, searchQuery.trim() ? 120 : 100),
-    [stocks, searchQuery, selectedFilter]
-  );
+  const displayedStocks = useMemo(() => {
+    if (selectedFilter === 'SAVED' && !searchQuery.trim()) {
+      return stocks.filter((st) => isItemSavedInWatchlist(savedWatchlist, st));
+    }
+    return searchAndFilterNseStocks(stocks, searchQuery, selectedFilter, searchQuery.trim() ? 120 : 100);
+  }, [stocks, searchQuery, selectedFilter, savedWatchlist]);
 
   const latestDate = useMemo(() => {
     const firstWithDate = stocks.find((s) => s.lastTradeDate);
@@ -87,6 +97,7 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
     const isPos = (item.dayChangePct ?? 0) >= 0;
     const pctColor = isPos ? '#10B981' : '#EF4444';
     const hasPrice = item.closePrice !== null && item.closePrice > 0;
+    const saved = isItemSavedInWatchlist(savedWatchlist, item);
 
     return (
       <TouchableOpacity
@@ -103,6 +114,9 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
             <View style={styles.seriesBadge}>
               <Text style={styles.seriesText}>{item.series || 'EQ'}</Text>
             </View>
+            {saved && (
+              <Ionicons name="bookmark" size={12} color="#10B981" style={{ marginLeft: 2 }} />
+            )}
           </View>
           <Text style={styles.companyName} numberOfLines={1}>
             {item.name}
@@ -146,7 +160,7 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
         <Ionicons name="chevron-forward" size={16} color="#475569" style={{ marginLeft: 6 }} />
       </TouchableOpacity>
     );
-  }, []);
+  }, [savedWatchlist]);
 
   const ListHeader = (
     <View>
@@ -218,7 +232,7 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
-                  {f.label}
+                  {f.id === 'SAVED' ? `🔖 Watchlist (${savedWatchlist.length})` : f.label}
                 </Text>
               </TouchableOpacity>
             );
@@ -265,11 +279,26 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="search-outline" size={28} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>No Matching NSE Company Found</Text>
-              <Text style={styles.emptySub}>
-                Try searching by NSE ticker (e.g. RELIANCE, ETERNAL, SBIN) or full company name.
+              <Ionicons
+                name={selectedFilter === 'SAVED' && !searchQuery ? 'bookmark-outline' : 'search-outline'}
+                size={28}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyTitle}>
+                {selectedFilter === 'SAVED' && !searchQuery
+                  ? 'No Saved NSE Stocks Yet'
+                  : 'No Matching NSE Company Found'}
               </Text>
+              <Text style={styles.emptySub}>
+                {selectedFilter === 'SAVED' && !searchQuery
+                  ? 'Tap any NSE stock and press the Bookmark icon to track its EOD price & Whale ownership here.'
+                  : 'Try searching by NSE ticker (e.g. RELIANCE, ETERNAL, SBIN) or full company name.'}
+              </Text>
+              {selectedFilter === 'SAVED' && !searchQuery && (
+                <TouchableOpacity style={styles.clearBtn} onPress={() => setSelectedFilter('TOP')}>
+                  <Text style={styles.clearBtnText}>Explore Active Stocks</Text>
+                </TouchableOpacity>
+              )}
               {searchQuery.length > 0 && (
                 <TouchableOpacity style={styles.clearBtn} onPress={() => setSearchQuery('')}>
                   <Text style={styles.clearBtnText}>Reset Search</Text>
@@ -285,6 +314,7 @@ export default function StocksScreen({ onOpenMenu, initialQuery = '' }) {
           visible={!!selectedStock}
           stock={selectedStock}
           whalesList={whalesList}
+          onWatchlistChange={setSavedWatchlist}
           onClose={() => setSelectedStock(null)}
         />
       )}

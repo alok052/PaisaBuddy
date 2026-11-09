@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,13 +15,26 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from './WhaleAvatar';
 import { openBrokerTerminal, openExternalUrl, OFFICIAL_SEBI_DRHP_URL } from '../services/externalLinks';
-import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
+import {
+  loadWatchlist,
+  toggleWatchlistEntry,
+  isItemSavedInWatchlist,
+} from '../services/watchlistService';
+import { shareWhaleInsight } from '../services/shareService';
 
-export default function WhaleBreakdownModal({ visible, whale, onClose }) {
+export default function WhaleBreakdownModal({ visible, whale, onClose, onWatchlistChange }) {
   const [activeTab, setActiveTab] = useState('STOCKS'); // 'STOCKS' | 'STARTUPS'
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [startupFilter, setStartupFilter] = useState('ALL'); // 'ALL' | 'ACTIVE' | 'EXIT'
+  const [savedWatchlist, setSavedWatchlist] = useState([]);
+
+  useEffect(() => {
+    if (!visible) return;
+    loadWatchlist()
+      .then((items) => setSavedWatchlist(items))
+      .catch(() => {});
+  }, [visible, whale?.id]);
 
   if (!whale) return null;
 
@@ -125,26 +138,42 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
   };
 
   const saveStartupWatchlist = async (st, stageTag) => {
-    const key = String(st?.name || '').toUpperCase().trim();
-    if (!key) return;
-    const current = await readJsonStore(STORE_KEYS.WATCHLIST, []);
-    const list = Array.isArray(current) ? current : [];
-    const exists = list.some((item) => item.key === key);
-    if (!exists) {
-      await writeJsonStore(STORE_KEYS.WATCHLIST, [
-        {
-          key,
-          symbol: st.symbol || '',
-          name: st.name,
-          stage: stageTag,
-          addedAt: new Date().toISOString(),
-        },
-        ...list,
-      ]);
+    const entryObj = {
+      symbol: st.symbol || '',
+      name: st.name,
+      cmp: st.currentValue || st.valuation || null,
+      stage: stageTag,
+    };
+    const latest = await loadWatchlist();
+    const alreadySaved = isItemSavedInWatchlist(latest, entryObj);
+    if (!alreadySaved) {
+      const { nextList } = await toggleWatchlistEntry(latest, entryObj);
+      setSavedWatchlist(nextList);
+      if (onWatchlistChange) onWatchlistChange(nextList);
     }
     Alert.alert(
-      exists ? 'Already in Watchlist' : 'Saved to Watchlist',
+      alreadySaved ? 'Already in Watchlist' : 'Saved to Watchlist',
       `${st.name} (${stageTag}) is saved locally in your PaisaBuddy Watchlist.`
+    );
+  };
+
+  const handleToggleStockWatchlist = async (stock) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const latest = await loadWatchlist();
+    const { nextList, added } = await toggleWatchlistEntry(latest, {
+      symbol: stock.symbol,
+      name: stock.name,
+      cmp: stock.cmp,
+      change1Y: stock.change1Y,
+      sector: stock.sector,
+    });
+    setSavedWatchlist(nextList);
+    if (onWatchlistChange) onWatchlistChange(nextList);
+    Alert.alert(
+      added ? 'Saved to Watchlist' : 'Removed from Watchlist',
+      added
+        ? `${stock.name} added to your PaisaBuddy Watchlist.`
+        : `${stock.name} removed from your Watchlist.`
     );
   };
 
@@ -290,14 +319,26 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                 </Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={onClose}
-                activeOpacity={0.7}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Ionicons name="close" size={20} color="#94A3B8" />
-              </TouchableOpacity>
+              <View style={styles.headerActionGroup}>
+                <TouchableOpacity
+                  style={styles.shareHeaderBtn}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    shareWhaleInsight(whale);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="share-social-outline" size={17} color="#38BDF8" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.closeBtn}
+                  onPress={onClose}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons name="close" size={20} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Total Net Worth & 1Y Return */}
@@ -515,16 +556,41 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                             </View>
                           </View>
 
-                          <TouchableOpacity
-                            style={styles.tradeActionBtn}
-                            onPress={() => handleTradePrompt(stock)}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name="flash" size={13} color="#10B981" />
-                            <Text style={styles.tradeActionText}>
-                              Execute {stock.name.split(' ')[0]} via Zerodha / Groww →
-                            </Text>
-                          </TouchableOpacity>
+                          <View style={styles.drawerActionsRow}>
+                            <TouchableOpacity
+                              style={[styles.tradeActionBtn, { flex: 1, marginTop: 0 }]}
+                              onPress={() => handleTradePrompt(stock)}
+                              activeOpacity={0.8}
+                            >
+                              <Ionicons name="flash" size={13} color="#10B981" />
+                              <Text style={styles.tradeActionText}>
+                                Execute {stock.name.split(' ')[0]} →
+                              </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={[
+                                styles.drawerWatchBtn,
+                                isItemSavedInWatchlist(savedWatchlist, stock) && styles.drawerWatchBtnActive,
+                              ]}
+                              onPress={() => handleToggleStockWatchlist(stock)}
+                              activeOpacity={0.8}
+                            >
+                              <Ionicons
+                                name={isItemSavedInWatchlist(savedWatchlist, stock) ? 'bookmark' : 'bookmark-outline'}
+                                size={13}
+                                color={isItemSavedInWatchlist(savedWatchlist, stock) ? '#10B981' : '#CBD5E1'}
+                              />
+                              <Text
+                                style={[
+                                  styles.drawerWatchText,
+                                  isItemSavedInWatchlist(savedWatchlist, stock) && { color: '#10B981' },
+                                ]}
+                              >
+                                {isItemSavedInWatchlist(savedWatchlist, stock) ? 'Saved' : 'Watchlist'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       )}
                     </View>
@@ -971,6 +1037,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerActionGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  shareHeaderBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   netWorthRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1198,6 +1279,33 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#10B981',
     marginTop: 2,
+  },
+  drawerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  drawerWatchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    gap: 5,
+  },
+  drawerWatchBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  drawerWatchText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#CBD5E1',
   },
   tradeActionBtn: {
     flexDirection: 'row',

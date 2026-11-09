@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import Svg, {
   Defs,
@@ -17,6 +18,7 @@ import Svg, {
   Line,
   Circle,
 } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
@@ -27,6 +29,13 @@ import {
   formatTurnoverCrores,
   getWhalesHoldingStock,
 } from '../services/dataService';
+import {
+  loadWatchlist,
+  toggleWatchlistEntry,
+  isItemSavedInWatchlist,
+} from '../services/watchlistService';
+import { shareNseStockInsight } from '../services/shareService';
+import { openBrokerTerminal } from '../services/externalLinks';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CHART_WIDTH = Math.max(260, SCREEN_WIDTH - 56);
@@ -96,12 +105,19 @@ function formatShortDate(isoStr) {
   return `${parts[2]} ${months[mIdx] || parts[1]} ${parts[0].slice(-2)}`;
 }
 
-export default function StockDetailModal({ visible, stock, whalesList = [], onClose }) {
+export default function StockDetailModal({
+  visible,
+  stock,
+  whalesList = [],
+  onClose,
+  onWatchlistChange,
+}) {
   const [selectedRange, setSelectedRange] = useState('1Y');
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyPoints, setHistoryPoints] = useState([]);
   const [historySource, setHistorySource] = useState('loading');
   const [activeIndex, setActiveIndex] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
   const lastHapticIdx = useRef(null);
 
   useEffect(() => {
@@ -111,6 +127,14 @@ export default function StockDetailModal({ visible, stock, whalesList = [], onCl
         active = false;
       };
     }
+
+    loadWatchlist()
+      .then((list) => {
+        if (active) {
+          setIsSaved(isItemSavedInWatchlist(list, stock));
+        }
+      })
+      .catch(() => {});
 
     setActiveIndex(null);
     lastHapticIdx.current = null;
@@ -219,6 +243,41 @@ export default function StockDetailModal({ visible, stock, whalesList = [], onCl
 
   const recentSessions = slicedPoints.slice(-5).reverse();
 
+  const handleToggleBookmark = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const current = await loadWatchlist();
+    const { nextList, added } = await toggleWatchlistEntry(current, stock);
+    setIsSaved(added);
+    if (onWatchlistChange) onWatchlistChange(nextList);
+    Alert.alert(
+      added ? 'Saved to Watchlist' : 'Removed from Watchlist',
+      added
+        ? `${stock.name} (${stock.symbol}) saved persistently in your PaisaBuddy Watchlist.`
+        : `Removed ${stock.name} (${stock.symbol}) from your Watchlist.`
+    );
+  };
+
+  const handleShareStock = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    shareNseStockInsight(stock, whaleHolders);
+  };
+
+  const handleBrokerLaunch = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      `Research & Trade — ${stock.symbol}`,
+      `${stock.name}\nEOD Close: ${formatInrPrice(displayPrice)}\n\nOpen verified exchange or broker terminal:`,
+      [
+        { text: 'Zerodha Kite', onPress: () => openBrokerTerminal('Zerodha Kite', stock.symbol) },
+        { text: 'Groww', onPress: () => openBrokerTerminal('Groww', stock.symbol) },
+        { text: 'Angel One', onPress: () => openBrokerTerminal('Angel One', stock.symbol) },
+        { text: 'NSE Official Quote', onPress: () => openBrokerTerminal('NSE Quote', stock.symbol) },
+        { text: 'Screener Fundamentals', onPress: () => openBrokerTerminal('Screener', stock.symbol) },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -258,16 +317,36 @@ export default function StockDetailModal({ visible, stock, whalesList = [], onCl
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                onClose();
-              }}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="close" size={20} color="#CBD5E1" />
-            </TouchableOpacity>
+            <View style={styles.headerActionsRow}>
+              <TouchableOpacity
+                style={[styles.iconCircleBtn, isSaved && styles.iconCircleBtnActive]}
+                onPress={handleToggleBookmark}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                  size={18}
+                  color={isSaved ? '#10B981' : '#CBD5E1'}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.iconCircleBtn}
+                onPress={handleShareStock}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="share-social-outline" size={18} color="#38BDF8" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onClose();
+                }}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="close" size={20} color="#CBD5E1" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -597,6 +676,54 @@ export default function StockDetailModal({ visible, stock, whalesList = [], onCl
               </View>
             )}
 
+            {/* Bottom Quick Action Dock (Watchlist + Share + Broker) */}
+            <View style={styles.actionDock}>
+              <TouchableOpacity
+                style={[styles.dockSecBtn, isSaved && styles.dockSecBtnActive]}
+                activeOpacity={0.8}
+                onPress={handleToggleBookmark}
+              >
+                <Ionicons
+                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                  size={16}
+                  color={isSaved ? '#10B981' : '#E2E8F0'}
+                />
+                <Text
+                  style={[
+                    styles.dockSecText,
+                    isSaved && { color: '#10B981' },
+                  ]}
+                >
+                  {isSaved ? 'Saved' : 'Watchlist'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.dockSecBtn}
+                activeOpacity={0.8}
+                onPress={handleShareStock}
+              >
+                <Ionicons name="share-social-outline" size={16} color="#38BDF8" />
+                <Text style={[styles.dockSecText, { color: '#38BDF8' }]}>Share</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.dockPrimaryBtn}
+                activeOpacity={0.85}
+                onPress={handleBrokerLaunch}
+              >
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.dockPrimaryGrad}
+                >
+                  <Ionicons name="flash" size={15} color="#FFFFFF" />
+                  <Text style={styles.dockPrimaryText}>Trade / Quote</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
             {/* Play Store & SEBI Safe Informational Footer */}
             <View style={styles.complianceBox}>
               <Ionicons name="document-text-outline" size={14} color="#64748B" style={{ marginTop: 2 }} />
@@ -714,6 +841,25 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  iconCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconCircleBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
   },
   scrollBody: {
     paddingHorizontal: 16,
@@ -1029,6 +1175,50 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sessionClose: {
+    color: '#FFFFFF',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  actionDock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 18,
+  },
+  dockSecBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    backgroundColor: '#0D1527',
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  dockSecBtnActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  dockSecText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dockPrimaryBtn: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  dockPrimaryGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12.5,
+  },
+  dockPrimaryText: {
     color: '#FFFFFF',
     fontSize: 12.5,
     fontWeight: '800',

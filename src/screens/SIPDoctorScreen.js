@@ -30,6 +30,7 @@ import {
   fetchLiveSchemeAudit,
   cleanBaseSchemeName,
 } from '../services/mfApiService';
+import { shareSipDiagnosticInsight } from '../services/shareService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCORE_RING_SIZE = 120;
@@ -40,7 +41,7 @@ const parseRatePct = (str, fallback = 13.0) => {
   return Number.isFinite(v) && v >= 2 && v <= 55 ? v : fallback;
 };
 
-export default function SIPDoctorScreen({ onOpenMenu }) {
+export default function SIPDoctorScreen({ onOpenMenu, onOpenOverlap }) {
   const [selectedFund, setSelectedFund] = useState(null);
   const [planType, setPlanType] = useState('REGULAR');
   const [sipAmount, setSipAmount] = useState(10000);
@@ -663,6 +664,28 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
           )}
         </LinearGradient>
       </TouchableOpacity>
+
+      {onOpenOverlap && (
+        <TouchableOpacity
+          style={s.overlapBannerBtn}
+          activeOpacity={0.82}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onOpenOverlap();
+          }}
+        >
+          <View style={s.overlapBannerIcon}>
+            <Ionicons name="git-compare-outline" size={18} color="#38BDF8" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.overlapBannerTitle}>2-Fund Overlap Scanner</Text>
+            <Text style={s.overlapBannerSub}>
+              Pick any 2 Mutual Funds &amp; check duplicate stocks instantly (No CSV)
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#38BDF8" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -965,6 +988,29 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             </TouchableOpacity>
           </>
         )}
+
+        {/* Share SIP Insight CTA */}
+        <TouchableOpacity
+          style={s.shareVerdictBtn}
+          activeOpacity={0.82}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            const activeCorpusLakhs = (stepUpRate > 0 ? stepUpCorpus : flatCorpus) / 100000;
+            shareSipDiagnosticInsight({
+              fundName: selectedFund?.name,
+              planType,
+              sipAmount,
+              sipYears,
+              stepUpRate,
+              extraWealthLakhs: calculatedExtraWealth,
+              projectedCorpusLakhs: activeCorpusLakhs,
+              cagrText: activeFundDisplayCagr,
+            });
+          }}
+        >
+          <Ionicons name="share-social-outline" size={16} color="#10B981" />
+          <Text style={s.shareVerdictText}>Share SIP Savings Verdict</Text>
+        </TouchableOpacity>
 
         {/* Re-check / Audit Another */}
         <TouchableOpacity
@@ -2087,5 +2133,51 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#38BDF8',
+  },
+  overlapBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    backgroundColor: '#0D131F',
+    borderRadius: 14,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.28)',
+    marginTop: 4,
+  },
+  overlapBannerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlapBannerTitle: {
+    color: '#F1F5F9',
+    fontSize: 12.5,
+    fontWeight: '800',
+  },
+  overlapBannerSub: {
+    color: '#94A3B8',
+    fontSize: 10.5,
+    marginTop: 1,
+  },
+  shareVerdictBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  shareVerdictText: {
+    color: '#10B981',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
