@@ -14,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import TaxHarvestingModal from '../components/TaxHarvestingModal';
 
-export default function ToolsScreen({ onOpenMenu }) {
+export default function ToolsScreen({ onOpenMenu, onNavigatePage }) {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [taxModalVisible, setTaxModalVisible] = useState(false);
 
@@ -64,11 +64,11 @@ export default function ToolsScreen({ onOpenMenu }) {
       description:
         'Calculate how stepping up your SIP by 10-25% every year can 3x your final corpus over 15-20 years using disciplined annual increments.',
       icon: 'trending-up',
-      accentColor: colors.accentBlue,
-      gradientColors: ['#0E1726', '#080F1A'],
-      tag: 'COMING SOON',
-      tagColor: colors.accentBlue,
-      available: false,
+      accentColor: colors.primary,
+      gradientColors: ['#081A2E', '#05101C'],
+      tag: 'ACTIVE • 3X WEALTH',
+      tagColor: colors.primary,
+      available: true,
       stats: '3x Wealth Multiplier',
     },
     {
@@ -96,9 +96,9 @@ export default function ToolsScreen({ onOpenMenu }) {
       icon: 'card',
       accentColor: '#F472B6',
       gradientColors: ['#1E0E18', '#140810'],
-      tag: 'COMING SOON',
+      tag: 'ACTIVE • SAVE LAKHS',
       tagColor: '#F472B6',
-      available: false,
+      available: true,
       stats: 'Save Lakhs on Interest',
     },
     {
@@ -122,6 +122,10 @@ export default function ToolsScreen({ onOpenMenu }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (tool.available && tool.id === 'tax_harvest') {
       setTaxModalVisible(true);
+    } else if (tool.available && tool.id === 'sip_step_up') {
+      if (onNavigatePage) onNavigatePage('stepup');
+    } else if (tool.available && tool.id === 'emi_calculator') {
+      if (onNavigatePage) onNavigatePage('emi');
     } else {
       Alert.alert(
         tool.title,
@@ -186,7 +190,7 @@ export default function ToolsScreen({ onOpenMenu }) {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionBadge}>
               <View style={styles.liveDot} />
-              <Text style={styles.sectionBadgeText}>ACTIVE TOOL</Text>
+              <Text style={styles.sectionBadgeText}>{availableTools.length > 1 ? 'ACTIVE TOOLS' : 'ACTIVE TOOL'}</Text>
             </View>
             <Text style={styles.sectionCount}>
               {availableTools.length} Ready to Use

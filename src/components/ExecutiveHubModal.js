@@ -112,7 +112,7 @@ export default function ExecutiveHubModal({
       isUpcoming: false,
     },
     {
-      id: 'sip_step_up',
+      id: 'stepup',
       title: 'Step-Up Calculator',
       subtitle: 'Annual SIP Increment Multiplier',
       description:
@@ -121,11 +121,11 @@ export default function ExecutiveHubModal({
       gradient: ['#0A1D1A', '#051210'],
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#10B981',
-      category: 'UPCOMING',
-      isUpcoming: true,
+      category: 'WEALTH',
+      isUpcoming: false,
     },
     {
-      id: 'emi_calculator',
+      id: 'emi',
       title: 'EMI & Prepayment',
       subtitle: 'Loan Tenure & Interest Saver',
       description:
@@ -134,8 +134,8 @@ export default function ExecutiveHubModal({
       gradient: ['#1B111B', '#100910'],
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F472B6',
-      category: 'UPCOMING',
-      isUpcoming: true,
+      category: 'LOANS',
+      isUpcoming: false,
     },
     {
       id: 'goal_planner',
@@ -301,7 +301,7 @@ export default function ExecutiveHubModal({
             {/* BENTO GRID: RADARS & UPCOMING TOOLS */}
             <View style={styles.bentoSection}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeading}>RADARS & UPCOMING TOOLS</Text>
+                <Text style={styles.sectionHeading}>RADARS & TOOLS SUITE</Text>
                 <Text style={styles.sectionSubCount}>
                   {bentoGrid.length} Modules
                 </Text>
