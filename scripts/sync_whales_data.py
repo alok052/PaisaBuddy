@@ -45,12 +45,20 @@ SUPABASE_KEY = (
     or 'sb_publishable_r_NCnZLMgP24OLqNgdrnPg_MYzoskik'
 )
 
-HEADERS = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': f'Bearer {SUPABASE_KEY}',
-    'Content-Type': 'application/json',
-    'Prefer': 'return=minimal',
-}
+def _build_supabase_headers(include_write=False):
+    h = {'apikey': SUPABASE_KEY}
+    # Legacy JWT keys (`eyJ...`) need Authorization Bearer; modern opaque keys
+    # (`sb_secret_...` / `sb_publishable_...`) authenticate directly via `apikey`.
+    if SUPABASE_KEY.startswith('eyJ'):
+        h['Authorization'] = f'Bearer {SUPABASE_KEY}'
+    if include_write:
+        h['Content-Type'] = 'application/json'
+        h['Prefer'] = 'return=minimal'
+    return h
+
+
+READ_HEADERS = _build_supabase_headers(include_write=False)
+HEADERS = _build_supabase_headers(include_write=True)
 
 YAHOO_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -525,7 +533,7 @@ def check_supabase_extended_schema():
     try:
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/whales?select=id,all_holdings,filing_status,last_sec_filing&limit=1",
-            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+            headers=READ_HEADERS,
         )
         with urllib.request.urlopen(req, timeout=8):
             extended_whales = True
@@ -537,7 +545,7 @@ def check_supabase_extended_schema():
     try:
         req2 = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/whale_consensus?select=id&limit=1",
-            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+            headers=READ_HEADERS,
         )
         with urllib.request.urlopen(req2, timeout=8):
             has_consensus = True
@@ -621,7 +629,7 @@ def sync_live_alert(nse_deals, matched_whale_deals, sec_latest_info, dry_run=Fal
         check_url = f"{SUPABASE_URL}/rest/v1/live_alerts?source=neq.Startup%20Radar&order=id.desc&limit=5"
         req_get = urllib.request.Request(
             check_url,
-            headers={'apikey': SUPABASE_KEY, 'Authorization': f'Bearer {SUPABASE_KEY}'},
+            headers=READ_HEADERS,
         )
         with urllib.request.urlopen(req_get, timeout=8) as resp:
             recent = json.loads(resp.read().decode('utf-8'))
