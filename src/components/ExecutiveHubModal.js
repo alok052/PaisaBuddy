@@ -8,6 +8,7 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,10 +23,65 @@ export default function ExecutiveHubModal({
   activePage = 'whales',
   onSelectPage,
 }) {
-  const handleItemPress = (pageId) => {
+  const handleItemPress = (itemOrId) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (typeof itemOrId === 'string') {
+      if (onSelectPage) {
+        onSelectPage(itemOrId);
+      }
+      if (onClose) {
+        onClose();
+      }
+      return;
+    }
+
+    if (itemOrId.isUpcoming) {
+      Alert.alert(
+        itemOrId.title,
+        `${itemOrId.description}\n\nStatus: Currently under active development. It will be released in the upcoming update.`,
+        [
+          {
+            text: 'Open Tools Hub',
+            onPress: () => {
+              if (onSelectPage) {
+                onSelectPage('tools');
+              }
+              if (onClose) {
+                onClose();
+              }
+            },
+          },
+          { text: 'Got It', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    if (itemOrId.id === 'notifications') {
+      Alert.alert(
+        'Market Alerts & Bulk Deals',
+        'Real-time SEBI disclosures, bulk deals, and SMS alerts are available inside the Whales Radar desk.',
+        [
+          {
+            text: 'Open Whales Radar',
+            onPress: () => {
+              if (onSelectPage) {
+                onSelectPage('whales');
+              }
+              if (onClose) {
+                onClose();
+              }
+            },
+          },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     if (onSelectPage) {
-      onSelectPage(pageId);
+      onSelectPage(itemOrId.id);
     }
     if (onClose) {
       onClose();
@@ -42,46 +98,7 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#38BDF8',
       category: 'PRIMARY',
-    },
-    {
-      id: 'whales',
-      title: 'Whale Portfolios',
-      subtitle: 'Institutional Super-Investors Radar',
-      icon: 'layers-outline',
-      gradient: ['#0E1726', '#080E1A'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#60A5FA',
-      category: 'EQUITY',
-    },
-    {
-      id: 'startups',
-      title: 'Startups Syndicate',
-      subtitle: 'Pre-IPO Allocations & Angel Deals',
-      icon: 'rocket-outline',
-      gradient: ['#0D1A24', '#061017'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#2DD4BF',
-      category: 'VENTURE',
-    },
-    {
-      id: 'sip',
-      title: 'SIP Doctor',
-      subtitle: 'Direct Mutual Fund Switcher',
-      icon: 'pulse-outline',
-      gradient: ['#0A1D1A', '#051210'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#10B981',
-      category: 'FUNDS',
-    },
-    {
-      id: 'review',
-      title: 'Portfolio Audit',
-      subtitle: 'Overlap Analysis & Risk Health',
-      icon: 'shield-checkmark-outline',
-      gradient: ['#141926', '#0B0F1A'],
-      borderColor: 'rgba(255, 255, 255, 0.08)',
-      iconColor: '#94A3B8',
-      category: 'AUDIT',
+      isUpcoming: false,
     },
     {
       id: 'notifications',
@@ -92,6 +109,59 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F59E0B',
       category: 'ALERTS',
+      isUpcoming: false,
+    },
+    {
+      id: 'sip_step_up',
+      title: 'Step-Up Calculator',
+      subtitle: 'Annual SIP Increment Multiplier',
+      description:
+        'Calculate how stepping up your SIP by 10-25% every year can 3x your final corpus over 15-20 years using disciplined annual increments.',
+      icon: 'stats-chart-outline',
+      gradient: ['#0A1D1A', '#051210'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#10B981',
+      category: 'UPCOMING',
+      isUpcoming: true,
+    },
+    {
+      id: 'emi_calculator',
+      title: 'EMI & Prepayment',
+      subtitle: 'Loan Tenure & Interest Saver',
+      description:
+        'Calculate monthly EMI, total interest, and discover how 1 extra EMI per year cuts loan tenure by 6+ years and saves lakhs in interest.',
+      icon: 'card-outline',
+      gradient: ['#1B111B', '#100910'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#F472B6',
+      category: 'UPCOMING',
+      isUpcoming: true,
+    },
+    {
+      id: 'goal_planner',
+      title: 'Financial Goal Planner',
+      subtitle: 'Inflation-Adjusted Life Milestones',
+      description:
+        'Set your life goals with target amounts and timelines. Get a personalized SIP & lumpsum blueprint adjusted for Indian inflation.',
+      icon: 'flag-outline',
+      gradient: ['#1A160B', '#0F0D06'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#F59E0B',
+      category: 'UPCOMING',
+      isUpcoming: true,
+    },
+    {
+      id: 'dividend_tracker',
+      title: 'Dividend Yield Tracker',
+      subtitle: 'Passive Cashflow & Ex-Dates',
+      description:
+        'Track dividend income from your stock portfolio, projected annual yield, ex-dividend dates, and build a passive income cashflow.',
+      icon: 'cash-outline',
+      gradient: ['#09181C', '#050F12'],
+      borderColor: 'rgba(255, 255, 255, 0.08)',
+      iconColor: '#22D3EE',
+      category: 'UPCOMING',
+      isUpcoming: true,
     },
   ];
 
@@ -228,18 +298,18 @@ export default function ExecutiveHubModal({
               </TouchableOpacity>
             </View>
 
-            {/* BENTO GRID: OTHER SPECIALIZED PAGES */}
+            {/* BENTO GRID: RADARS & UPCOMING TOOLS */}
             <View style={styles.bentoSection}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.sectionHeading}>ALL RADARS & PAGES</Text>
+                <Text style={styles.sectionHeading}>RADARS & UPCOMING TOOLS</Text>
                 <Text style={styles.sectionSubCount}>
-                  {bentoGrid.length} Specialized Desks
+                  {bentoGrid.length} Modules
                 </Text>
               </View>
 
               <View style={styles.bentoGrid}>
                 {bentoGrid.map((item) => {
-                  const isActive = activePage === item.id;
+                  const isActive = !item.isUpcoming && activePage === item.id;
                   return (
                     <TouchableOpacity
                       key={item.id}
@@ -248,7 +318,7 @@ export default function ExecutiveHubModal({
                         isActive && { borderColor: 'rgba(16, 185, 129, 0.4)' },
                       ]}
                       activeOpacity={0.8}
-                      onPress={() => handleItemPress(item.id)}
+                      onPress={() => handleItemPress(item)}
                     >
                       <LinearGradient
                         colors={item.gradient}
@@ -269,12 +339,22 @@ export default function ExecutiveHubModal({
                               color={item.iconColor}
                             />
                           </View>
-                          <Text style={styles.bentoCategoryText}>
+                          <Text
+                            style={[
+                              styles.bentoCategoryText,
+                              item.isUpcoming && { color: '#F59E0B' },
+                            ]}
+                          >
                             {item.category}
                           </Text>
                         </View>
 
-                        <Text style={styles.bentoTitle} numberOfLines={1}>
+                        <Text
+                          style={styles.bentoTitle}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.85}
+                        >
                           {item.title}
                         </Text>
                         <Text style={styles.bentoSubtitle} numberOfLines={2}>
@@ -288,12 +368,28 @@ export default function ExecutiveHubModal({
                               { color: isActive ? '#10B981' : '#94A3B8' },
                             ]}
                           >
-                            {isActive ? 'Current Desk' : 'Open Desk'}
+                            {item.isUpcoming
+                              ? 'Coming Soon'
+                              : isActive
+                              ? 'Current Desk'
+                              : 'Open Desk'}
                           </Text>
                           <Ionicons
-                            name={isActive ? 'checkmark-outline' : 'chevron-forward'}
+                            name={
+                              item.isUpcoming
+                                ? 'time-outline'
+                                : isActive
+                                ? 'checkmark-outline'
+                                : 'chevron-forward'
+                            }
                             size={13}
-                            color={isActive ? '#10B981' : '#64748B'}
+                            color={
+                              item.isUpcoming
+                                ? '#F59E0B'
+                                : isActive
+                                ? '#10B981'
+                                : '#64748B'
+                            }
                           />
                         </View>
                       </LinearGradient>
