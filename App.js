@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from './src/theme/colors';
 import WhaleTrackerScreen from './src/screens/WhaleTrackerScreen';
-import ExploreStartupsScreen from './src/screens/ExploreStartupsScreen';
+// Temporarily hidden: import ExploreStartupsScreen from './src/screens/ExploreStartupsScreen';
 import SIPDoctorScreen from './src/screens/SIPDoctorScreen';
 import AIPortfolioReviewScreen from './src/screens/AIPortfolioReviewScreen';
 import ToolsScreen from './src/screens/ToolsScreen';
@@ -42,12 +42,13 @@ function MainApp() {
       iconName: 'layers-outline',
       activeIcon: 'layers',
     },
-    {
-      id: 'startups',
-      label: 'Startups',
-      iconName: 'rocket-outline',
-      activeIcon: 'rocket',
-    },
+    // Temporarily hidden: Startups tab
+    // {
+    //   id: 'startups',
+    //   label: 'Startups',
+    //   iconName: 'rocket-outline',
+    //   activeIcon: 'rocket',
+    // },
     {
       id: 'sip',
       label: 'SIP Doctor',
@@ -88,7 +89,7 @@ function MainApp() {
             onOpenStocks={() => setActiveTab('stocks')}
           />
         )}
-        {activeTab === 'startups' && <ExploreStartupsScreen onOpenMenu={openDrawer} />}
+        {/* Temporarily hidden: {activeTab === 'startups' && <ExploreStartupsScreen onOpenMenu={openDrawer} />} */}
         {activeTab === 'sip' && <SIPDoctorScreen onOpenMenu={openDrawer} />}
         {activeTab === 'tools' && <ToolsScreen onOpenMenu={openDrawer} onNavigatePage={setActiveTab} />}
         {activeTab === 'review' && <AIPortfolioReviewScreen onOpenMenu={openDrawer} />}
