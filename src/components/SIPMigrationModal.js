@@ -93,7 +93,7 @@ export default function SIPMigrationModal({ visible, fund, onClose }) {
             >
               <View style={styles.heroRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.heroSub}>TOTAL 20-YEAR WEALTH RECOVERED</Text>
+                  <Text style={styles.heroSub}>TOTAL {fund.horizonYears || 20}-YEAR WEALTH RECOVERED</Text>
                   <Text style={styles.heroAmount}>{fund.lossOver20Y}</Text>
                   <Text style={styles.heroNote}>Compounding wealth kept in your family instead of paying bank distributor commissions.</Text>
                 </View>

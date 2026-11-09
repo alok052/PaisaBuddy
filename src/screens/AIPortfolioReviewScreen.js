@@ -26,6 +26,7 @@ import { colors } from '../theme/colors';
 import { mockWhales } from '../data/mockWhales';
 import { fetchLiveWhales } from '../services/dataService';
 import { generateAndShareAuditPdf } from '../services/pdfService';
+import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
 import {
   analyzePortfolioHoldings,
   extractHoldingsWithGemini,
@@ -92,16 +93,41 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
     let mounted = true;
     (async () => {
       try {
-        const [liveWhales, savedKey] = await Promise.all([
+        const [liveWhales, savedKey, savedPortfolio] = await Promise.all([
           fetchLiveWhales().catch(() => mockWhales),
           SecureStore.getItemAsync(SECURE_GEMINI_KEY).catch(() => null),
+          readJsonStore(STORE_KEYS.PORTFOLIO_HOLDINGS, null).catch(() => null),
         ]);
         if (mounted) {
-          if (Array.isArray(liveWhales) && liveWhales.length > 0) {
-            setWhalesList(liveWhales);
-          }
+          const activeWhales =
+            Array.isArray(liveWhales) && liveWhales.length > 0 ? liveWhales : mockWhales;
+          setWhalesList(activeWhales);
           if (savedKey) {
             setGeminiApiKey(savedKey);
+          }
+          if (
+            savedPortfolio &&
+            Array.isArray(savedPortfolio.holdings) &&
+            savedPortfolio.holdings.length > 0 &&
+            !savedPortfolio.meta?.isDemo
+          ) {
+            const restoredMeta = savedPortfolio.meta || {
+              fileName: 'Saved Portfolio',
+              sourceType: 'Saved On Device',
+              isDemo: false,
+            };
+            const report = analyzePortfolioHoldings(
+              savedPortfolio.holdings,
+              activeWhales,
+              restoredMeta
+            );
+            setStagedHoldings(report.holdings);
+            setSourceMetaState({
+              fileName: restoredMeta.fileName || 'Saved Portfolio',
+              sourceType: restoredMeta.sourceType || 'Saved On Device',
+              isDemo: false,
+            });
+            setAuditReport(report);
           }
         }
       } catch (e) {
@@ -116,13 +142,21 @@ export default function AIPortfolioReviewScreen({ onOpenMenu }) {
   const runDiagnosticOnHoldings = (holdingsArray, meta) => {
     const report = analyzePortfolioHoldings(holdingsArray, whalesList, meta);
     setStagedHoldings(report.holdings);
-    setSourceMetaState({
+    const normalizedMeta = {
       fileName: meta.fileName || 'Imported Portfolio',
       sourceType: meta.sourceType || 'File Import',
       isDemo: Boolean(meta.isDemo),
-    });
+    };
+    setSourceMetaState(normalizedMeta);
     setAuditReport(report);
     setShowAllHoldings(false);
+    if (!normalizedMeta.isDemo && Array.isArray(report.holdings) && report.holdings.length > 0) {
+      writeJsonStore(STORE_KEYS.PORTFOLIO_HOLDINGS, {
+        holdings: report.holdings,
+        meta: normalizedMeta,
+        updatedAt: new Date().toISOString(),
+      }).catch(() => {});
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 

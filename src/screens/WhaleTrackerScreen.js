@@ -31,6 +31,8 @@ import {
   formatIndianVolume,
 } from '../services/dataService';
 import { mockConsensusStocks } from '../data/mockConsensus';
+import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
+import { openBrokerTerminal } from '../services/externalLinks';
 
 export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
   const [selectedFilter, setSelectedFilter] = useState('ALL');
@@ -39,11 +41,18 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
   const [nseStocks, setNseStocks] = useState([]);
   const [consensusOverride, setConsensusOverride] = useState(null);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [savedWatchlist, setSavedWatchlist] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [cloningWhale, setCloningWhale] = useState(null);
   const [viewingBreakdownWhale, setViewingBreakdownWhale] = useState(null);
   const [selectedNseStock, setSelectedNseStock] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    readJsonStore(STORE_KEYS.WATCHLIST, []).then((items) => {
+      if (Array.isArray(items)) setSavedWatchlist(items);
+    });
+  }, []);
 
   const loadData = useCallback(async (forceStocks = false) => {
     try {
@@ -140,23 +149,55 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const isInWatchlist = useCallback(
+    (stock) => {
+      const key = String(stock?.symbol || stock?.name || '').toUpperCase().trim();
+      return savedWatchlist.some((item) => item.key === key);
+    },
+    [savedWatchlist]
+  );
+
   const handleBrokerTrade = (stock) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const ticker = stock.symbol || stock.name;
     Alert.alert(
       `Trade ${stock.name} (${stock.symbol})`,
-      `Current Price: ${stock.cmp} (${stock.change1Y} in 1Y)\nCombined Whale Stake: ${stock.combinedStakeValue}\n\nExecute multi-billionaire backed position via:`,
+      `Current Price: ${stock.cmp} (${stock.change1Y} in 1Y)\nCombined Whale Stake: ${stock.combinedStakeValue}\n\nOpen real broker / exchange portal:`,
       [
-        { text: 'Zerodha Kite', onPress: () => Alert.alert('Kite Redirect', `Opening ${stock.symbol} order console in Zerodha Kite...`) },
-        { text: 'Groww', onPress: () => Alert.alert('Groww Redirect', `Opening ${stock.symbol} order console in Groww...`) },
-        { text: 'Angel One', onPress: () => Alert.alert('Angel One Redirect', `Opening ${stock.symbol} order console in Angel One...`) },
+        { text: 'Zerodha Kite', onPress: () => openBrokerTerminal('Zerodha Kite', ticker) },
+        { text: 'Groww', onPress: () => openBrokerTerminal('Groww', ticker) },
+        { text: 'Angel One', onPress: () => openBrokerTerminal('Angel One', ticker) },
+        { text: 'NSE Quote', onPress: () => openBrokerTerminal('NSE Quote', ticker) },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
 
-  const handleAddToWatchlist = (stock) => {
+  const handleAddToWatchlist = async (stock) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert('Watchlist Updated', `Added ${stock.name} (${stock.symbol}) to your Super-Investor Watchlist.`);
+    const key = String(stock?.symbol || stock?.name || '').toUpperCase().trim();
+    if (!key) return;
+    const exists = savedWatchlist.some((item) => item.key === key);
+    const nextList = exists
+      ? savedWatchlist.filter((item) => item.key !== key)
+      : [
+          {
+            key,
+            symbol: stock.symbol || '',
+            name: stock.name || key,
+            cmp: stock.cmp || null,
+            addedAt: new Date().toISOString(),
+          },
+          ...savedWatchlist,
+        ];
+    setSavedWatchlist(nextList);
+    await writeJsonStore(STORE_KEYS.WATCHLIST, nextList);
+    Alert.alert(
+      exists ? 'Removed from Watchlist' : 'Saved to Watchlist',
+      exists
+        ? `Removed ${stock.name} (${stock.symbol}) from your saved watchlist.`
+        : `Saved ${stock.name} (${stock.symbol}) persistently on this device.`
+    );
   };
 
   const filteredWhales = (whalesList || []).filter((w) => {
@@ -508,8 +549,19 @@ export default function WhaleTrackerScreen({ onOpenMenu, onOpenStocks }) {
                   activeOpacity={0.8}
                   onPress={() => handleAddToWatchlist(stock)}
                 >
-                  <Ionicons name="bookmark-outline" size={15} color={colors.text} />
-                  <Text style={styles.cWatchlistBtnText}>Watchlist</Text>
+                  <Ionicons
+                    name={isInWatchlist(stock) ? 'bookmark' : 'bookmark-outline'}
+                    size={15}
+                    color={isInWatchlist(stock) ? colors.primary : colors.text}
+                  />
+                  <Text
+                    style={[
+                      styles.cWatchlistBtnText,
+                      isInWatchlist(stock) && { color: colors.primary },
+                    ]}
+                  >
+                    {isInWatchlist(stock) ? 'Saved' : 'Watchlist'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

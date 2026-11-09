@@ -26,6 +26,7 @@ from datetime import datetime, timedelta, timezone
 import io
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -131,6 +132,15 @@ def parse_stripped_csv(raw_bytes):
     return rows
 
 
+def is_valid_symbol(sym):
+    s = (sym or '').strip()
+    if not s or len(s) > 24:
+        return False
+    if s.startswith('*') or 'UPDATED AT' in s or ' ' in s:
+        return False
+    return bool(re.match(r'^[A-Z0-9&-]+$', s))
+
+
 def fetch_master_securities():
     """Fetch official NSE Equities + SME + ETF lists keyed by SYMBOL."""
     master = {}
@@ -139,7 +149,7 @@ def fetch_master_securities():
     eq_rows = parse_stripped_csv(http_get_bytes(EQUITY_L_URL, timeout=15))
     for r in eq_rows:
         sym = (r.get('SYMBOL') or '').upper().strip()
-        if not sym:
+        if not is_valid_symbol(sym):
             continue
         master[sym] = {
             'symbol': sym,
@@ -155,7 +165,7 @@ def fetch_master_securities():
         sme_rows = parse_stripped_csv(http_get_bytes(SME_L_URL, timeout=10, retries=1))
         for r in sme_rows:
             sym = (r.get('SYMBOL') or '').upper().strip()
-            if not sym or sym in master:
+            if not is_valid_symbol(sym) or sym in master:
                 continue
             master[sym] = {
                 'symbol': sym,
@@ -615,6 +625,13 @@ def main():
         sys.exit(1)
 
     print(f"\n[4/4] Upserting {len(stocks_rows)} stocks & {len(history_rows)} histories to Supabase...")
+    for tbl in ('nse_stock_history', 'nse_stocks'):
+        try:
+            del_url = f"{SUPABASE_URL}/rest/v1/{tbl}?symbol=ilike.*UPDATED*"
+            del_req = urllib.request.Request(del_url, headers=READ_HEADERS, method='DELETE')
+            urllib.request.urlopen(del_req, timeout=12).read()
+        except Exception:
+            pass
     supabase_batch_upsert('nse_stocks', stocks_rows, batch_size=400)
     print("  -> Upserted public.nse_stocks successfully.")
     supabase_batch_upsert('nse_stock_history', history_rows, batch_size=120)

@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from './WhaleAvatar';
 import { parsePriceNumber } from '../services/dataService';
+import { openBrokerTerminal } from '../services/externalLinks';
 
 export default function CloneWhaleModal({ visible, whale, onClose }) {
   const [selectedBudget, setSelectedBudget] = useState(25000);
@@ -111,12 +112,21 @@ export default function CloneWhaleModal({ visible, whale, onClose }) {
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const previewLines = activeOrders
+      .slice(0, 4)
+      .map((item) => `• ${item.symbol || item.name}: ${item.sharesCount} @ ₹${item.approxPrice.toLocaleString('en-IN')}`)
+      .join('\n');
+    const moreSuffix = activeOrders.length > 4 ? `\n+ ${activeOrders.length - 4} more holdings` : '';
+
     Alert.alert(
-      `Basket Ready for ${brokerName}!`,
-      `Deploying ${activeOrders.length} stock orders (Total: ₹${totalBasketCost.toLocaleString('en-IN')}) directly to ${brokerName} Basket API.\n\nOrders use latest market prices and will execute at best bid/ask.`,
+      `${brokerName} Order Checklist (${activeOrders.length} Stocks)`,
+      `Total Basket Value: ₹${totalBasketCost.toLocaleString('en-IN')}\n\n${previewLines}${moreSuffix}\n\nSEBI rules require placing orders inside your own broker session. Launch ${brokerName} now?`,
       [
-        { text: `Open ${brokerName} App`, style: 'default' },
-        { text: 'Done', style: 'cancel' },
+        {
+          text: `Open ${brokerName}`,
+          onPress: () => openBrokerTerminal(brokerName, activeOrders[0]?.symbol || activeOrders[0]?.name || ''),
+        },
+        { text: 'Close', style: 'cancel' },
       ]
     );
   };

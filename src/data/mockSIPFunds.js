@@ -1332,6 +1332,34 @@ export function diagnoseFundHealth(fund, planType = 'REGULAR', sipAmount = 10000
   const alphaNum = parseFloat(alphaStr.replace('%', '')) || 0;
   const isLaggard = fund.isLagging || alphaNum < -1.5;
 
+  const parsePct = (s, fb = 13.0) => {
+    if (typeof s === 'number' && Number.isFinite(s)) return s;
+    const v = parseFloat(String(s || '').replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(v) ? v : fb;
+  };
+  const cutNum = Math.max(0.25, parsePct(fund.agentCommissionCut, 0.95));
+  const curRegRate = typeof fund.regularCagrNum === 'number'
+    ? fund.regularCagrNum
+    : parsePct(fund.currentCagr, 13.0);
+  const directRate = typeof fund.directCagrNum === 'number'
+    ? fund.directCagrNum
+    : Number((curRegRate + cutNum).toFixed(1));
+
+  const calcSip = (m, y, rPct) => {
+    const mr = rPct / 100 / 12;
+    const n = y * 12;
+    if (mr <= 0) return m * n;
+    return m * ((Math.pow(1 + mr, n) - 1) / mr) * (1 + mr);
+  };
+  const extraLakhs = Math.max(
+    0,
+    (calcSip(sipAmount, sipYears, directRate) - calcSip(sipAmount, sipYears, curRegRate)) / 100000
+  );
+  const recoveryTag =
+    extraLakhs >= 100
+      ? `₹${(extraLakhs / 100).toFixed(1)} Cr`
+      : `₹${Math.max(1, extraLakhs).toFixed(1)} Lakh`;
+
   if (isDirect) {
     if (!isLaggard) {
       // 100% HEALTHY STATE (19-20 Ka Fark - NO CHURN)
@@ -1363,7 +1391,7 @@ export function diagnoseFundHealth(fund, planType = 'REGULAR', sipAmount = 10000
         statusType: 'DIRECT_LAGGARD',
         title: 'Direct Plan Active, Par Benchmark Se Peechhe Hai',
         doctorNote:
-          `Aap commission toh bacha rahe hain, lekin ${fund.name} apne benchmark (${fund.benchmarkName}) se ${fund.alphaVsBenchmark} peechhe chal raha hai. Agar pichhle 3 saal se aesa hi hai, toh low-cost Index Fund me shift karna behtar hoga.`,
+          `Aap commission toh bacha rahe hain, lekin ${fund.name} apne benchmark (${fund.benchmarkName || 'Category Index'}) se ${fund.alphaVsBenchmark} peechhe chal raha hai. Agar pichhle 3 saal se aesa hi hai, toh low-cost Index Fund me shift karna behtar hoga.`,
         prescription: 'CONSIDER LOW-COST INDEX REPLACEMENT',
         prescriptionPoints: [
           'Zero agent commission (Good job on Direct Plan!).',
@@ -1376,6 +1404,8 @@ export function diagnoseFundHealth(fund, planType = 'REGULAR', sipAmount = 10000
   } else {
     // REGULAR PLAN
     if (!isLaggard) {
+      const regTerNum = parsePct(fund.currentExpense, 1.6);
+      const dirTerEst = Math.max(0.15, Number((regTerNum - cutNum).toFixed(2)));
       // Good fund, but Regular Plan Commission leak
       return {
         healthScore: 72,
@@ -1385,21 +1415,32 @@ export function diagnoseFundHealth(fund, planType = 'REGULAR', sipAmount = 10000
         statusType: 'SWITCH_TO_DIRECT',
         title: 'Fund Accha Hai, Lekin Commission Kat Raha Hai',
         doctorNote:
-          'Aapko fund badalne ki bilkul zaroorat nahi hai! Fund manager aur strategy acchi hai. Bas Regular Plan se Direct Plan me switch kar lijiye taaki extra ₹25-35 Lakh aapki family wealth me bache.',
+          `Aapko fund badalne ki bilkul zaroorat nahi hai! Fund manager aur strategy acchi hai. Bas Regular Plan se Direct Plan me switch kar lijiye taaki ${sipYears} saal me ~${recoveryTag} extra aapki family wealth me bache.`,
         prescription: 'CONVERT TO DIRECT (Same Fund, Zero Commission)',
         prescriptionPoints: [
-          `Save ~${fund.agentCommissionCut || '1.0%'} distributor cut every single year.`,
-          'Identical fund manager, portfolio, and bluechip stocks.',
+          `Save ~${fund.agentCommissionCut || '0.95%'} distributor cut every single year.`,
+          'Identical fund manager, portfolio, and underlying holdings.',
           'Seamless paperless switch via MFCentral or Zerodha Coin.',
         ],
         replacement: {
-          ...fund.replacement,
+          ...(fund.replacement || {}),
           name: `${fund.name.replace(' (Regular)', '').replace(' Regular', '')} (Direct Plan)`,
           category: 'Same Fund • 100% Commission-Free Direct Plan',
+          expenseRatio: `${dirTerEst}%`,
+          cagr5Y: `${directRate.toFixed(1)}%`,
         },
       };
     } else {
       // Chronic Underperformer & Regular Plan Leak
+      const repRate = parsePct(fund.replacement?.cagr5Y, directRate + 1.5);
+      const repExtraLakhs = Math.max(
+        extraLakhs,
+        (calcSip(sipAmount, sipYears, repRate) - calcSip(sipAmount, sipYears, curRegRate)) / 100000
+      );
+      const repTag =
+        repExtraLakhs >= 100
+          ? `₹${(repExtraLakhs / 100).toFixed(1)} Cr`
+          : `₹${Math.max(1, repExtraLakhs).toFixed(1)} Lakh`;
       return {
         healthScore: 38,
         healthTag: 'CRITICAL WEALTH LEAK • LAGGARD',
@@ -1411,9 +1452,9 @@ export function diagnoseFundHealth(fund, planType = 'REGULAR', sipAmount = 10000
           `Yeh fund double loss de raha hai: benchmark se ${fund.alphaVsBenchmark} peechhe hai aur sath me ${fund.currentExpense} expense ratio bhi le raha hai. Ise low-cost Direct Index ya Category Leader se replace karein.`,
         prescription: 'CRITICAL CURE: REPLACE WITH DIRECT LEADER',
         prescriptionPoints: [
-          `Trails ${fund.benchmarkName} benchmark by ${fund.alphaVsBenchmark}.`,
-          `Diverts ${fund.agentCommissionCut} annual cut to bank distributors.`,
-          'Switching to a Direct Index Fund rescues ₹30L+ in compounding wealth.',
+          `Trails ${fund.benchmarkName || 'benchmark'} by ${fund.alphaVsBenchmark}.`,
+          `Diverts ${fund.agentCommissionCut || '0.95%'} annual cut to bank distributors.`,
+          `Switching to a Direct Index Fund rescues ~${repTag} over ${sipYears} years.`,
         ],
         replacement: fund.replacement,
       };

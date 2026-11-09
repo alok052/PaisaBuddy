@@ -1,5 +1,5 @@
 import AppHeader from '../components/AppHeader';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Slider from '@react-native-community/slider';
+import { fetchNseStocksIndex, formatInrPrice } from '../services/dataService';
+import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
 
 const SCORE_RING_SIZE = 120;
 const ASSUMED_PRICE_CAGR = 0.085; // 8.5% conservative long-term capital appreciation
@@ -155,6 +157,8 @@ const BASKET_PRESETS = {
 export default function DividendYieldTrackerScreen({ onOpenMenu }) {
   const [presetKey, setPresetKey] = useState('PSU');
   const [selectedIds, setSelectedIds] = useState(BASKET_PRESETS.PSU.stockIds);
+  const [customStocks, setCustomStocks] = useState([]);
+  const [nseStocksIndex, setNseStocksIndex] = useState([]);
   const [portfolioValue, setPortfolioValue] = useState(2500000); // ₹25L
   const [dividendYield, setDividendYield] = useState(5.0);
   const [horizonYears, setHorizonYears] = useState(10);
@@ -163,10 +167,63 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
   const [pickerSearch, setPickerSearch] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [storeHydrated, setStoreHydrated] = useState(false);
 
   // Animations matching SIP Doctor
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      readJsonStore(STORE_KEYS.DIVIDEND_CONFIG, null).catch(() => null),
+      fetchNseStocksIndex().catch(() => []),
+    ]).then(([savedCfg, stocks]) => {
+      if (!active) return;
+      if (savedCfg && typeof savedCfg === 'object') {
+        if (savedCfg.presetKey) setPresetKey(savedCfg.presetKey);
+        if (Array.isArray(savedCfg.selectedIds) && savedCfg.selectedIds.length > 0) {
+          setSelectedIds(savedCfg.selectedIds);
+        }
+        if (Array.isArray(savedCfg.customStocks)) setCustomStocks(savedCfg.customStocks);
+        if (typeof savedCfg.portfolioValue === 'number' && savedCfg.portfolioValue >= 100000) {
+          setPortfolioValue(savedCfg.portfolioValue);
+        }
+        if (typeof savedCfg.dividendYield === 'number' && savedCfg.dividendYield >= 1) {
+          setDividendYield(savedCfg.dividendYield);
+        }
+        if (typeof savedCfg.horizonYears === 'number' && savedCfg.horizonYears >= 1) {
+          setHorizonYears(savedCfg.horizonYears);
+        }
+        if (savedCfg.strategy === 'CASH' || savedCfg.strategy === 'DRIP') {
+          setStrategy(savedCfg.strategy);
+        }
+      }
+      if (Array.isArray(stocks) && stocks.length > 0) {
+        setNseStocksIndex(stocks);
+      }
+      setStoreHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!storeHydrated) return;
+    const t = setTimeout(() => {
+      writeJsonStore(STORE_KEYS.DIVIDEND_CONFIG, {
+        presetKey,
+        selectedIds,
+        customStocks,
+        portfolioValue,
+        dividendYield,
+        horizonYears,
+        strategy,
+      }).catch(() => {});
+    }, 350);
+    return () => clearTimeout(t);
+  }, [storeHydrated, presetKey, selectedIds, customStocks, portfolioValue, dividendYield, horizonYears, strategy]);
 
   useEffect(() => {
     if (hasAnalyzed) {
@@ -188,12 +245,30 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
     }
   }, [hasAnalyzed]);
 
-  const selectedStocks = DIVIDEND_STOCKS_DB.filter((item) =>
+  const nsePriceMap = useMemo(() => {
+    const map = new Map();
+    nseStocksIndex.forEach((st) => {
+      if (st?.symbol) map.set(st.symbol.toUpperCase(), st);
+    });
+    return map;
+  }, [nseStocksIndex]);
+
+  const catalogPool = useMemo(() => {
+    const combined = [...DIVIDEND_STOCKS_DB, ...customStocks];
+    return combined.map((item) => {
+      const live = nsePriceMap.get(String(item.ticker || '').toUpperCase());
+      return live && live.closePrice > 0
+        ? { ...item, closePrice: live.closePrice, dayChangePct: live.dayChangePct }
+        : item;
+    });
+  }, [customStocks, nsePriceMap]);
+
+  const selectedStocks = catalogPool.filter((item) =>
     selectedIds.includes(item.id)
   );
 
-  const calcBasketAvgYield = (ids) => {
-    const matches = DIVIDEND_STOCKS_DB.filter((s) => ids.includes(s.id));
+  const calcBasketAvgYield = (ids, pool = catalogPool) => {
+    const matches = pool.filter((s) => ids.includes(s.id));
     if (matches.length === 0) return 4.5;
     const sum = matches.reduce((acc, s) => acc + s.yieldPct, 0);
     return Math.round((sum / matches.length) * 4) / 4;
@@ -288,17 +363,16 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
   const toggleStockId = (id) => {
     Haptics.selectionAsync();
     setPresetKey('CUSTOM');
-    setSelectedIds((prev) => {
-      if (prev.includes(id)) {
-        if (prev.length === 1) return prev; // Keep at least 1 stock selected
-        const next = prev.filter((item) => item !== id);
-        setDividendYield(calcBasketAvgYield(next));
-        return next;
-      }
-      const next = [...prev, id];
+    if (selectedIds.includes(id)) {
+      if (selectedIds.length === 1) return;
+      const next = selectedIds.filter((item) => item !== id);
+      setSelectedIds(next);
       setDividendYield(calcBasketAvgYield(next));
-      return next;
-    });
+    } else {
+      const next = [...selectedIds, id];
+      setSelectedIds(next);
+      setDividendYield(calcBasketAvgYield(next));
+    }
   };
 
   const handleAnalyze = () => {
@@ -837,7 +911,7 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
                     {h.name}
                   </Text>
                   <Text style={s.holdingMeta} numberOfLines={1}>
-                    {h.sector} • {h.cadence}
+                    {h.sector}{h.closePrice ? ` • ${formatInrPrice(h.closePrice)}` : ''} • {h.cadence}
                   </Text>
                 </View>
                 <View style={s.holdingRight}>
@@ -871,15 +945,57 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
     );
   };
 
+  const handleSelectNseStock = (nseItem) => {
+    Haptics.selectionAsync();
+    const ticker = String(nseItem.symbol || '').toUpperCase().trim();
+    const id = `nse_${ticker.toLowerCase()}`;
+    const newEntry = {
+      id,
+      name: nseItem.name || ticker,
+      ticker,
+      sector: `NSE ${nseItem.series || 'EQ'}`,
+      yieldPct: 2.0,
+      quarters: ['Q2', 'Q4'],
+      cadence: 'NSE Listed Equity',
+      closePrice: nseItem.closePrice || null,
+    };
+    const nextCatalog = catalogPool.some((c) => c.id === id) ? catalogPool : [...catalogPool, newEntry];
+    if (!customStocks.some((c) => c.id === id)) {
+      setCustomStocks((prev) => [...prev, newEntry]);
+    }
+    setPresetKey('CUSTOM');
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      setDividendYield(calcBasketAvgYield(next, nextCatalog));
+      return next;
+    });
+  };
+
   // ============================================================
   // RENDER: STOCK PICKER MODAL
   // ============================================================
-  const filteredStocks = DIVIDEND_STOCKS_DB.filter(
+  const trimmedSearch = pickerSearch.trim().toLowerCase();
+  const filteredStocks = catalogPool.filter(
     (item) =>
-      item.name.toLowerCase().includes(pickerSearch.toLowerCase()) ||
-      item.ticker.toLowerCase().includes(pickerSearch.toLowerCase()) ||
-      item.sector.toLowerCase().includes(pickerSearch.toLowerCase())
+      item.name.toLowerCase().includes(trimmedSearch) ||
+      item.ticker.toLowerCase().includes(trimmedSearch) ||
+      item.sector.toLowerCase().includes(trimmedSearch)
   );
+
+  const existingTickers = new Set(catalogPool.map((item) => String(item.ticker || '').toUpperCase()));
+  const extraLiveNseMatches =
+    trimmedSearch.length >= 2
+      ? nseStocksIndex
+          .filter((st) => {
+            if (!st?.symbol || existingTickers.has(st.symbol.toUpperCase())) return false;
+            return (
+              st.symbol.toLowerCase().includes(trimmedSearch) ||
+              (st.name || '').toLowerCase().includes(trimmedSearch)
+            );
+          })
+          .slice(0, 15)
+      : [];
 
   const renderStockPickerModal = () => (
     <Modal
@@ -912,7 +1028,7 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
             <Ionicons name="search" size={15} color="#64748B" style={{ marginRight: 8 }} />
             <TextInput
               style={s.modalSearchInput}
-              placeholder="Search NSE stock, REIT, or sector..."
+              placeholder="Search any NSE stock, REIT, or sector..."
               placeholderTextColor="#64748B"
               value={pickerSearch}
               onChangeText={setPickerSearch}
@@ -945,7 +1061,44 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
                       {stock.name} ({stock.ticker})
                     </Text>
                     <Text style={s.stockRowMeta}>
-                      {stock.sector} • {stock.yieldPct.toFixed(1)}% Yield • {stock.quarters.join('/')}
+                      {stock.sector}
+                      {stock.closePrice ? ` • ${formatInrPrice(stock.closePrice)}` : ''}
+                      {` • ${stock.yieldPct.toFixed(1)}% Yield • ${stock.quarters.join('/')}`}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={isSelected ? 'checkmark-circle' : 'add-circle-outline'}
+                    size={20}
+                    color={isSelected ? '#10B981' : '#475569'}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+
+            {extraLiveNseMatches.map((nse) => {
+              const liveId = `nse_${nse.symbol.toLowerCase()}`;
+              const isSelected = selectedIds.includes(liveId);
+              return (
+                <TouchableOpacity
+                  key={liveId}
+                  style={[s.stockRow, isSelected && s.stockRowSelected]}
+                  onPress={() => handleSelectNseStock(nse)}
+                  activeOpacity={0.75}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        s.stockRowName,
+                        isSelected && { color: '#10B981' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {nse.name} ({nse.symbol})
+                    </Text>
+                    <Text style={s.stockRowMeta}>
+                      NSE {nse.series || 'EQ'}
+                      {nse.closePrice ? ` • ${formatInrPrice(nse.closePrice)}` : ''}
+                      {' • Est. 2.0% Yield (adjust slider)'}
                     </Text>
                   </View>
                   <Ionicons

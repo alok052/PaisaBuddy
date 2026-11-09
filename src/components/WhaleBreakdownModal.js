@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
 import WhaleAvatar from './WhaleAvatar';
+import { openBrokerTerminal, openExternalUrl, OFFICIAL_SEBI_DRHP_URL } from '../services/externalLinks';
+import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
 
 export default function WhaleBreakdownModal({ visible, whale, onClose }) {
   const [activeTab, setActiveTab] = useState('STOCKS'); // 'STOCKS' | 'STARTUPS'
@@ -122,19 +124,48 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
     setExpandedItemId((prev) => (prev === id ? null : id));
   };
 
+  const saveStartupWatchlist = async (st, stageTag) => {
+    const key = String(st?.name || '').toUpperCase().trim();
+    if (!key) return;
+    const current = await readJsonStore(STORE_KEYS.WATCHLIST, []);
+    const list = Array.isArray(current) ? current : [];
+    const exists = list.some((item) => item.key === key);
+    if (!exists) {
+      await writeJsonStore(STORE_KEYS.WATCHLIST, [
+        {
+          key,
+          symbol: st.symbol || '',
+          name: st.name,
+          stage: stageTag,
+          addedAt: new Date().toISOString(),
+        },
+        ...list,
+      ]);
+    }
+    Alert.alert(
+      exists ? 'Already in Watchlist' : 'Saved to Watchlist',
+      `${st.name} (${stageTag}) is saved locally in your PaisaBuddy Watchlist.`
+    );
+  };
+
   const handleTradePrompt = (stock) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const ticker = stock.symbol || stock.name;
     Alert.alert(
       `Order Console — ${stock.symbol || stock.name}`,
-      `Current Price: ${stock.cmp || 'Market Rate'}\nWhale Stake: ${stock.stake} (${stock.value})\n\nSelect execution broker:`,
+      `Current Price: ${stock.cmp || 'Market Rate'}\nWhale Stake: ${stock.stake} (${stock.value})\n\nOpen official broker or NSE page:`,
       [
         {
           text: 'Zerodha Kite',
-          onPress: () => Alert.alert('Kite Redirect', `Opening ${stock.symbol || stock.name} in Kite...`),
+          onPress: () => openBrokerTerminal('Zerodha Kite', ticker),
         },
         {
           text: 'Groww',
-          onPress: () => Alert.alert('Groww Redirect', `Opening ${stock.symbol || stock.name} in Groww...`),
+          onPress: () => openBrokerTerminal('Groww', ticker),
+        },
+        {
+          text: 'NSE Quote',
+          onPress: () => openBrokerTerminal('NSE Quote', ticker),
         },
         { text: 'Cancel', style: 'cancel' },
       ]
@@ -143,36 +174,40 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
 
   const handleStartupBuyPrompt = (st, type) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const shortName = st.name.split(' ')[0];
+    const queryTicker = st.symbol || st.name;
 
     if (type === 'LISTED') {
       Alert.alert(
-        `Execute Order — ${st.name}`,
-        `Current Status: Active on NSE / BSE\nWhale Multiple: ${st.multiple || 'Multibagger'}\n\nSelect execution broker:`,
+        `Trade Public Stock — ${st.name}`,
+        `Current Status: Listed on NSE / BSE\nWhale Multiple: ${st.multiple || 'Public Equity'}\n\nOpen broker or exchange quote:`,
         [
           {
             text: 'Zerodha Kite',
-            onPress: () => Alert.alert('Kite Redirect', `Opening ${st.name} order console on Zerodha Kite...`),
+            onPress: () => openBrokerTerminal('Zerodha Kite', queryTicker),
           },
           {
             text: 'Groww',
-            onPress: () => Alert.alert('Groww Redirect', `Opening ${st.name} order console on Groww...`),
+            onPress: () => openBrokerTerminal('Groww', queryTicker),
+          },
+          {
+            text: 'NSE Quote',
+            onPress: () => openBrokerTerminal('NSE Quote', queryTicker),
           },
           { text: 'Cancel', style: 'cancel' },
         ]
       );
     } else if (type === 'PRE_IPO') {
       Alert.alert(
-        `Pre-IPO Access — ${st.name}`,
-        `Current Status: Pre-IPO / DRHP Filings\nDisclosed Valuation: ${st.currentValue || 'High Growth'}\n\nSelect an option to participate:`,
+        `Pre-IPO Research — ${st.name}`,
+        `Stage: Pre-IPO / DRHP Watch\nDisclosed Valuation: ${st.currentValue || 'Growth Stage'}\n\nOpen official SEBI DRHP portal or save to your Watchlist:`,
         [
           {
-            text: 'Request Pre-IPO Shares',
-            onPress: () => Alert.alert('Order Registered', `Pre-IPO allocation request placed for ${shortName}. Our unlisted partner desk will contact you with lot size.`),
+            text: 'Open SEBI DRHP Filings',
+            onPress: () => openExternalUrl(OFFICIAL_SEBI_DRHP_URL, 'SEBI DRHP Portal'),
           },
           {
-            text: 'Set IPO Alert 🔔',
-            onPress: () => Alert.alert('Alert Set', `You will receive instant SMS & WhatsApp notification when ${shortName} opens for IPO bidding.`),
+            text: 'Save to Watchlist',
+            onPress: () => saveStartupWatchlist(st, 'PRE-IPO'),
           },
           { text: 'Cancel', style: 'cancel' },
         ]
@@ -186,16 +221,28 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
     } else {
       // PRIVATE VENTURE
       Alert.alert(
-        `Venture Syndicate — ${st.name}`,
-        `Current Status: Private Startup (${st.stage})\nInitial Round: ${st.entryYear}\n\nParticipate via SEBI-compliant Angel & Venture syndicates:`,
+        `Venture Intelligence — ${st.name}`,
+        `Stage: Private Startup (${st.stage || 'Unlisted'})\nInitial Round: ${st.entryYear || 'Early Stage'}\n\nNote: Unlisted startup equity is not exchange-traded. Research public regulatory filings or track locally:`,
         [
           {
-            text: 'Join Syndicate Waitlist',
-            onPress: () => Alert.alert('Waitlist Joined', `You are on the priority waitlist for ${shortName}'s next secondary lot open.`),
+            text: 'Search MCA / Public Filings',
+            onPress: () =>
+              openExternalUrl(
+                `https://www.google.com/search?q=${encodeURIComponent(`${st.name} MCA filing valuation funding`)}`,
+                'Public Filing Search'
+              ),
           },
           {
-            text: 'View Venture Pitch',
-            onPress: () => Alert.alert('Venture Intelligence', `Valuation: ${st.currentValue || 'Active'}\nMultiple: ${st.multiple || 'Active'}\nCategory: ${st.category}`),
+            text: 'Save to Watchlist',
+            onPress: () => saveStartupWatchlist(st, st.stage || 'PRIVATE'),
+          },
+          {
+            text: 'View Venture Metrics',
+            onPress: () =>
+              Alert.alert(
+                `${st.name} Metrics`,
+                `Valuation: ${st.currentValue || 'Active'}\nMultiple: ${st.multiple || 'Active'}\nCategory: ${st.category}\nEntry Year: ${st.entryYear}`
+              ),
           },
           { text: 'Cancel', style: 'cancel' },
         ]
@@ -584,7 +631,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                   let startupFormIcon = 'cube-outline';
                   let startupFormColor = '#60A5FA';
                   let buyActionType = 'PRIVATE';
-                  let buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Syndicate Desk →`;
+                  let buyActionLabel = `Research ${st.name.split(' ')[0]} Filings & Watchlist →`;
                   let buyActionIcon = 'briefcase-outline';
                   let buyActionColor = '#3B82F6';
 
@@ -614,11 +661,11 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                   } else if (rawStage.includes('PRE-IPO')) {
                     stageBadgeText = 'PRE-IPO';
                     isExit = false;
-                    startupFormDesc = 'IPO aane wala hai (Pre-IPO / Unlisted round active)';
+                    startupFormDesc = 'IPO pipeline me hai (Pre-IPO / DRHP stage)';
                     startupFormIcon = 'rocket-outline';
                     startupFormColor = '#F59E0B';
                     buyActionType = 'PRE_IPO';
-                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Pre-IPO Desk →`;
+                    buyActionLabel = `Check ${st.name.split(' ')[0]} DRHP & Watchlist →`;
                     buyActionIcon = 'rocket-outline';
                     buyActionColor = '#F59E0B';
                   } else if (rawStage.includes('SERIES')) {
@@ -629,7 +676,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                     startupFormIcon = 'cube-outline';
                     startupFormColor = '#60A5FA';
                     buyActionType = 'PRIVATE';
-                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Syndicate Desk →`;
+                    buyActionLabel = `Research ${st.name.split(' ')[0]} Filings & Watchlist →`;
                     buyActionIcon = 'briefcase-outline';
                     buyActionColor = '#3B82F6';
                   } else if (rawStage.includes('ANGEL')) {
@@ -639,7 +686,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                     startupFormIcon = 'sparkles-outline';
                     startupFormColor = '#8B5CF6';
                     buyActionType = 'PRIVATE';
-                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Angel Syndicate →`;
+                    buyActionLabel = `Research ${st.name.split(' ')[0]} Filings & Watchlist →`;
                     buyActionIcon = 'briefcase-outline';
                     buyActionColor = '#8B5CF6';
                   } else if (rawStage.includes('GROWTH')) {
@@ -649,7 +696,7 @@ export default function WhaleBreakdownModal({ visible, whale, onClose }) {
                     startupFormIcon = 'trending-up-outline';
                     startupFormColor = '#60A5FA';
                     buyActionType = 'PRIVATE';
-                    buyActionLabel = `Invest in ${st.name.split(' ')[0]} via Syndicate Desk →`;
+                    buyActionLabel = `Research ${st.name.split(' ')[0]} Filings & Watchlist →`;
                     buyActionIcon = 'briefcase-outline';
                     buyActionColor = '#3B82F6';
                   } else {

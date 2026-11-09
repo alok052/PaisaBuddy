@@ -675,8 +675,15 @@ export function formatTurnoverCrores(lacs) {
   return `₹${n.toFixed(1)} L`;
 }
 
+export function isValidNseSymbol(sym) {
+  const s = String(sym || '').trim();
+  if (!s || s.length > 24) return false;
+  if (s.startsWith('*') || s.includes('UPDATED AT') || s.includes(' ')) return false;
+  return /^[A-Z0-9&-]+$/i.test(s);
+}
+
 export function mapNseStockRow(row) {
-  if (!row || !row.symbol) return null;
+  if (!row || !isValidNseSymbol(row.symbol)) return null;
   return {
     symbol: String(row.symbol).toUpperCase().trim(),
     name: row.name || row.symbol,
@@ -709,7 +716,7 @@ export function unpackNseSeedStocks(seedObj = nseStocksSeed) {
   const defaultDate = seedObj?.date || null;
   return rows
     .map((r) => {
-      if (!Array.isArray(r) || !r[0]) return null;
+      if (!Array.isArray(r) || !isValidNseSymbol(r[0])) return null;
       return {
         symbol: String(r[0]).toUpperCase().trim(),
         name: r[1] || r[0],
@@ -951,4 +958,36 @@ export function getWhalesHoldingStock(symbol, stockName, whalesList = []) {
     }
   });
   return holders;
+}
+
+/**
+ * Fetch live NSE Bulk Deals & SEC filing alerts from Supabase (excluding legacy startup entries).
+ */
+export async function fetchLiveMarketAlerts(limit = 6) {
+  const results = [];
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('live_alerts')
+        .select('id,title,subtitle,source,time_ago,created_at')
+        .neq('source', 'Startup Radar')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        data.forEach((row) => {
+          results.push({
+            id: String(row.id),
+            title: row.title || 'Exchange Disclosure',
+            subtitle: row.subtitle || '',
+            source: row.source || 'Exchange Feed',
+            timeAgo: row.time_ago || formatSyncTimeAgo(row.created_at),
+          });
+        });
+      }
+    } catch (err) {
+      // Fall through cleanly
+    }
+  }
+  return results;
 }

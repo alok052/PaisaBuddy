@@ -25,9 +25,20 @@ import {
   resolveFundAudit,
   diagnoseFundHealth,
 } from '../data/mockSIPFunds';
+import {
+  searchAmfiSchemes,
+  fetchLiveSchemeAudit,
+  cleanBaseSchemeName,
+} from '../services/mfApiService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SCORE_RING_SIZE = 120;
+
+const parseRatePct = (str, fallback = 13.0) => {
+  if (typeof str === 'number' && Number.isFinite(str)) return str;
+  const v = parseFloat(String(str || '').replace(/[^0-9.-]/g, ''));
+  return Number.isFinite(v) && v >= 2 && v <= 55 ? v : fallback;
+};
 
 export default function SIPDoctorScreen({ onOpenMenu }) {
   const [selectedFund, setSelectedFund] = useState(null);
@@ -38,6 +49,9 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [modalSearchText, setModalSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [liveAmfiResults, setLiveAmfiResults] = useState([]);
+  const [isSearchingAmfi, setIsSearchingAmfi] = useState(false);
+  const [isSyncingLiveNav, setIsSyncingLiveNav] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [migratingFund, setMigratingFund] = useState(null);
@@ -67,6 +81,35 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     }
   }, [hasAnalyzed]);
 
+  useEffect(() => {
+    const q = modalSearchText.trim();
+    if (!searchModalVisible || q.length < 2) {
+      setLiveAmfiResults([]);
+      setIsSearchingAmfi(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchingAmfi(true);
+    const timer = setTimeout(async () => {
+      try {
+        const rows = await searchAmfiSchemes(q, 20);
+        if (!cancelled) {
+          setLiveAmfiResults(Array.isArray(rows) ? rows : []);
+        }
+      } catch (e) {
+        if (!cancelled) setLiveAmfiResults([]);
+      } finally {
+        if (!cancelled) setIsSearchingAmfi(false);
+      }
+    }, 320);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [modalSearchText, searchModalVisible]);
+
 
 
   const categories = [
@@ -79,7 +122,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     { id: 'ELSS', label: 'ELSS' },
   ];
 
-  // Precise Monthly Compounding Engine (13% CAGR)
+  // Real Monthly Compounding Engine using selected fund's live/verified CAGR
   const calcCorpus = (monthly, years, rate = 0.13, stepupPct = 0) => {
     const mRate = rate / 12;
     const totalMonths = years * 12;
@@ -92,22 +135,39 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     return corpus;
   };
 
-  // Step-Up vs Flat calculations (0%, 5%, 10%)
-  const flatCorpus = calcCorpus(sipAmount, sipYears, 0.13, 0);
-  const stepUpCorpus = calcCorpus(sipAmount, sipYears, 0.13, stepUpRate);
-  const stepUpCorpus10 = calcCorpus(sipAmount, sipYears, 0.13, 10);
+  const activeFundDisplayCagr = selectedFund
+    ? planType === 'DIRECT' && typeof selectedFund.directCagrNum === 'number'
+      ? `${selectedFund.directCagrNum.toFixed(1)}%`
+      : planType === 'REGULAR' && typeof selectedFund.regularCagrNum === 'number'
+      ? `${selectedFund.regularCagrNum.toFixed(1)}%`
+      : selectedFund.currentCagr
+    : '13.0%';
+
+  const activeFundForDiag = selectedFund
+    ? { ...selectedFund, currentCagr: activeFundDisplayCagr }
+    : null;
+
+  const rawDiagnosis = activeFundForDiag
+    ? diagnoseFundHealth(activeFundForDiag, planType, sipAmount, sipYears)
+    : null;
+
+  const activeCagrPct = parseRatePct(activeFundDisplayCagr, 13.0);
+  const currentAnnualRate = activeCagrPct / 100;
+  const repCagrPct = rawDiagnosis?.replacement?.cagr5Y
+    ? Math.max(activeCagrPct, parseRatePct(rawDiagnosis.replacement.cagr5Y, activeCagrPct + 0.9))
+    : activeCagrPct;
+  const betterAnnualRate = repCagrPct / 100;
+
+  // Step-Up vs Flat calculations (0%, 5%, 10%) using actual fund return rate
+  const flatCorpus = calcCorpus(sipAmount, sipYears, currentAnnualRate, 0);
+  const stepUpCorpus = calcCorpus(sipAmount, sipYears, currentAnnualRate, stepUpRate);
+  const stepUpCorpus10 = calcCorpus(sipAmount, sipYears, currentAnnualRate, 10);
   const stepUpGain = Math.max(0, (stepUpRate > 0 ? stepUpCorpus : stepUpCorpus10) - flatCorpus);
 
-  // Dynamic wealth calculations for comparison
-  const multiplier = sipAmount / 10000;
-  const yearMultiplier = sipYears / 15;
-  const baseWealthCur = (flatCorpus / 100000);
-  const baseWealthRep = (flatCorpus * 1.48 / 100000);
+  // Real wealth comparison (Current Fund vs Direct / Better Plan across same Step-Up & SIP inputs)
+  const baseWealthCur = calcCorpus(sipAmount, sipYears, currentAnnualRate, stepUpRate) / 100000;
+  const baseWealthRep = calcCorpus(sipAmount, sipYears, betterAnnualRate, stepUpRate) / 100000;
   const calculatedExtraWealth = Math.max(0, baseWealthRep - baseWealthCur);
-
-  const rawDiagnosis = selectedFund
-    ? diagnoseFundHealth(selectedFund, planType, sipAmount, sipYears)
-    : null;
 
   // Adjust score based on Step-Up discipline (0% = -4, 5% = +3, 10% = +6)
   const diagnosis = rawDiagnosis
@@ -121,11 +181,11 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
       }
     : null;
 
-  // Compounding milestones (reflects selected Step-Up rate: 0%, 5%, 10%)
-  const m5Y = (calcCorpus(sipAmount, 5, 0.13, stepUpRate) / 100000).toFixed(1);
-  const m10Y = (calcCorpus(sipAmount, 10, 0.13, stepUpRate) / 100000).toFixed(1);
-  const m15Y = (calcCorpus(sipAmount, 15, 0.13, stepUpRate) / 100000).toFixed(1);
-  const m20Y = (calcCorpus(sipAmount, 20, 0.13, stepUpRate) / 100000).toFixed(1);
+  // Compounding milestones (reflects selected Step-Up rate & actual fund CAGR)
+  const m5Y = (calcCorpus(sipAmount, 5, currentAnnualRate, stepUpRate) / 100000).toFixed(1);
+  const m10Y = (calcCorpus(sipAmount, 10, currentAnnualRate, stepUpRate) / 100000).toFixed(1);
+  const m15Y = (calcCorpus(sipAmount, 15, currentAnnualRate, stepUpRate) / 100000).toFixed(1);
+  const m20Y = (calcCorpus(sipAmount, 20, currentAnnualRate, stepUpRate) / 100000).toFixed(1);
 
   // Filter funds for modal
   const filteredModalFunds = mockSIPFundsDatabase.filter((f) => {
@@ -145,11 +205,50 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     return true;
   });
 
+  // Deduplicated live AMFI matches beyond curated list
+  const extraLiveAmfiRows = liveAmfiResults.filter((cand) => {
+    const baseLower = cleanBaseSchemeName(cand.schemeName).toLowerCase();
+    return !filteredModalFunds.some((f) => {
+      const fBase = cleanBaseSchemeName(f.name).toLowerCase();
+      return fBase === baseLower || fBase.includes(baseLower) || baseLower.includes(fBase);
+    });
+  });
+
+  const hydrateLiveAmfiData = async (baseFundOrCandidate) => {
+    setIsSyncingLiveNav(true);
+    try {
+      const liveEnriched = await fetchLiveSchemeAudit(baseFundOrCandidate, planType);
+      if (liveEnriched) {
+        setSelectedFund(liveEnriched);
+      }
+    } catch (e) {
+      // Retain immediate template gracefully
+    } finally {
+      setIsSyncingLiveNav(false);
+    }
+  };
+
   const handleSelectFund = (fund) => {
     Haptics.selectionAsync();
     setSelectedFund(fund);
     setSearchModalVisible(false);
     setModalSearchText('');
+    hydrateLiveAmfiData(fund);
+  };
+
+  const handleSelectAmfiCandidate = (cand) => {
+    Haptics.selectionAsync();
+    const preliminary = resolveFundAudit(cleanBaseSchemeName(cand.schemeName));
+    const seedWithCode = {
+      ...preliminary,
+      id: `amfi_${cand.schemeCode}`,
+      schemeCode: cand.schemeCode,
+      name: cleanBaseSchemeName(cand.schemeName) || preliminary.name,
+    };
+    setSelectedFund(seedWithCode);
+    setSearchModalVisible(false);
+    setModalSearchText('');
+    hydrateLiveAmfiData(seedWithCode);
   };
 
   const handleCustomFundSelect = (customQuery) => {
@@ -158,6 +257,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
     setSelectedFund(resolved);
     setSearchModalVisible(false);
     setModalSearchText('');
+    hydrateLiveAmfiData(resolved);
   };
 
   const handleRunDiagnostic = () => {
@@ -227,9 +327,14 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                 {selectedFund.name}
               </Text>
               <View style={s.fundMetaRow}>
-                <Text style={s.fundMetaChip}>{selectedFund.amc || 'AMC'}</Text>
-                <Text style={s.fundMetaDot}>{'\u2022'}</Text>
-                <Text style={s.fundMetaChip}>{selectedFund.category}</Text>
+                <Text style={s.fundMetaChip} numberOfLines={1}>
+                  {selectedFund.amc || 'AMC'} {'\u2022'} {selectedFund.category}
+                  {selectedFund.latestNav
+                    ? ` \u2022 NAV \u20B9${selectedFund.latestNav.toFixed(2)}`
+                    : isSyncingLiveNav
+                    ? ' \u2022 Syncing AMFI...'
+                    : ''}
+                </Text>
               </View>
             </View>
             <TouchableOpacity
@@ -253,9 +358,11 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             </View>
             <View style={s.metricDivider} />
             <View style={s.metricItem}>
-              <Text style={s.metricLabel}>5Y Return</Text>
+              <Text style={s.metricLabel}>
+                {selectedFund.cagr5Y ? '5Y Return' : selectedFund.cagr3Y ? '3Y Return' : '1Y Return'}
+              </Text>
               <Text style={[s.metricValue, { color: '#10B981' }]}>
-                {selectedFund.currentCagr}
+                {activeFundDisplayCagr}
               </Text>
             </View>
             <View style={s.metricDivider} />
@@ -614,6 +721,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
             {' \u2022 '}{'\u20B9'}{sipAmount.toLocaleString('en-IN')}/mo
             {' \u2022 '}{stepUpRate === 10 ? '+10% Step-Up' : stepUpRate === 5 ? '+5% Step-Up' : 'Flat SIP'}
             {' \u2022 '}{sipYears} Years
+            {selectedFund?.latestNav ? ` \u2022 NAV \u20B9${selectedFund.latestNav.toFixed(2)}` : ''}
           </Text>
         </Animated.View>
 
@@ -749,7 +857,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                     <View style={s.compareMetric}>
                       <Text style={s.compareMetricLabel}>Return</Text>
                       <Text style={s.compareMetricValue}>
-                        {selectedFund?.currentCagr}
+                        {activeFundDisplayCagr}
                       </Text>
                     </View>
                     <View style={s.compareCorpus}>
@@ -810,6 +918,7 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 setMigratingFund({
                   ...selectedFund,
+                  horizonYears: sipYears,
                   lossOver20Y: `\u20B9${calculatedExtraWealth.toFixed(1)} Lakh`,
                   hiddenAgentCommission:
                     selectedFund?.agentCommissionCut || '0.95%',
@@ -979,6 +1088,50 @@ export default function SIPDoctorScreen({ onOpenMenu }) {
                       {fund.category}
                       {' \u2022 '}{fund.currentExpense}
                       {' \u2022 '}{fund.currentCagr}
+                    </Text>
+                  </View>
+                  {isSelected ? (
+                    <Ionicons name="checkmark-circle" size={18} color="#38BDF8" />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={14} color="#475569" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+
+            {isSearchingAmfi && (
+              <View style={{ paddingVertical: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color="#38BDF8" />
+                <Text style={s.fundRowMeta}>Searching AMFI live schemes...</Text>
+              </View>
+            )}
+
+            {extraLiveAmfiRows.map((cand) => {
+              const liveId = `amfi_${cand.schemeCode}`;
+              const isSelected = selectedFund && selectedFund.id === liveId;
+              return (
+                <TouchableOpacity
+                  key={liveId}
+                  style={[
+                    s.fundRow,
+                    isSelected && s.fundRowSelected,
+                  ]}
+                  onPress={() => handleSelectAmfiCandidate(cand)}
+                  activeOpacity={0.75}
+                >
+                  <View style={s.fundRowLeft}>
+                    <Text
+                      style={[
+                        s.fundRowName,
+                        isSelected && { color: '#38BDF8' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {cand.schemeName}
+                    </Text>
+                    <Text style={s.fundRowMeta}>
+                      AMFI Live {'\u2022'} Code {cand.schemeCode}
+                      {cand.planHint && cand.planHint !== 'UNKNOWN' ? ` \u2022 ${cand.planHint}` : ''}
                     </Text>
                   </View>
                   {isSelected ? (

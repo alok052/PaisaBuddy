@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,66 +11,174 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
+import { openBrokerTerminal } from '../services/externalLinks';
+import { readJsonStore, writeJsonStore, STORE_KEYS } from '../services/localStore';
+
+const DEFAULT_SAMPLE_HOLDINGS = [
+  {
+    id: 'rel',
+    name: 'Reliance Industries',
+    type: 'Stock',
+    gain: 38500,
+    holdingDays: 420,
+    isLtcg: true,
+    selected: true,
+    quantity: 40,
+  },
+  {
+    id: 'tatamotors',
+    name: 'Tata Motors',
+    type: 'Stock',
+    gain: 46200,
+    holdingDays: 530,
+    isLtcg: true,
+    selected: true,
+    quantity: 110,
+  },
+  {
+    id: 'ppfas',
+    name: 'Parag Parikh Flexi Cap',
+    type: 'Mutual Fund',
+    gain: 36400,
+    holdingDays: 640,
+    isLtcg: true,
+    selected: true,
+    quantity: 520,
+  },
+  {
+    id: 'hdfcbank',
+    name: 'HDFC Bank',
+    type: 'Stock',
+    gain: 54000,
+    holdingDays: 480,
+    isLtcg: true,
+    selected: false,
+    quantity: 85,
+  },
+  {
+    id: 'paytm',
+    name: 'Paytm (Loss Offset)',
+    type: 'Stock',
+    gain: -18500,
+    holdingDays: 190,
+    isLtcg: false,
+    selected: false,
+    quantity: 60,
+  },
+];
+
+export function getCurrentIndianTaxYear(now = new Date()) {
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0=Jan .. 3=Apr
+  const fyStartYear = month >= 3 ? year : year - 1;
+  const fyEndYear = fyStartYear + 1;
+  const fyLabel = `FY ${fyStartYear}-${String(fyEndYear).slice(-2)}`;
+  const startLabel = `April 1, ${fyStartYear}`;
+  const march31End = new Date(fyEndYear, 2, 31, 23, 59, 59);
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil((march31End.getTime() - now.getTime()) / (24 * 3600 * 1000))
+  );
+  return { fyLabel, startLabel, daysRemaining, fyStartYear, fyEndYear };
+}
 
 export default function TaxHarvestingTool({ onClose }) {
+  const taxYear = useMemo(() => getCurrentIndianTaxYear(), []);
+
   // Financial Year Inputs
   const [realizedLtcg, setRealizedLtcg] = useState(0);
   const [unrealizedLtcg, setUnrealizedLtcg] = useState(125000);
   const [unrealizedStcl, setUnrealizedStcl] = useState(0);
+  const [portfolioSourceLabel, setPortfolioSourceLabel] = useState(null);
+  const [holdings, setHoldings] = useState(DEFAULT_SAMPLE_HOLDINGS);
+  const [hydrated, setHydrated] = useState(false);
 
-  // Sample Interactive Holdings for Simulation
-  const [holdings, setHoldings] = useState([
-    {
-      id: 'rel',
-      name: 'Reliance Industries',
-      type: 'Stock',
-      gain: 38500,
-      holdingDays: 420,
-      isLtcg: true,
-      selected: true,
-      quantity: 40,
-    },
-    {
-      id: 'tatamotors',
-      name: 'Tata Motors',
-      type: 'Stock',
-      gain: 46200,
-      holdingDays: 530,
-      isLtcg: true,
-      selected: true,
-      quantity: 110,
-    },
-    {
-      id: 'ppfas',
-      name: 'Parag Parikh Flexi Cap',
-      type: 'Mutual Fund',
-      gain: 36400,
-      holdingDays: 640,
-      isLtcg: true,
-      selected: true,
-      quantity: 520,
-    },
-    {
-      id: 'hdfcbank',
-      name: 'HDFC Bank',
-      type: 'Stock',
-      gain: 54000,
-      holdingDays: 480,
-      isLtcg: true,
-      selected: false,
-      quantity: 85,
-    },
-    {
-      id: 'paytm',
-      name: 'Paytm (Loss Offset)',
-      type: 'Stock',
-      gain: -18500,
-      holdingDays: 190,
-      isLtcg: false,
-      selected: false,
-      quantity: 60,
-    },
-  ]);
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      readJsonStore(STORE_KEYS.PORTFOLIO_HOLDINGS, null).catch(() => null),
+      readJsonStore(STORE_KEYS.TAX_HARVEST_STATE, null).catch(() => null),
+    ]).then(([savedPortfolio, savedTaxState]) => {
+      if (!active) return;
+
+      const selectedIdSet = new Set(
+        Array.isArray(savedTaxState?.selectedIds) ? savedTaxState.selectedIds : []
+      );
+      const hasSavedSelection = Array.isArray(savedTaxState?.selectedIds);
+
+      if (savedTaxState && typeof savedTaxState === 'object') {
+        if (typeof savedTaxState.realizedLtcg === 'number') setRealizedLtcg(savedTaxState.realizedLtcg);
+        if (typeof savedTaxState.unrealizedLtcg === 'number') setUnrealizedLtcg(savedTaxState.unrealizedLtcg);
+        if (typeof savedTaxState.unrealizedStcl === 'number') setUnrealizedStcl(savedTaxState.unrealizedStcl);
+      }
+
+      if (
+        savedPortfolio &&
+        Array.isArray(savedPortfolio.holdings) &&
+        savedPortfolio.holdings.length > 0 &&
+        !savedPortfolio.meta?.isDemo
+      ) {
+        let cumulativeSelected = 0;
+        const mapped = savedPortfolio.holdings
+          .filter((item) => item && item.name && Number.isFinite(Number(item.pnl)))
+          .slice(0, 12)
+          .map((item, idx) => {
+            const gainNum = Math.round(Number(item.pnl) || 0);
+            const id = String(item.id || `imp_${idx}`);
+            let isSelected = false;
+            if (hasSavedSelection) {
+              isSelected = selectedIdSet.has(id);
+            } else if (gainNum > 0 && cumulativeSelected + gainNum <= 125000) {
+              isSelected = true;
+              cumulativeSelected += gainNum;
+            }
+            return {
+              id,
+              name: item.name,
+              type: item.assetType === 'MF' ? 'Mutual Fund' : 'Stock',
+              gain: gainNum,
+              holdingDays: item.holdingDays || null,
+              isLtcg: gainNum >= 0,
+              selected: isSelected,
+              quantity: item.quantity || 1,
+            };
+          });
+
+        if (mapped.length > 0) {
+          setHoldings(mapped);
+          setPortfolioSourceLabel(savedPortfolio.meta?.fileName || 'Your Audited Portfolio');
+          if (!savedTaxState || typeof savedTaxState.unrealizedLtcg !== 'number') {
+            const totalGains = mapped.filter((m) => m.gain > 0).reduce((s, m) => s + m.gain, 0);
+            const closestOpt =
+              [50000, 100000, 125000, 250000, 500000].find((v) => v >= totalGains) || 125000;
+            setUnrealizedLtcg(closestOpt);
+          }
+        }
+      } else if (hasSavedSelection) {
+        setHoldings((prev) =>
+          prev.map((h) => ({ ...h, selected: selectedIdSet.has(h.id) }))
+        );
+      }
+
+      setHydrated(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const t = setTimeout(() => {
+      writeJsonStore(STORE_KEYS.TAX_HARVEST_STATE, {
+        realizedLtcg,
+        unrealizedLtcg,
+        unrealizedStcl,
+        selectedIds: holdings.filter((h) => h.selected).map((h) => h.id),
+      }).catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [hydrated, realizedLtcg, unrealizedLtcg, unrealizedStcl, holdings]);
 
   const realizedOptions = [
     { label: '₹0 (None)', value: 0 },
@@ -129,12 +237,16 @@ export default function TaxHarvestingTool({ onClose }) {
 
   const handleBrokerRedirect = (broker) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const primaryAsset = selectedHoldings[0]?.name || '';
     Alert.alert(
       `Ready to Harvest via ${broker}!`,
-      `Harvest Plan:\n• Sell ₹${totalHarvestGainSelected.toLocaleString('en-IN')} long-term gains\n• Buyback on same day/next day to reset cost basis higher\n• Tax Saved: ₹${Math.round(totalHarvestGainSelected * 0.125).toLocaleString('en-IN')}\n• Net STT & Brokerage: ~₹110\n\nRedirecting to ${broker} order console...`,
+      `Harvest Plan:\n• Sell ₹${totalHarvestGainSelected.toLocaleString('en-IN')} long-term gains\n• Buyback on same day/next day to reset cost basis higher\n• Est. Tax Saved: ₹${Math.round(totalHarvestGainSelected * 0.125).toLocaleString('en-IN')}\n\nOpen ${broker} portal to place your orders:`,
       [
-        { text: `Open ${broker} App`, style: 'default' },
-        { text: 'Done', style: 'cancel' },
+        {
+          text: `Open ${broker}`,
+          onPress: () => openBrokerTerminal(broker, primaryAsset),
+        },
+        { text: 'Cancel', style: 'cancel' },
       ]
     );
   };
@@ -169,7 +281,9 @@ export default function TaxHarvestingTool({ onClose }) {
         <View style={styles.deadlineLeft}>
           <View style={styles.deadlineBadge}>
             <Ionicons name="alarm" size={13} color={colors.warning} />
-            <Text style={styles.deadlineBadgeText}>FY 2024-25 DEADLINE</Text>
+            <Text style={styles.deadlineBadgeText}>
+              {taxYear.fyLabel} DEADLINE • {taxYear.daysRemaining}D LEFT
+            </Text>
           </View>
           <Text style={styles.deadlineTitle}>March 31 "Use It or Lose It" Rule</Text>
           <Text style={styles.deadlineDesc}>
@@ -182,7 +296,7 @@ export default function TaxHarvestingTool({ onClose }) {
       <View style={styles.card}>
         <Text style={styles.sectionLabel}>1. REALIZED LTCG BOOKED SO FAR THIS YEAR</Text>
         <Text style={styles.sectionHelper}>
-          Total long-term profit already booked in your Demat/MF accounts since April 1, 2024.
+          Total long-term profit already booked in your Demat/MF accounts since {taxYear.startLabel}.
         </Text>
         <View style={styles.pillRow}>
           {realizedOptions.map((opt) => {
@@ -329,7 +443,9 @@ export default function TaxHarvestingTool({ onClose }) {
           <View style={{ flex: 1 }}>
             <Text style={styles.simTitle}>Holdings Harvest Simulator</Text>
             <Text style={styles.simSub}>
-              Select holdings to sell & immediately buy back today
+              {portfolioSourceLabel
+                ? `Synced from ${portfolioSourceLabel} • Select to harvest`
+                : 'Sample portfolio (import CSV/OCR in AI Audit to sync yours)'}
             </Text>
           </View>
           <View style={styles.simTotalBadge}>
@@ -357,7 +473,9 @@ export default function TaxHarvestingTool({ onClose }) {
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.holdingName}>{h.name}</Text>
                   <Text style={styles.holdingMeta}>
-                    {h.type} • Held {h.holdingDays} days ({h.isLtcg ? 'LTCG Safe' : 'STCL Offset'})
+                    {h.holdingDays
+                      ? `${h.type} • Held ${h.holdingDays} days (${h.isLtcg ? 'LTCG Safe' : 'STCL Offset'})`
+                      : `${h.type} • ${isPositive ? 'Unrealized Gain (Verify >1Y)' : 'Unrealized Loss Offset'}`}
                   </Text>
                 </View>
 

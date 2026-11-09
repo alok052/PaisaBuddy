@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
+import { fetchLiveMarketAlerts } from '../services/dataService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -23,7 +24,7 @@ export default function ExecutiveHubModal({
   activePage = 'whales',
   onSelectPage,
 }) {
-  const handleItemPress = (itemOrId) => {
+  const handleItemPress = async (itemOrId) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     if (typeof itemOrId === 'string') {
@@ -59,9 +60,21 @@ export default function ExecutiveHubModal({
     }
 
     if (itemOrId.id === 'notifications') {
+      const liveAlerts = await fetchLiveMarketAlerts(4).catch(() => []);
+      const alertSummary =
+        liveAlerts.length > 0
+          ? liveAlerts
+              .slice(0, 3)
+              .map(
+                (a, idx) =>
+                  `${idx + 1}. ${a.title}\n    ${a.source}${a.timeAgo ? ` • ${a.timeAgo}` : ''}`
+              )
+              .join('\n\n')
+          : 'Connected to live SEBI disclosures, NSE Bulk Deals & US SEC Form 13F-HR feed via Supabase Realtime inside Whales Radar.';
+
       Alert.alert(
-        'Market Alerts & Bulk Deals',
-        'Real-time SEBI disclosures, bulk deals, and SMS alerts are available inside the Whales Radar desk.',
+        liveAlerts.length > 0 ? 'Live Market & Filing Alerts' : 'Market Alerts & Bulk Deals',
+        alertSummary,
         [
           {
             text: 'Open Whales Radar',
@@ -74,7 +87,7 @@ export default function ExecutiveHubModal({
               }
             },
           },
-          { text: 'OK', style: 'cancel' },
+          { text: 'Close', style: 'cancel' },
         ]
       );
       return;
