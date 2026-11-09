@@ -512,6 +512,7 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
                   s.toggleText,
                   strategy === 'CASH' && { color: '#38BDF8', fontWeight: '800' },
                 ]}
+                numberOfLines={1}
               >
                 Spend Cash
               </Text>
@@ -542,12 +543,10 @@ export default function DividendYieldTrackerScreen({ onOpenMenu }) {
                   s.toggleText,
                   strategy === 'DRIP' && { color: '#10B981', fontWeight: '800' },
                 ]}
+                numberOfLines={1}
               >
                 Reinvest (DRIP)
               </Text>
-              {strategy === 'DRIP' && (
-                <Text style={s.badgeEmerald}>Snowball</Text>
-              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -1155,6 +1154,7 @@ const s = StyleSheet.create({
     backgroundColor: '#0D111A',
     borderRadius: 10,
     paddingVertical: 11,
+    paddingHorizontal: 8,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
@@ -1177,17 +1177,6 @@ const s = StyleSheet.create({
     color: '#38BDF8',
     marginLeft: 6,
     backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  badgeEmerald: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#10B981',
-    marginLeft: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,

@@ -374,6 +374,7 @@ export default function FinancialGoalPlannerScreen({ onOpenMenu }) {
                 s.toggleText,
                 strategy === 'FLAT' && { color: '#38BDF8', fontWeight: '800' },
               ]}
+              numberOfLines={1}
             >
               Flat SIP
             </Text>
@@ -404,12 +405,10 @@ export default function FinancialGoalPlannerScreen({ onOpenMenu }) {
                 s.toggleText,
                 strategy === 'STEP_10' && { color: '#10B981', fontWeight: '800' },
               ]}
+              numberOfLines={1}
             >
               +10% Step-Up
             </Text>
-            {strategy === 'STEP_10' && (
-              <Text style={s.badgeEmerald}>Easier Start</Text>
-            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -775,6 +774,7 @@ const s = StyleSheet.create({
     backgroundColor: '#0D111A',
     borderRadius: 10,
     paddingVertical: 11,
+    paddingHorizontal: 8,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.06)',
   },
@@ -797,17 +797,6 @@ const s = StyleSheet.create({
     color: '#38BDF8',
     marginLeft: 6,
     backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  badgeEmerald: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#10B981',
-    marginLeft: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
