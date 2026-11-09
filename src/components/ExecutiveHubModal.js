@@ -130,9 +130,21 @@ export default function ExecutiveHubModal({
       category: 'INCOME',
     },
     {
+      id: 'stocks',
+      title: 'All NSE Stocks',
+      subtitle: '3,740+ Equities, Watchlist & 1Y Charts',
+      description:
+        'Search every NSE-listed company, ETF, and SME stock with official NSE Bhavcopy EOD prices, delivery %, and 1-year historical charts.',
+      icon: 'analytics-outline',
+      gradient: ['#0A1D24', '#051015'],
+      borderColor: 'rgba(16, 185, 129, 0.2)',
+      iconColor: '#10B981',
+      category: 'EQUITIES',
+    },
+    {
       id: 'overlap',
       title: 'MF Overlap Scanner',
-      subtitle: 'Compare Any 2 Mutual Funds (Weighted Holdings & Sectors)',
+      subtitle: 'Compare Any 2 Mutual Funds Instantly',
       description:
         'Pick any 2 Mutual Funds across 45,000+ AMFI schemes to detect stock duplication, concentration risk & consolidation tips without uploading files.',
       icon: 'git-compare-outline',
@@ -140,7 +152,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(56, 189, 248, 0.22)',
       iconColor: '#38BDF8',
       category: 'OVERLAP',
-      isWide: true,
     },
     {
       id: 'notifications',
@@ -151,19 +162,6 @@ export default function ExecutiveHubModal({
       borderColor: 'rgba(255, 255, 255, 0.08)',
       iconColor: '#F59E0B',
       category: 'ALERTS',
-      isWide: true,
-    },
-    {
-      id: 'stocks',
-      title: 'All NSE Stocks',
-      subtitle: '3,740+ Equities, EOD Prices & 1Y Charts',
-      description:
-        'Search every NSE-listed company, ETF, and SME stock with official NSE Bhavcopy EOD prices, delivery %, and 1-year historical charts.',
-      icon: 'analytics-outline',
-      gradient: ['#0A1D24', '#051015'],
-      borderColor: 'rgba(16, 185, 129, 0.2)',
-      iconColor: '#10B981',
-      category: 'EQUITIES',
       isWide: true,
     },
   ];
