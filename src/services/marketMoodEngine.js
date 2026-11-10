@@ -5,6 +5,59 @@ import {
   fetchLiveWhales,
 } from './dataService';
 import { fetchSchemeRaw } from './mfApiService';
+import nseCapTiersSeed from '../data/nseCapTiers.json';
+
+export function buildCapTierLookup(capData = nseCapTiersSeed) {
+  const cleanList = (arr) =>
+    (Array.isArray(arr) ? arr : [])
+      .map((s) => String(s || '').toUpperCase().trim())
+      .filter((s) => s && !/^DUMMY/i.test(s));
+
+  const largeSet = new Set(cleanList(capData?.large));
+  const midSet = new Set(cleanList(capData?.mid));
+  const smallSet = new Set(cleanList(capData?.small));
+  const sectorMap = new Map();
+  if (capData?.sectors && typeof capData.sectors === 'object') {
+    Object.entries(capData.sectors).forEach(([k, v]) => {
+      const sym = String(k || '').toUpperCase().trim();
+      if (sym && v && !/^DUMMY/i.test(sym)) {
+        sectorMap.set(sym, String(v).trim());
+      }
+    });
+  }
+
+  return {
+    largeSet,
+    midSet,
+    smallSet,
+    getCapTier: (symbol) => {
+      const sym = String(symbol || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+      if (!sym) return null;
+      if (largeSet.has(sym)) return 'LARGE';
+      if (midSet.has(sym)) return 'MID';
+      if (smallSet.has(sym)) return 'SMALL';
+      return null;
+    },
+    getCapLabel: (symbol) => {
+      const sym = String(symbol || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+      if (!sym) return null;
+      if (largeSet.has(sym)) return 'Large Cap';
+      if (midSet.has(sym)) return 'Mid Cap';
+      if (smallSet.has(sym)) return 'Small Cap';
+      return null;
+    },
+    getSector: (symbol) => {
+      const sym = String(symbol || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+      return sectorMap.get(sym) || null;
+    },
+  };
+}
+
+export function pullbackQualityScore(drawdownPct, turnoverLacs) {
+  const ddAbs = Math.abs(Number(drawdownPct) || 0);
+  const turnCr = Math.max(5, (Number(turnoverLacs) || 500) / 100);
+  return ddAbs * Math.log10(turnCr);
+}
 
 export const BENCHMARK_CONFIGS = [
   {
@@ -678,15 +731,17 @@ export function buildSmartDipAllocator(monthlyBudget = 25000, riskProfile = 'BAL
 }
 
 /**
- * Scan Watchlist, 50-Whale backed NSE companies, and Liquid Market Leaders for verified Smart Dips,
- * computing real post-split 200-DMA, RSI-14, and Drawdown from 52W High.
+ * Scan Watchlist, 50-Whale backed NSE companies, Market Leaders, Mid Cap 150 & Small Cap 250 for verified Smart Dips,
+ * computing real post-split 200-DMA, RSI-14, Cap Tier, and Drawdown from 52W High.
  */
 export function buildDipRadarLists({
   nseStocks = [],
   stockHistoryMap = new Map(),
   watchlist = [],
   whalesList = [],
+  capTiers = nseCapTiersSeed,
 }) {
+  const capLookup = buildCapTierLookup(capTiers);
   const nseMap = new Map();
   nseStocks.forEach((s) => {
     if (s && s.symbol) nseMap.set(s.symbol.toUpperCase(), s);
@@ -694,7 +749,8 @@ export function buildDipRadarLists({
 
   const enrichDipCandidate = (st) => {
     if (!st || !st.symbol) return null;
-    const pts = stockHistoryMap.get(st.symbol.toUpperCase()) || [];
+    const symUpper = String(st.symbol).toUpperCase().trim();
+    const pts = stockHistoryMap.get(symUpper) || [];
     const tech = pts.length >= 20 ? analyzePriceSeries(pts, { checkSplits: true }) : null;
     if (tech?.insufficientPostSplitHistory) return null;
 
@@ -745,6 +801,9 @@ export function buildDipRadarLists({
       rsi14,
       whaleCount: whales.length,
       whaleNames: whales.slice(0, 3).map((w) => w.whaleName),
+      capTier: capLookup.getCapTier(symUpper),
+      capLabel: capLookup.getCapLabel(symUpper),
+      sector: capLookup.getSector(symUpper),
       dipBadge,
       dipColor,
     };
@@ -765,14 +824,23 @@ export function buildDipRadarLists({
   });
   watchlistItems.sort((a, b) => (a.drawdownPct ?? 0) - (b.drawdownPct ?? 0));
 
-  // 2. Whale-Backed Indian Stocks in Meaningful Pullback (<= -5% off 52W High)
+  // 2. Whale-Backed, Market Leaders, Mid Cap 150 & Small Cap 250 Pullbacks
   const whaleItems = [];
   const leaderItems = [];
+  const midcapItems = [];
+  const smallcapItems = [];
+
   for (let i = 0; i < nseStocks.length; i++) {
     const st = nseStocks[i];
     if (!st || st.series !== 'EQ' || !st.closePrice || st.closePrice < 25) continue;
     if ((st.isin || '').startsWith('INF') || /\bETF\b/i.test(st.name || '')) continue;
-    if ((st.turnoverLacs || 0) < 1000) continue; // ₹10 Cr+ liquidity filter
+
+    const symUpper = String(st.symbol || '').toUpperCase().trim();
+    const isMidCap = capLookup.midSet.has(symUpper);
+    const isSmallCap = capLookup.smallSet.has(symUpper);
+    const minTurnoverLacs = isSmallCap ? 300 : isMidCap ? 500 : 1000;
+    if ((st.turnoverLacs || 0) < minTurnoverLacs) continue;
+
     const rawDd =
       st.high52w > 0 ? ((st.closePrice - st.high52w) / st.high52w) * 100 : null;
     if (rawDd === null || rawDd > -5 || rawDd < -55) continue;
@@ -780,11 +848,17 @@ export function buildDipRadarLists({
     const enriched = enrichDipCandidate(st);
     if (!enriched || enriched.drawdownPct === null || enriched.drawdownPct > -5) continue;
 
-    if (enriched.whaleCount > 0) {
+    if (enriched.whaleCount > 0 && (st.turnoverLacs || 0) >= 1000) {
       whaleItems.push(enriched);
     }
     if ((st.turnoverLacs || 0) >= 10000 && enriched.drawdownPct <= -8) {
       leaderItems.push(enriched);
+    }
+    if (isMidCap && (st.turnoverLacs || 0) >= 500 && enriched.drawdownPct <= -8) {
+      midcapItems.push(enriched);
+    }
+    if (isSmallCap && (st.turnoverLacs || 0) >= 300 && enriched.drawdownPct <= -8) {
+      smallcapItems.push(enriched);
     }
   }
 
@@ -793,16 +867,29 @@ export function buildDipRadarLists({
       b.whaleCount - a.whaleCount ||
       (a.drawdownPct ?? 0) - (b.drawdownPct ?? 0)
   );
-  leaderItems.sort((a, b) => {
-    const aScore = Math.abs(a.drawdownPct ?? 0) * Math.log10(Math.max(100, (a.turnoverLacs || 100) / 100));
-    const bScore = Math.abs(b.drawdownPct ?? 0) * Math.log10(Math.max(100, (b.turnoverLacs || 100) / 100));
-    return bScore - aScore;
-  });
+  const hasHistData = stockHistoryMap instanceof Map && stockHistoryMap.size > 0;
+  const sortByPullbackQuality = (a, b) => {
+    if (hasHistData) {
+      const aVerified = a.dma200 !== null ? 1 : 0;
+      const bVerified = b.dma200 !== null ? 1 : 0;
+      if (bVerified !== aVerified) return bVerified - aVerified;
+    }
+    return (
+      pullbackQualityScore(b.drawdownPct, b.turnoverLacs) -
+      pullbackQualityScore(a.drawdownPct, a.turnoverLacs)
+    );
+  };
+
+  leaderItems.sort(sortByPullbackQuality);
+  midcapItems.sort(sortByPullbackQuality);
+  smallcapItems.sort(sortByPullbackQuality);
 
   return {
     watchlistDips: watchlistItems.slice(0, 15),
     whaleDips: whaleItems.slice(0, 18),
     leaderDips: leaderItems.slice(0, 20),
+    midcapDips: midcapItems.slice(0, 20),
+    smallcapDips: smallcapItems.slice(0, 20),
   };
 }
 
@@ -1160,26 +1247,39 @@ export async function fetchMarketMoodSnapshot({
     });
   });
 
-  // Pick top liquid non-ETF equity drawdown leaders (turnover >= ₹100 Cr, -8% to -52%)
-  const sortedPullbacks = (nseStocks || [])
-    .filter((s) => {
-      if (!s || s.series !== 'EQ' || !s.closePrice || s.closePrice < 25) return false;
-      if ((s.isin || '').startsWith('INF') || /\bETF\b/i.test(s.name || '')) return false;
-      if ((s.turnoverLacs || 0) < 10000 || !s.high52w) return false;
-      const dd = ((s.closePrice - s.high52w) / s.high52w) * 100;
-      return dd <= -8 && dd >= -52;
-    })
-    .sort((a, b) => {
-      const ddA = ((a.closePrice - a.high52w) / a.high52w) * 100;
-      const ddB = ((b.closePrice - b.high52w) / b.high52w) * 100;
-      const sA = Math.abs(ddA) * Math.log10(Math.max(100, (a.turnoverLacs || 100) / 100));
-      const sB = Math.abs(ddB) * Math.log10(Math.max(100, (b.turnoverLacs || 100) / 100));
-      return sB - sA;
-    })
-    .slice(0, 28);
-  sortedPullbacks.forEach((s) => dipCandidateSymbols.add(s.symbol));
+  // Pick top liquid non-ETF equity drawdown candidates across Market Leaders, Mid Cap 150 & Small Cap 250
+  const capLookup = buildCapTierLookup(nseCapTiersSeed);
+  const pickTopPullbacks = (filterFn, limit) =>
+    (nseStocks || [])
+      .filter((s) => {
+        if (!s || s.series !== 'EQ' || !s.closePrice || s.closePrice < 25 || !s.high52w) return false;
+        if ((s.isin || '').startsWith('INF') || /\bETF\b/i.test(s.name || '')) return false;
+        const dd = ((s.closePrice - s.high52w) / s.high52w) * 100;
+        if (dd > -8 || dd < -52) return false;
+        return filterFn(s);
+      })
+      .sort((a, b) => {
+        const ddA = ((a.closePrice - a.high52w) / a.high52w) * 100;
+        const ddB = ((b.closePrice - b.high52w) / b.high52w) * 100;
+        return pullbackQualityScore(ddB, b.turnoverLacs) - pullbackQualityScore(ddA, a.turnoverLacs);
+      })
+      .slice(0, limit);
 
-  const candidateList = Array.from(dipCandidateSymbols).slice(0, 108);
+  const sortedPullbacks = pickTopPullbacks((s) => (s.turnoverLacs || 0) >= 10000, 36);
+  const sortedMidPullbacks = pickTopPullbacks(
+    (s) => capLookup.midSet.has(String(s.symbol || '').toUpperCase().trim()) && (s.turnoverLacs || 0) >= 500,
+    36
+  );
+  const sortedSmallPullbacks = pickTopPullbacks(
+    (s) => capLookup.smallSet.has(String(s.symbol || '').toUpperCase().trim()) && (s.turnoverLacs || 0) >= 300,
+    36
+  );
+
+  sortedPullbacks.forEach((s) => dipCandidateSymbols.add(s.symbol));
+  sortedMidPullbacks.forEach((s) => dipCandidateSymbols.add(s.symbol));
+  sortedSmallPullbacks.forEach((s) => dipCandidateSymbols.add(s.symbol));
+
+  const candidateList = Array.from(dipCandidateSymbols).slice(0, 216);
   const [stockHistoryMap, watchlistTicks] = await Promise.all([
     fetchBatchNseHistories(candidateList).catch(() => new Map()),
     hasRealtimeOverlay && watchlistSyms.length > 0
@@ -1210,11 +1310,12 @@ export async function fetchMarketMoodSnapshot({
     });
   }
 
-  const { watchlistDips, whaleDips, leaderDips } = buildDipRadarLists({
+  const { watchlistDips, whaleDips, leaderDips, midcapDips, smallcapDips } = buildDipRadarLists({
     nseStocks: effectiveNseStocks,
     stockHistoryMap,
     watchlist,
     whalesList: resolvedWhales,
+    capTiers: nseCapTiersSeed,
   });
 
   const niftyAnchor = benchmarks.find((b) => b.key === 'NIFTY50') || benchmarks[0];
@@ -1232,6 +1333,8 @@ export async function fetchMarketMoodSnapshot({
     watchlistDips,
     whaleDips,
     leaderDips,
+    midcapDips,
+    smallcapDips,
     latestDataDate,
     hasRealtimeOverlay,
     hasLiveIntradayTick,

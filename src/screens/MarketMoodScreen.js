@@ -132,7 +132,7 @@ export default function MarketMoodScreen({
   const [riskProfile, setRiskProfile] = useState('BALANCED'); // BALANCED | DIP_HUNTER | CONSERVATIVE
 
   // Dip Scanner Tab State
-  const [dipTab, setDipTab] = useState('WHALES'); // WHALES | LEADERS | WATCHLIST
+  const [dipTab, setDipTab] = useState('WHALES'); // WHALES | LEADERS | MIDCAP | SMALLCAP | WATCHLIST
   const [selectedStock, setSelectedStock] = useState(null);
 
   // Dip Alert Configuration
@@ -260,6 +260,8 @@ export default function MarketMoodScreen({
     if (!report) return [];
     if (dipTab === 'WHALES') return report.whaleDips || [];
     if (dipTab === 'LEADERS') return report.leaderDips || [];
+    if (dipTab === 'MIDCAP') return report.midcapDips || [];
+    if (dipTab === 'SMALLCAP') return report.smallcapDips || [];
     return report.watchlistDips || [];
   }, [report, dipTab]);
 
@@ -314,7 +316,7 @@ export default function MarketMoodScreen({
   );
   const advCount = breadth.advances || 0;
   const decCount = breadth.declines || 0;
-  const visibleDips = activeDipList.slice(0, dipShowAll ? 18 : 6);
+  const visibleDips = activeDipList.slice(0, dipShowAll ? 20 : 6);
   const showProChartSection = isProMode || showSimpleProDrawer;
 
   return (
@@ -1230,8 +1232,8 @@ export default function MarketMoodScreen({
                 </Text>
                 <Text style={styles.sectionSub}>
                   {isProMode
-                    ? 'Corporate-split filtered • Verified 52W pullback, 200-DMA & RSI-14'
-                    : 'Top NSE shares jo apne 1-Saal ke High se kaafi discount par hain'}
+                    ? 'Split-filtered Leaders, Nifty Midcap 150 & Smallcap 250 • 200-DMA & RSI-14'
+                    : 'Big Investors, Top Bluechips, Mid Cap aur Small Cap ke discount shares'}
                 </Text>
               </View>
               {onOpenStocks && (
@@ -1248,7 +1250,12 @@ export default function MarketMoodScreen({
               )}
             </View>
 
-            <View style={styles.dipTabsRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.dipTabsScroll}
+              contentContainerStyle={styles.dipTabsContent}
+            >
               {[
                 {
                   id: 'WHALES',
@@ -1261,6 +1268,18 @@ export default function MarketMoodScreen({
                   label: isProMode
                     ? `NSE Leaders (${report?.leaderDips?.length || 0})`
                     : `Top Stocks (${report?.leaderDips?.length || 0})`,
+                },
+                {
+                  id: 'MIDCAP',
+                  label: isProMode
+                    ? `Midcap 150 (${report?.midcapDips?.length || 0})`
+                    : `Mid Cap (${report?.midcapDips?.length || 0})`,
+                },
+                {
+                  id: 'SMALLCAP',
+                  label: isProMode
+                    ? `Smallcap 250 (${report?.smallcapDips?.length || 0})`
+                    : `Small Cap (${report?.smallcapDips?.length || 0})`,
                 },
                 {
                   id: 'WATCHLIST',
@@ -1289,7 +1308,7 @@ export default function MarketMoodScreen({
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
 
             {activeDipList.length === 0 ? (
               <View style={styles.emptyDipBox}>
@@ -1342,6 +1361,12 @@ export default function MarketMoodScreen({
                         <Text style={styles.dipName} numberOfLines={1}>
                           {item.name}
                         </Text>
+
+                        {(item.capLabel || item.sector) && (
+                          <Text style={styles.dipTierMeta} numberOfLines={1}>
+                            {[item.capLabel, item.sector].filter(Boolean).join(' • ')}
+                          </Text>
+                        )}
 
                         {isProMode && (
                           <View style={styles.dipMetaLine}>
@@ -2383,18 +2408,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
   },
-  dipTabsRow: {
+  dipTabsScroll: {
+    marginBottom: 10,
+    marginHorizontal: -2,
+  },
+  dipTabsContent: {
     flexDirection: 'row',
     gap: 7,
-    marginBottom: 10,
+    paddingHorizontal: 2,
+    paddingRight: 10,
   },
   dipTabBtn: {
-    flex: 1,
     backgroundColor: '#0D131F',
     paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 12,
     borderRadius: 11,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -2474,6 +2504,12 @@ const styles = StyleSheet.create({
     color: '#CBD5E1',
     fontSize: 11.5,
     fontWeight: '500',
+  },
+  dipTierMeta: {
+    color: '#7C93B0',
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
   },
   dipMetaLine: {
     marginTop: 3,
