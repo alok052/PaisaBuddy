@@ -10,6 +10,7 @@ import {
   Dimensions,
   Alert,
   Switch,
+  Modal,
 } from 'react-native';
 import Svg, {
   Defs,
@@ -79,6 +80,30 @@ function formatShortDate(isoStr) {
   return `${parts[2]} ${months[mIdx] || parts[1]} ${parts[0].slice(-2)}`;
 }
 
+function getBenchmarkSimpleVerdict(bench) {
+  if (!bench) return '';
+  const ddAbs = Math.abs(bench.drawdownFrom52WHighPct || 0);
+  const dist200 = bench.distFrom200DmaPct || 0;
+
+  if (bench.key === 'GOLD') {
+    if (dist200 <= -2) {
+      return 'Gold thoda sasta hua hai — portfolio suraksha (hedge) ke liye add karne ka accha rate hai.';
+    }
+    if (dist200 >= 8) {
+      return 'Gold kaafi upar chal raha hai — sirf 5–10% portfolio protection ke liye rakhein.';
+    }
+    return 'Gold stable level par hai — 10% portfolio safety shield rakhna balanced rahega.';
+  }
+
+  if ((bench.drawdownFrom52WHighPct || 0) <= -10 || dist200 <= -4) {
+    return `Apne 1-saal ke High se ${ddAbs.toFixed(1)}% sasta chal raha hai — step-by-step buy aur extra SIP ke liye accha zone.`;
+  }
+  if (dist200 >= 6) {
+    return `Apne 1-saal ke average se +${dist200}% upar chal raha hai — regular SIP chalne dein, ek saath bulk buy na karein.`;
+  }
+  return 'Apne fair range me trade kar raha hai — bina stress ke monthly SIP continue rakhein.';
+}
+
 export default function MarketMoodScreen({
   onOpenMenu,
   onOpenSipDoctor,
@@ -89,6 +114,12 @@ export default function MarketMoodScreen({
   const [report, setReport] = useState(null);
   const [whalesList, setWhalesList] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
+
+  // Dual View Experience: Simple (beginner crystal clear) vs Pro (institutional quant depth)
+  const [isProMode, setIsProMode] = useState(false);
+  const [showSimpleProDrawer, setShowSimpleProDrawer] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+  const [dipShowAll, setDipShowAll] = useState(false);
 
   // Interactive Chart State
   const [selectedBenchKey, setSelectedBenchKey] = useState('NIFTY50');
@@ -108,6 +139,7 @@ export default function MarketMoodScreen({
   const [alertConfig, setAlertConfig] = useState({
     enabled: false,
     thresholdScore: 40,
+    preferredProMode: false,
   });
 
   const loadSnapshot = useCallback(async (forceRefresh = false) => {
@@ -120,9 +152,12 @@ export default function MarketMoodScreen({
       setWatchlist(wl);
       setWhalesList(whales);
       if (savedAlerts && typeof savedAlerts === 'object') {
+        const nextPro = Boolean(savedAlerts.preferredProMode);
+        setIsProMode(nextPro);
         setAlertConfig({
           enabled: Boolean(savedAlerts.enabled),
           thresholdScore: Number(savedAlerts.thresholdScore) || 40,
+          preferredProMode: nextPro,
         });
       }
 
@@ -150,6 +185,14 @@ export default function MarketMoodScreen({
     setRefreshing(false);
   }, [loadSnapshot]);
 
+  const handleToggleViewMode = async (nextPro) => {
+    Haptics.selectionAsync();
+    setIsProMode(nextPro);
+    const nextCfg = { ...alertConfig, preferredProMode: nextPro };
+    setAlertConfig(nextCfg);
+    await writeJsonStore(STORE_KEYS.DIP_ALERT_CONFIG, nextCfg);
+  };
+
   const handleUpdateAlertConfig = async (nextCfg) => {
     setAlertConfig(nextCfg);
     await writeJsonStore(STORE_KEYS.DIP_ALERT_CONFIG, nextCfg);
@@ -167,22 +210,22 @@ export default function MarketMoodScreen({
             ? `Smart Dip Alert Triggered! Mood ${score}/100`
             : `Market Mood Check: ${score}/100 (${reg})`,
           body: triggered
-            ? `India Market Mood dropped to ${score}/100 (below your <=${alertConfig.thresholdScore} target). Review staggered SIP tranches.`
+            ? `India Market Mood dropped to ${score}/100 (below your <=${alertConfig.thresholdScore} target). Great time to review SIP top-ups.`
             : `Target threshold is <=${alertConfig.thresholdScore}. Current Nifty & Midcap gauges are tracked on PaisaBuddy.`,
           sound: true,
         },
         trigger: null,
       });
       Alert.alert(
-        triggered ? 'Dip Alert Notification Sent' : 'Threshold Guard Checked',
+        triggered ? 'Dip Alert Notification Sent' : 'Alert Target Checked',
         triggered
-          ? `Mood is ${score}/100 (at or below <=${alertConfig.thresholdScore}). Push notification dispatched on this device!`
-          : `Today's Mood is ${score}/100 (${reg}). Your auto-alert target is set to <=${alertConfig.thresholdScore}. We also sent a test preview notification.`
+          ? `Mood abhi ${score}/100 hai (aapke <=${alertConfig.thresholdScore} target ke andar). Phone par notification bhej diya gaya hai!`
+          : `Aaj ka Market Mood ${score}/100 hai. Jab bhi yeh <=${alertConfig.thresholdScore} par aayega aapko dip alert milega.`
       );
     } catch (err) {
       Alert.alert(
-        'Threshold Guard Saved',
-        `Today's live Mood is ${score}/100 (${reg}). Alert threshold <=${alertConfig.thresholdScore} is saved locally on your device.`
+        'Alert Target Saved',
+        `Aaj ka live Mood ${score}/100 hai. Aapka target <=${alertConfig.thresholdScore} device par save ho gaya hai.`
       );
     }
   };
@@ -244,6 +287,13 @@ export default function MarketMoodScreen({
   const overallRegime = report?.overallRegime || {
     label: 'Neutral • Fair Zone',
     shortLabel: 'FAIR ZONE',
+    simpleBadge: 'Fair Rate',
+    simpleShortLabel: 'SAHI RATE • NORMAL',
+    simpleHeadline: 'Balanced Market — Bina Tension Normal SIP Chalne Dein',
+    simpleGuidance: 'Regular monthly SIP chalayein aur har saal step-up karte rahein.',
+    sipAction: 'Normal SIP Chalao',
+    lumpsumAction: '3-6 Month Split',
+    marketZoneText: 'Balanced Price',
     color: '#38BDF8',
     bgColor: 'rgba(56, 189, 248, 0.16)',
     borderColor: 'rgba(56, 189, 248, 0.38)',
@@ -256,6 +306,16 @@ export default function MarketMoodScreen({
 
   const gaugeDot = scoreToPoint(overallScore, GAUGE_R);
   const needleTip = scoreToPoint(overallScore, GAUGE_R - 18);
+
+  const breadth = report?.marketBreadth || {};
+  const salePct = Math.min(
+    99,
+    Math.round((breadth.pctInSmartDip || 0) + (breadth.pctDeepCorrection || 0))
+  );
+  const advCount = breadth.advances || 0;
+  const decCount = breadth.declines || 0;
+  const visibleDips = activeDipList.slice(0, dipShowAll ? 18 : 6);
+  const showProChartSection = isProMode || showSimpleProDrawer;
 
   return (
     <ScrollView
@@ -275,7 +335,7 @@ export default function MarketMoodScreen({
         onMenuPress={onOpenMenu}
       />
 
-      {/* Top Action & Sync Strip */}
+      {/* Top Live Status & Utility Bar */}
       <View style={styles.topActionRow}>
         <View style={styles.liveDatePill}>
           <View style={[styles.liveDot, { backgroundColor: overallRegime.color }]} />
@@ -293,12 +353,23 @@ export default function MarketMoodScreen({
             style={styles.miniActionBtn}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowGuideModal(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="help-circle-outline" size={14} color="#FBBF24" />
+            <Text style={[styles.miniActionText, { color: '#FBBF24' }]}>Guide</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.miniActionBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               if (report) shareMarketMoodInsight(report);
             }}
             activeOpacity={0.8}
           >
             <Ionicons name="share-social-outline" size={14} color="#38BDF8" />
-            <Text style={[styles.miniActionText, { color: '#38BDF8' }]}>Share</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -307,30 +378,66 @@ export default function MarketMoodScreen({
             activeOpacity={0.8}
           >
             <Ionicons name="refresh" size={14} color="#10B981" />
-            <Text style={styles.miniActionText}>Sync</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Dual Experience Toggle: Simple (Beginner Easy) vs Pro Quant (Advanced Chart/RSI/13Y Backtest) */}
+      <View style={styles.modeSwitchWrap}>
+        <TouchableOpacity
+          style={[styles.modeTab, !isProMode && styles.modeTabSimpleActive]}
+          onPress={() => handleToggleViewMode(false)}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name="sparkles"
+            size={13}
+            color={!isProMode ? '#10B981' : '#64748B'}
+          />
+          <Text style={[styles.modeTabTxt, !isProMode && styles.modeTabSimpleTxt]}>
+            Simple View (Easy)
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.modeTab, isProMode && styles.modeTabProActive]}
+          onPress={() => handleToggleViewMode(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons
+            name="analytics-outline"
+            size={14}
+            color={isProMode ? '#38BDF8' : '#64748B'}
+          />
+          <Text style={[styles.modeTabTxt, isProMode && styles.modeTabProTxt]}>
+            Pro Quant Lab
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {loading && !report ? (
         <View style={styles.loadingCard}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingTitle}>Scanning NSE &amp; AMFI Multi-Year Benchmarks...</Text>
+          <Text style={styles.loadingTitle}>Live Market Mood Check Ho Raha Hai...</Text>
           <Text style={styles.loadingSub}>
-            Computing 200-DMA distance, Wilder RSI-14, market breadth &amp; 10Y historical return distribution
+            Nifty 50, Midcap, Smallcap, Gold aur 3,500+ NSE stocks scan ho rahe hain
           </Text>
         </View>
       ) : (
         <>
-          {/* HERO: LIVE COMPOSITE MARKET MOOD SPEEDOMETER */}
+          {/* HERO: MARKET MOOD SPEEDOMETER */}
           <LinearGradient
             colors={['#0D1525', '#090E18']}
             style={[styles.heroCard, { borderColor: overallRegime.borderColor }]}
           >
             <View style={styles.heroHeaderRow}>
-              <View>
-                <Text style={styles.heroKicker}>INDIA MARKET TEMPERATURE</Text>
-                <Text style={styles.heroTitle}>Live Mood &amp; Valuation Index</Text>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.heroKicker}>
+                  {isProMode ? 'INDIA MARKET TEMPERATURE' : "AAJ KA MARKET MOOD"}
+                </Text>
+                <Text style={styles.heroTitle}>
+                  {isProMode ? 'Live Mood & Valuation Index' : 'Market Sasta Hai Ya Mehenga?'}
+                </Text>
               </View>
               <View
                 style={[
@@ -343,7 +450,9 @@ export default function MarketMoodScreen({
               >
                 <Ionicons name={overallRegime.icon} size={13} color={overallRegime.color} />
                 <Text style={[styles.regimePillText, { color: overallRegime.color }]}>
-                  {overallRegime.shortLabel}
+                  {isProMode
+                    ? overallRegime.shortLabel
+                    : overallRegime.simpleBadge?.toUpperCase()}
                 </Text>
               </View>
             </View>
@@ -363,7 +472,6 @@ export default function MarketMoodScreen({
                   />
                 ))}
 
-                {/* Needle Axis Line */}
                 <Line
                   x1={GAUGE_CX}
                   y1={GAUGE_CY}
@@ -382,7 +490,6 @@ export default function MarketMoodScreen({
                   fillOpacity={0.35}
                 />
 
-                {/* Active Arc Marker Dot */}
                 <Circle
                   cx={gaugeDot.x}
                   cy={gaugeDot.y}
@@ -400,89 +507,152 @@ export default function MarketMoodScreen({
                 />
               </Svg>
 
-              {/* Center Tabular Mood Score Overlay */}
               <View style={styles.gaugeCenterReadout}>
                 <Text style={[styles.gaugeBigScore, { color: overallRegime.color }]}>
                   {overallScore}
                 </Text>
-                <Text style={styles.gaugeScoreSub}>/ 100 COMPOSITE</Text>
+                <Text style={styles.gaugeScoreSub}>
+                  {isProMode ? '/ 100 COMPOSITE' : '/ 100 METER'}
+                </Text>
               </View>
 
               <View style={styles.gaugeAxisLabels}>
-                <Text style={[styles.gaugeAxisTxt, { color: '#10B981' }]}>0 DIP BUY</Text>
-                <Text style={[styles.gaugeAxisTxt, { color: '#38BDF8' }]}>50 FAIR</Text>
-                <Text style={[styles.gaugeAxisTxt, { color: '#EF4444' }]}>100 HOT</Text>
+                <Text style={[styles.gaugeAxisTxt, { color: '#10B981' }]}>
+                  {isProMode ? '0 DIP BUY' : '0 SASTA'}
+                </Text>
+                <Text style={[styles.gaugeAxisTxt, { color: '#38BDF8' }]}>
+                  {isProMode ? '50 FAIR' : '50 SAHI'}
+                </Text>
+                <Text style={[styles.gaugeAxisTxt, { color: '#EF4444' }]}>
+                  {isProMode ? '100 HOT' : '100 GARAM'}
+                </Text>
               </View>
             </View>
 
-            {/* Plain Hinglish / Investor Verdict */}
+            {/* Clear Verdict Box */}
             <View style={styles.verdictBox}>
-              <Text style={styles.verdictHeadline}>{overallRegime.headline}</Text>
-              <Text style={styles.verdictGuidance}>{overallRegime.guidance}</Text>
+              <Text style={styles.verdictHeadline}>
+                {isProMode ? overallRegime.headline : overallRegime.simpleHeadline}
+              </Text>
+              <Text style={styles.verdictGuidance}>
+                {isProMode ? overallRegime.guidance : overallRegime.simpleGuidance}
+              </Text>
             </View>
 
-            {/* 4 Key Institutional Telemetry Tiles */}
-            <View style={styles.telemetryGrid}>
-              <View style={styles.telemetryTile}>
-                <Text style={styles.telemetryLabel}>NIFTY vs 200-DMA</Text>
-                <Text
-                  style={[
-                    styles.telemetryVal,
-                    {
-                      color:
-                        (report?.niftyAnchor?.distFrom200DmaPct ?? 0) < 0
-                          ? '#10B981'
-                          : (report?.niftyAnchor?.distFrom200DmaPct ?? 0) > 7
-                          ? '#F59E0B'
-                          : '#38BDF8',
-                    },
-                  ]}
-                >
-                  {(report?.niftyAnchor?.distFrom200DmaPct ?? 0) >= 0 ? '+' : ''}
-                  {report?.niftyAnchor?.distFrom200DmaPct ?? 0}%
-                </Text>
+            {/* Quick Action 3-Pill Cheat-Sheet (Everyday Investor Answer in 1 Second) */}
+            {!isProMode && (
+              <View style={styles.quickActionGrid}>
+                <View style={styles.quickActionCard}>
+                  <Text style={styles.quickActionLbl}>MONTHLY SIP</Text>
+                  <Text style={[styles.quickActionVal, { color: '#10B981' }]}>
+                    {overallRegime.sipAction}
+                  </Text>
+                </View>
+                <View style={styles.quickActionCard}>
+                  <Text style={styles.quickActionLbl}>BADA LUMPSUM</Text>
+                  <Text style={[styles.quickActionVal, { color: overallRegime.color }]}>
+                    {overallRegime.lumpsumAction}
+                  </Text>
+                </View>
+                <View style={styles.quickActionCard}>
+                  <Text style={styles.quickActionLbl}>RATE LEVEL</Text>
+                  <Text style={[styles.quickActionVal, { color: '#38BDF8' }]}>
+                    {overallRegime.marketZoneText}
+                  </Text>
+                </View>
               </View>
+            )}
 
-              <View style={styles.telemetryTile}>
-                <Text style={styles.telemetryLabel}>AVG PULLBACK</Text>
-                <Text style={[styles.telemetryVal, { color: '#22D3EE' }]}>
-                  {report?.marketBreadth?.avgDrawdownPct ?? -8}%
-                </Text>
-              </View>
+            {/* Key Metrics Strip (Human-friendly in Simple Mode, Full Quant in Pro Mode) */}
+            {isProMode ? (
+              <View style={styles.telemetryGrid}>
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>NIFTY vs 200-DMA</Text>
+                  <Text
+                    style={[
+                      styles.telemetryVal,
+                      {
+                        color:
+                          (report?.niftyAnchor?.distFrom200DmaPct ?? 0) < 0
+                            ? '#10B981'
+                            : (report?.niftyAnchor?.distFrom200DmaPct ?? 0) > 7
+                            ? '#F59E0B'
+                            : '#38BDF8',
+                      },
+                    ]}
+                  >
+                    {(report?.niftyAnchor?.distFrom200DmaPct ?? 0) >= 0 ? '+' : ''}
+                    {report?.niftyAnchor?.distFrom200DmaPct ?? 0}%
+                  </Text>
+                </View>
 
-              <View style={styles.telemetryTile}>
-                <Text style={styles.telemetryLabel}>ADV / DEC RATIO</Text>
-                <Text
-                  style={[
-                    styles.telemetryVal,
-                    {
-                      color:
-                        (report?.marketBreadth?.advDeclineRatio ?? 1) >= 1
-                          ? '#10B981'
-                          : '#EF4444',
-                    },
-                  ]}
-                >
-                  {report?.marketBreadth?.advDeclineRatio ?? 1.0}x
-                </Text>
-              </View>
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>AVG PULLBACK</Text>
+                  <Text style={[styles.telemetryVal, { color: '#22D3EE' }]}>
+                    {breadth.avgDrawdownPct ?? -8}%
+                  </Text>
+                </View>
 
-              <View style={styles.telemetryTile}>
-                <Text style={styles.telemetryLabel}>SIP PACE</Text>
-                <Text style={[styles.telemetryVal, { color: overallRegime.color }]}>
-                  {overallRegime.sipMultiplier}x
-                </Text>
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>ADV / DEC RATIO</Text>
+                  <Text
+                    style={[
+                      styles.telemetryVal,
+                      { color: (breadth.advDeclineRatio ?? 1) >= 1 ? '#10B981' : '#EF4444' },
+                    ]}
+                  >
+                    {breadth.advDeclineRatio ?? 1.0}x
+                  </Text>
+                </View>
+
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>SIP PACE</Text>
+                  <Text style={[styles.telemetryVal, { color: overallRegime.color }]}>
+                    {overallRegime.sipMultiplier}x
+                  </Text>
+                </View>
               </View>
-            </View>
+            ) : (
+              <View style={styles.telemetryGrid}>
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>NIFTY 1Y AVG SE</Text>
+                  <Text style={[styles.telemetryVal, { color: '#F59E0B' }]}>
+                    {(report?.niftyAnchor?.distFrom200DmaPct ?? 0) >= 0 ? '+' : ''}
+                    {report?.niftyAnchor?.distFrom200DmaPct ?? 0}%
+                  </Text>
+                </View>
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>STOCKS ON SALE</Text>
+                  <Text style={[styles.telemetryVal, { color: '#10B981' }]}>
+                    {salePct}% Shares
+                  </Text>
+                </View>
+                <View style={styles.telemetryTile}>
+                  <Text style={styles.telemetryLabel}>AAJ MARKET ME</Text>
+                  <Text
+                    style={[
+                      styles.telemetryVal,
+                      { color: advCount >= decCount ? '#10B981' : '#EF4444' },
+                    ]}
+                  >
+                    {advCount}↑ / {decCount}↓
+                  </Text>
+                </View>
+              </View>
+            )}
           </LinearGradient>
 
-          {/* SECTION 2: MULTI-INDEX RADAR + PRICE VS 200-DMA CHART */}
+          {/* SECTION 2: KAUNSA INDEX SASTA YA MEHENGA HAI? */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>Index &amp; Sector Radar</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>
+                  {isProMode ? 'Index & Sector Radar' : 'Kaunsa Sector Sasta Hai?'}
+                </Text>
                 <Text style={styles.sectionSub}>
-                  Tap any benchmark to inspect 200-DMA &amp; multi-year AMFI history
+                  {isProMode
+                    ? 'Tap any benchmark to inspect 200-DMA, RSI & AMFI multi-year odds'
+                    : 'Nifty, Midcap, Smallcap ya Gold par tap karke price level dekhein'}
                 </Text>
               </View>
             </View>
@@ -496,6 +666,7 @@ export default function MarketMoodScreen({
               {(report?.benchmarks || []).map((bench) => {
                 const active = bench.key === selectedBenchmark?.key;
                 const bColor = bench.regime?.color || '#38BDF8';
+                const fillWidth = clamp(bench.moodScore ?? 50, 8, 100);
                 return (
                   <TouchableOpacity
                     key={bench.key}
@@ -514,16 +685,33 @@ export default function MarketMoodScreen({
                     activeOpacity={0.85}
                   >
                     <View style={styles.benchCardTop}>
-                      <Text style={styles.benchShortName}>{bench.shortLabel}</Text>
+                      <Text style={styles.benchShortName} numberOfLines={1}>
+                        {bench.shortLabel}
+                      </Text>
                       <View style={[styles.benchScoreChip, { backgroundColor: `${bColor}22` }]}>
                         <Text style={[styles.benchScoreChipTxt, { color: bColor }]}>
                           {bench.moodScore}
                         </Text>
                       </View>
                     </View>
-                    <Text style={styles.benchEtfSym}>{bench.etfSymbol}</Text>
+
+                    {/* Visual Heat Progress Bar */}
+                    <View style={styles.miniHeatTrack}>
+                      <View
+                        style={[
+                          styles.miniHeatFill,
+                          { width: `${fillWidth}%`, backgroundColor: bColor },
+                        ]}
+                      />
+                    </View>
+
+                    <Text style={[styles.benchBadgeLabel, { color: bColor }]}>
+                      {isProMode ? bench.etfSymbol : bench.regime?.simpleBadge}
+                    </Text>
                     <Text style={styles.benchDdText}>
-                      {bench.drawdownFrom52WHighPct}% off High
+                      {bench.drawdownFrom52WHighPct <= -2
+                        ? `${Math.abs(bench.drawdownFrom52WHighPct)}% off Peak`
+                        : 'Near 1Y Peak'}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -532,7 +720,6 @@ export default function MarketMoodScreen({
 
             {selectedBenchmark && (
               <View style={styles.benchDetailCard}>
-                {/* Selected Benchmark Header */}
                 <View style={styles.benchDetailTop}>
                   <View style={{ flex: 1, marginRight: 8 }}>
                     <View style={styles.benchTitleRow}>
@@ -552,12 +739,14 @@ export default function MarketMoodScreen({
                             { color: selectedBenchmark.regime?.color || '#38BDF8' },
                           ]}
                         >
-                          {selectedBenchmark.regime?.shortLabel} • {selectedBenchmark.moodScore}
+                          {isProMode
+                            ? `${selectedBenchmark.regime?.shortLabel} • ${selectedBenchmark.moodScore}`
+                            : `${selectedBenchmark.regime?.simpleBadge} • ${selectedBenchmark.moodScore}/100`}
                         </Text>
                       </View>
                     </View>
                     <Text style={styles.benchDetailRole}>
-                      Proxy ETF: {selectedBenchmark.etfSymbol} • {selectedBenchmark.role}
+                      ETF: {selectedBenchmark.etfSymbol} • {selectedBenchmark.role}
                     </Text>
                   </View>
 
@@ -585,146 +774,17 @@ export default function MarketMoodScreen({
                   </View>
                 </View>
 
-                {/* Chart Legend & Timeframes */}
-                <View style={styles.chartMetaRow}>
-                  <View style={styles.chartLegend}>
-                    <View style={styles.legendItem}>
-                      <View
-                        style={[
-                          styles.legendDot,
-                          { backgroundColor: selectedBenchmark.regime?.color || '#10B981' },
-                        ]}
-                      />
-                      <Text style={styles.legendText}>Price</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
-                      <Text style={styles.legendText}>
-                        200-DMA ({formatInrPrice(selectedBenchmark.dma200)})
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.rangeSwitchRow}>
-                    {['3M', '6M', '1Y'].map((rk) => {
-                      const active = chartRange === rk;
-                      return (
-                        <TouchableOpacity
-                          key={rk}
-                          style={[styles.rangeBtn, active && styles.rangeBtnActive]}
-                          onPress={() => {
-                            Haptics.selectionAsync();
-                            setChartRange(rk);
-                            setActiveChartIdx(null);
-                          }}
-                        >
-                          <Text style={[styles.rangeBtnTxt, active && styles.rangeBtnTxtActive]}>
-                            {rk}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Interactive SVG Dual Chart: Close Price vs 200-DMA */}
-                {chartGeom ? (
-                  <View
-                    style={styles.chartTouchBox}
-                    onStartShouldSetResponder={() => true}
-                    onMoveShouldSetResponder={() => true}
-                    onResponderGrant={(e) => handleTouchChart(e.nativeEvent.locationX)}
-                    onResponderMove={(e) => handleTouchChart(e.nativeEvent.locationX)}
-                    onResponderRelease={() => setActiveChartIdx(null)}
-                  >
-                    <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-                      <Defs>
-                        <SvgLinearGradient id="moodAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <Stop
-                            offset="0%"
-                            stopColor={selectedBenchmark.regime?.color || '#38BDF8'}
-                            stopOpacity="0.34"
-                          />
-                          <Stop
-                            offset="100%"
-                            stopColor={selectedBenchmark.regime?.color || '#38BDF8'}
-                            stopOpacity="0.01"
-                          />
-                        </SvgLinearGradient>
-                      </Defs>
-
-                      {chartGeom.dma200RefY !== null && (
-                        <Line
-                          x1={0}
-                          y1={chartGeom.dma200RefY}
-                          x2={CHART_WIDTH}
-                          y2={chartGeom.dma200RefY}
-                          stroke="#F59E0B"
-                          strokeWidth={1}
-                          strokeDasharray="4,4"
-                          strokeOpacity={0.5}
-                        />
-                      )}
-
-                      <Path d={chartGeom.areaPath} fill="url(#moodAreaGrad)" />
-                      <Path
-                        d={chartGeom.linePath}
-                        stroke={selectedBenchmark.regime?.color || '#38BDF8'}
-                        strokeWidth={2.4}
-                        fill="none"
-                      />
-
-                      {chartGeom.dma200Path ? (
-                        <Path
-                          d={chartGeom.dma200Path}
-                          stroke="#F59E0B"
-                          strokeWidth={1.8}
-                          strokeDasharray="5,3"
-                          fill="none"
-                        />
-                      ) : null}
-
-                      {activeCoord && (
-                        <>
-                          <Line
-                            x1={activeCoord.x}
-                            y1={0}
-                            x2={activeCoord.x}
-                            y2={CHART_HEIGHT}
-                            stroke="rgba(255,255,255,0.4)"
-                            strokeWidth={1}
-                            strokeDasharray="3,3"
-                          />
-                          <Circle
-                            cx={activeCoord.x}
-                            cy={activeCoord.y}
-                            r={5}
-                            fill="#FFFFFF"
-                            stroke={selectedBenchmark.regime?.color || '#38BDF8'}
-                            strokeWidth={2.5}
-                          />
-                        </>
-                      )}
-                    </Svg>
-
-                    <Text style={styles.scrubHint}>
-                      {touchedPt
-                        ? `${formatShortDate(touchedPt.date)} • Close ${formatInrPrice(touchedPt.close)} • 200-DMA ${formatInrPrice(
-                            touchedPt.hasTrue200Dma ? touchedPt.dma200 : selectedBenchmark.dma200
-                          )}`
-                        : 'Drag finger across chart to inspect historical price vs 200-DMA'}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {/* 52W Range Bar + Technical Metrics Row */}
+                {/* Intuitive 1-Year Low to High Price Ruler */}
                 <View style={styles.range52Box}>
                   <View style={styles.range52Header}>
                     <Text style={styles.range52Lbl}>
-                      52W Low: {formatInrPrice(selectedBenchmark.low52W)}
+                      1Y Low: {formatInrPrice(selectedBenchmark.low52W)}
+                    </Text>
+                    <Text style={styles.range52Mid}>
+                      {selectedBenchmark.range52WPositionPct}% of 1Y Range
                     </Text>
                     <Text style={styles.range52Lbl}>
-                      52W High: {formatInrPrice(selectedBenchmark.high52W)}
+                      1Y High: {formatInrPrice(selectedBenchmark.high52W)}
                     </Text>
                   </View>
                   <View style={styles.rangeTrack}>
@@ -749,107 +809,275 @@ export default function MarketMoodScreen({
                   </View>
                 </View>
 
-                <View style={styles.techRow}>
-                  <View style={styles.techPill}>
-                    <Text style={styles.techLbl}>vs 200-DMA</Text>
-                    <Text
-                      style={[
-                        styles.techVal,
-                        {
-                          color:
-                            selectedBenchmark.distFrom200DmaPct < 0 ? '#10B981' : '#F59E0B',
-                        },
-                      ]}
-                    >
-                      {selectedBenchmark.distFrom200DmaPct >= 0 ? '+' : ''}
-                      {selectedBenchmark.distFrom200DmaPct}%
-                    </Text>
-                  </View>
-
-                  <View style={styles.techPill}>
-                    <Text style={styles.techLbl}>Wilder RSI-14</Text>
-                    <Text
-                      style={[
-                        styles.techVal,
-                        {
-                          color:
-                            selectedBenchmark.rsi14 <= 38
-                              ? '#10B981'
-                              : selectedBenchmark.rsi14 >= 68
-                              ? '#EF4444'
-                              : '#E2E8F0',
-                        },
-                      ]}
-                    >
-                      {selectedBenchmark.rsi14}
-                    </Text>
-                  </View>
-
-                  <View style={styles.techPill}>
-                    <Text style={styles.techLbl}>200-DMA Trend</Text>
-                    <Text style={styles.techVal}>{selectedBenchmark.dma200Trend}</Text>
-                  </View>
-
-                  <View style={styles.techPill}>
-                    <Text style={styles.techLbl}>1Y Volatility</Text>
-                    <Text style={styles.techVal}>{selectedBenchmark.volatility1Y}%</Text>
-                  </View>
+                {/* Plain 1-Line Investor Summary */}
+                <View style={styles.simpleBenchHintBox}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={15}
+                    color={selectedBenchmark.regime?.color || '#38BDF8'}
+                  />
+                  <Text style={styles.simpleBenchHintTxt}>
+                    {getBenchmarkSimpleVerdict(selectedBenchmark)}
+                  </Text>
                 </View>
 
-                {/* Verified AMFI Multi-Year Forward Edge */}
-                {selectedBenchmark.historicalStats && (
-                  <View style={styles.histBox}>
-                    <View style={styles.histHeaderRow}>
-                      <Ionicons name="stats-chart" size={14} color="#38BDF8" />
-                      <Text style={styles.histTitle}>
-                        VERIFIED AMFI HISTORY ({selectedBenchmark.historicalStats.windowLabel} •{' '}
-                        {selectedBenchmark.historicalStats.sampleDays} SIMILAR DAYS)
-                      </Text>
-                    </View>
-                    <Text style={styles.histDesc}>
-                      Historically when {selectedBenchmark.shortLabel} traded at{' '}
-                      {selectedBenchmark.distFrom200DmaPct >= 0 ? '+' : ''}
-                      {selectedBenchmark.distFrom200DmaPct}% vs 200-DMA (±3.5%):
+                {/* Optional Toggle inside Simple Mode so normal users can peek at Pro Charts anytime */}
+                {!isProMode && (
+                  <TouchableOpacity
+                    style={styles.proDrawerToggleBtn}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setShowSimpleProDrawer((prev) => !prev);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="stats-chart" size={14} color="#38BDF8" />
+                    <Text style={styles.proDrawerToggleTxt}>
+                      {showSimpleProDrawer
+                        ? 'Hide 200-DMA Chart & 13Y History'
+                        : 'Open Pro Chart, 200-DMA & 13Y History'}
                     </Text>
-                    <View style={styles.histStatsRow}>
-                      <View style={styles.histStatCell}>
-                        <Text style={styles.histStatLbl}>1Y Positive Odds</Text>
-                        <Text style={[styles.histStatVal, { color: '#10B981' }]}>
-                          {selectedBenchmark.historicalStats.winRatePct}%
+                    <Ionicons
+                      name={showSimpleProDrawer ? 'chevron-up' : 'chevron-down'}
+                      size={15}
+                      color="#38BDF8"
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* Pro Quant Interactive Chart, Technicals & AMFI Multi-Year Edge */}
+                {showProChartSection && (
+                  <View style={styles.proLabDrawer}>
+                    <View style={styles.chartMetaRow}>
+                      <View style={styles.chartLegend}>
+                        <View style={styles.legendItem}>
+                          <View
+                            style={[
+                              styles.legendDot,
+                              { backgroundColor: selectedBenchmark.regime?.color || '#10B981' },
+                            ]}
+                          />
+                          <Text style={styles.legendText}>Price</Text>
+                        </View>
+                        <View style={styles.legendItem}>
+                          <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
+                          <Text style={styles.legendText}>
+                            200-DMA ({formatInrPrice(selectedBenchmark.dma200)})
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.rangeSwitchRow}>
+                        {['3M', '6M', '1Y'].map((rk) => {
+                          const active = chartRange === rk;
+                          return (
+                            <TouchableOpacity
+                              key={rk}
+                              style={[styles.rangeBtn, active && styles.rangeBtnActive]}
+                              onPress={() => {
+                                Haptics.selectionAsync();
+                                setChartRange(rk);
+                                setActiveChartIdx(null);
+                              }}
+                            >
+                              <Text style={[styles.rangeBtnTxt, active && styles.rangeBtnTxtActive]}>
+                                {rk}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {chartGeom ? (
+                      <View
+                        style={styles.chartTouchBox}
+                        onStartShouldSetResponder={() => true}
+                        onMoveShouldSetResponder={() => true}
+                        onResponderGrant={(e) => handleTouchChart(e.nativeEvent.locationX)}
+                        onResponderMove={(e) => handleTouchChart(e.nativeEvent.locationX)}
+                        onResponderRelease={() => setActiveChartIdx(null)}
+                      >
+                        <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
+                          <Defs>
+                            <SvgLinearGradient id="moodAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <Stop
+                                offset="0%"
+                                stopColor={selectedBenchmark.regime?.color || '#38BDF8'}
+                                stopOpacity="0.34"
+                              />
+                              <Stop
+                                offset="100%"
+                                stopColor={selectedBenchmark.regime?.color || '#38BDF8'}
+                                stopOpacity="0.01"
+                              />
+                            </SvgLinearGradient>
+                          </Defs>
+
+                          {chartGeom.dma200RefY !== null && (
+                            <Line
+                              x1={0}
+                              y1={chartGeom.dma200RefY}
+                              x2={CHART_WIDTH}
+                              y2={chartGeom.dma200RefY}
+                              stroke="#F59E0B"
+                              strokeWidth={1}
+                              strokeDasharray="4,4"
+                              strokeOpacity={0.5}
+                            />
+                          )}
+
+                          <Path d={chartGeom.areaPath} fill="url(#moodAreaGrad)" />
+                          <Path
+                            d={chartGeom.linePath}
+                            stroke={selectedBenchmark.regime?.color || '#38BDF8'}
+                            strokeWidth={2.4}
+                            fill="none"
+                          />
+
+                          {chartGeom.dma200Path ? (
+                            <Path
+                              d={chartGeom.dma200Path}
+                              stroke="#F59E0B"
+                              strokeWidth={1.8}
+                              strokeDasharray="5,3"
+                              fill="none"
+                            />
+                          ) : null}
+
+                          {activeCoord && (
+                            <>
+                              <Line
+                                x1={activeCoord.x}
+                                y1={0}
+                                x2={activeCoord.x}
+                                y2={CHART_HEIGHT}
+                                stroke="rgba(255,255,255,0.4)"
+                                strokeWidth={1}
+                                strokeDasharray="3,3"
+                              />
+                              <Circle
+                                cx={activeCoord.x}
+                                cy={activeCoord.y}
+                                r={5}
+                                fill="#FFFFFF"
+                                stroke={selectedBenchmark.regime?.color || '#38BDF8'}
+                                strokeWidth={2.5}
+                              />
+                            </>
+                          )}
+                        </Svg>
+
+                        <Text style={styles.scrubHint}>
+                          {touchedPt
+                            ? `${formatShortDate(touchedPt.date)} • Close ${formatInrPrice(touchedPt.close)} • 200-DMA ${formatInrPrice(
+                                touchedPt.hasTrue200Dma ? touchedPt.dma200 : selectedBenchmark.dma200
+                              )}`
+                            : 'Chart par ungli drag karke pichhle rates check karein'}
                         </Text>
                       </View>
-                      <View style={styles.histStatCell}>
-                        <Text style={styles.histStatLbl}>Median 1Y Return</Text>
-                        <Text style={[styles.histStatVal, { color: '#38BDF8' }]}>
-                          {selectedBenchmark.historicalStats.median1YFwdPct >= 0 ? '+' : ''}
-                          {selectedBenchmark.historicalStats.median1YFwdPct}%
-                        </Text>
-                      </View>
-                      <View style={styles.histStatCell}>
-                        <Text style={styles.histStatLbl}>Worst 1Y Case</Text>
+                    ) : null}
+
+                    <View style={styles.techRow}>
+                      <View style={styles.techPill}>
+                        <Text style={styles.techLbl}>vs 200-DMA</Text>
                         <Text
                           style={[
-                            styles.histStatVal,
+                            styles.techVal,
                             {
                               color:
-                                selectedBenchmark.historicalStats.worst1YFwdPct < 0
-                                  ? '#EF4444'
-                                  : '#10B981',
+                                selectedBenchmark.distFrom200DmaPct < 0 ? '#10B981' : '#F59E0B',
                             },
                           ]}
                         >
-                          {selectedBenchmark.historicalStats.worst1YFwdPct >= 0 ? '+' : ''}
-                          {selectedBenchmark.historicalStats.worst1YFwdPct}%
+                          {selectedBenchmark.distFrom200DmaPct >= 0 ? '+' : ''}
+                          {selectedBenchmark.distFrom200DmaPct}%
                         </Text>
                       </View>
+
+                      <View style={styles.techPill}>
+                        <Text style={styles.techLbl}>Wilder RSI-14</Text>
+                        <Text
+                          style={[
+                            styles.techVal,
+                            {
+                              color:
+                                selectedBenchmark.rsi14 <= 38
+                                  ? '#10B981'
+                                  : selectedBenchmark.rsi14 >= 68
+                                  ? '#EF4444'
+                                  : '#E2E8F0',
+                            },
+                          ]}
+                        >
+                          {selectedBenchmark.rsi14}
+                        </Text>
+                      </View>
+
+                      <View style={styles.techPill}>
+                        <Text style={styles.techLbl}>200-DMA Trend</Text>
+                        <Text style={styles.techVal}>{selectedBenchmark.dma200Trend}</Text>
+                      </View>
+
+                      <View style={styles.techPill}>
+                        <Text style={styles.techLbl}>1Y Volatility</Text>
+                        <Text style={styles.techVal}>{selectedBenchmark.volatility1Y}%</Text>
+                      </View>
                     </View>
+
+                    {selectedBenchmark.historicalStats && (
+                      <View style={styles.histBox}>
+                        <View style={styles.histHeaderRow}>
+                          <Ionicons name="stats-chart" size={14} color="#38BDF8" />
+                          <Text style={styles.histTitle}>
+                            AMFI 13-YEAR HISTORY ({selectedBenchmark.historicalStats.windowLabel} •{' '}
+                            {selectedBenchmark.historicalStats.sampleDays} SIMILAR DAYS)
+                          </Text>
+                        </View>
+                        <Text style={styles.histDesc}>
+                          Pichhle saalon me jab {selectedBenchmark.shortLabel} isi level ke paas tha:
+                        </Text>
+                        <View style={styles.histStatsRow}>
+                          <View style={styles.histStatCell}>
+                            <Text style={styles.histStatLbl}>Profit Odds (1Y)</Text>
+                            <Text style={[styles.histStatVal, { color: '#10B981' }]}>
+                              {selectedBenchmark.historicalStats.winRatePct}%
+                            </Text>
+                          </View>
+                          <View style={styles.histStatCell}>
+                            <Text style={styles.histStatLbl}>Avg 1Y Return</Text>
+                            <Text style={[styles.histStatVal, { color: '#38BDF8' }]}>
+                              {selectedBenchmark.historicalStats.median1YFwdPct >= 0 ? '+' : ''}
+                              {selectedBenchmark.historicalStats.median1YFwdPct}%
+                            </Text>
+                          </View>
+                          <View style={styles.histStatCell}>
+                            <Text style={styles.histStatLbl}>Worst 1Y Case</Text>
+                            <Text
+                              style={[
+                                styles.histStatVal,
+                                {
+                                  color:
+                                    selectedBenchmark.historicalStats.worst1YFwdPct < 0
+                                      ? '#EF4444'
+                                      : '#10B981',
+                                },
+                              ]}
+                            >
+                              {selectedBenchmark.historicalStats.worst1YFwdPct >= 0 ? '+' : ''}
+                              {selectedBenchmark.historicalStats.worst1YFwdPct}%
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
             )}
           </View>
 
-          {/* SECTION 3: INTERACTIVE SMART DIP SIP & STP ALLOCATOR */}
+          {/* SECTION 3: SMART BUDGET SPLIT CALCULATOR */}
           <View style={styles.sectionBlock}>
             <View style={styles.allocatorCard}>
               <View style={styles.allocatorHeader}>
@@ -857,15 +1085,19 @@ export default function MarketMoodScreen({
                   <Ionicons name="sparkles" size={17} color="#10B981" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.allocatorTitle}>Smart Dip SIP &amp; STP Planner</Text>
+                  <Text style={styles.allocatorTitle}>
+                    {isProMode ? 'Smart Dip SIP & STP Planner' : 'Aaj Paise Kaha Lagayein?'}
+                  </Text>
                   <Text style={styles.allocatorSub}>
-                    Live regime-weighted asset split for today's investable cash
+                    {isProMode
+                      ? 'Mood-weighted equity, gold & liquid STP reserve split'
+                      : 'Apna monthly budget chunein — market ke hisab se best split dekhein'}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.budgetRow}>
-                <Text style={styles.budgetLabel}>Monthly Deployable Cash</Text>
+                <Text style={styles.budgetLabel}>Monthly Budget</Text>
                 <Text style={styles.budgetValue}>
                   ₹{monthlyBudget.toLocaleString('en-IN')}
                 </Text>
@@ -908,12 +1140,11 @@ export default function MarketMoodScreen({
                 ))}
               </View>
 
-              {/* Risk Posture Selector */}
               <View style={styles.riskRow}>
                 {[
-                  { id: 'CONSERVATIVE', label: 'Conservative' },
-                  { id: 'BALANCED', label: 'Balanced' },
-                  { id: 'DIP_HUNTER', label: 'Dip Hunter' },
+                  { id: 'CONSERVATIVE', simple: 'Safe First', pro: 'Conservative' },
+                  { id: 'BALANCED', simple: 'Balanced', pro: 'Balanced' },
+                  { id: 'DIP_HUNTER', simple: 'High Growth', pro: 'Dip Hunter' },
                 ].map((rp) => {
                   const active = riskProfile === rp.id;
                   return (
@@ -926,14 +1157,13 @@ export default function MarketMoodScreen({
                       }}
                     >
                       <Text style={[styles.riskBtnTxt, active && styles.riskBtnTxtActive]}>
-                        {rp.label}
+                        {isProMode ? rp.pro : rp.simple}
                       </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
-              {/* Stacked Color Bar */}
               <View style={styles.allocBar}>
                 {allocator.buckets.map((b) => (
                   <View
@@ -947,15 +1177,18 @@ export default function MarketMoodScreen({
                 ))}
               </View>
 
-              {/* Allocation Lines */}
               <View style={styles.allocList}>
                 {allocator.buckets.map((b) => (
                   <View key={b.key} style={styles.allocItemRow}>
                     <View style={styles.allocItemLeft}>
                       <View style={[styles.allocDot, { backgroundColor: b.color }]} />
-                      <View>
-                        <Text style={styles.allocLabel}>{b.label}</Text>
-                        <Text style={[styles.allocTag, { color: b.color }]}>{b.tag}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.allocLabel}>
+                          {isProMode ? b.label : b.simpleLabel || b.label}
+                        </Text>
+                        <Text style={[styles.allocTag, { color: b.color }]}>
+                          {isProMode ? b.tag : b.simpleTag || b.tag}
+                        </Text>
                       </View>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -968,7 +1201,9 @@ export default function MarketMoodScreen({
                 ))}
               </View>
 
-              <Text style={styles.strategyNote}>{allocator.strategyNote}</Text>
+              <Text style={styles.strategyNote}>
+                {isProMode ? allocator.strategyNote : allocator.simpleStrategyNote}
+              </Text>
 
               {onOpenSipDoctor && (
                 <TouchableOpacity
@@ -979,20 +1214,24 @@ export default function MarketMoodScreen({
                   }}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.sipCtaTxt}>Simulate Compounding in SIP Doctor</Text>
+                  <Text style={styles.sipCtaTxt}>SIP Doctor Me Future Return Check Karein</Text>
                   <Ionicons name="chevron-forward" size={16} color="#10B981" />
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
-          {/* SECTION 4: SMART DIP RADAR SCANNER (WHALES | LEADERS | WATCHLIST) */}
+          {/* SECTION 4: SASTE MIL RAHE QUALITY STOCKS */}
           <View style={styles.sectionBlock}>
             <View style={styles.sectionHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>Smart Dip Stock Radar</Text>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.sectionTitle}>
+                  {isProMode ? 'Smart Dip Stock Radar' : 'Saste Mile Acche Stocks'}
+                </Text>
                 <Text style={styles.sectionSub}>
-                  Corporate-split filtered • Verified 52W pullback, 200-DMA &amp; RSI-14
+                  {isProMode
+                    ? 'Corporate-split filtered • Verified 52W pullback, 200-DMA & RSI-14'
+                    : 'Top NSE shares jo apne 1-Saal ke High se kaafi discount par hain'}
                 </Text>
               </View>
               {onOpenStocks && (
@@ -1009,20 +1248,25 @@ export default function MarketMoodScreen({
               )}
             </View>
 
-            {/* 3 Segmented Scanner Tabs */}
             <View style={styles.dipTabsRow}>
               {[
                 {
                   id: 'WHALES',
-                  label: `Whale Dips (${report?.whaleDips?.length || 0})`,
+                  label: isProMode
+                    ? `Whale Dips (${report?.whaleDips?.length || 0})`
+                    : `Big Investors (${report?.whaleDips?.length || 0})`,
                 },
                 {
                   id: 'LEADERS',
-                  label: `NSE Leaders (${report?.leaderDips?.length || 0})`,
+                  label: isProMode
+                    ? `NSE Leaders (${report?.leaderDips?.length || 0})`
+                    : `Top Stocks (${report?.leaderDips?.length || 0})`,
                 },
                 {
                   id: 'WATCHLIST',
-                  label: `Watchlist (${report?.watchlistDips?.length || 0})`,
+                  label: isProMode
+                    ? `Watchlist (${report?.watchlistDips?.length || 0})`
+                    : `My Saved (${report?.watchlistDips?.length || 0})`,
                 },
               ].map((t) => {
                 const active = dipTab === t.id;
@@ -1033,6 +1277,7 @@ export default function MarketMoodScreen({
                     onPress={() => {
                       Haptics.selectionAsync();
                       setDipTab(t.id);
+                      setDipShowAll(false);
                     }}
                   >
                     <Text
@@ -1051,19 +1296,25 @@ export default function MarketMoodScreen({
                 <Ionicons name="bookmark-outline" size={26} color="#64748B" />
                 <Text style={styles.emptyDipTitle}>
                   {dipTab === 'WATCHLIST'
-                    ? 'No NSE Watchlist Pullbacks Tracked Yet'
-                    : 'No Verified Pullbacks in Current Window'}
+                    ? 'Aapki Watchlist Me Abhi Koi Stock Saved Nahi Hai'
+                    : 'Is Category Me Koi Discount Stock Nahi Mila'}
                 </Text>
                 <Text style={styles.emptyDipSub}>
                   {dipTab === 'WATCHLIST'
-                    ? 'Bookmark any NSE share from Whales or All NSE Stocks to monitor its distance from 52W High & 200-DMA here.'
-                    : 'Pull down to refresh live Bhavcopy & corporate-split filters.'}
+                    ? 'Whales ya All NSE Stocks me kisi bhi share ko Bookmark karein, fir uska Live Discount yahan dikhega.'
+                    : 'Fresh data lane ke liye page neeche khinch kar Refresh karein.'}
                 </Text>
               </View>
             ) : (
               <View style={styles.dipList}>
-                {activeDipList.slice(0, 12).map((item) => {
+                {visibleDips.map((item) => {
                   const isDayUp = (item.dayChangePct ?? 0) >= 0;
+                  const offPeakPct =
+                    item.drawdownPct !== null && item.drawdownPct < 0
+                      ? Math.abs(Math.round(item.drawdownPct))
+                      : 0;
+                  const simpleBadgeText =
+                    offPeakPct >= 5 ? `${offPeakPct}% OFF PEAK` : 'NEAR PEAK';
                   return (
                     <TouchableOpacity
                       key={item.symbol}
@@ -1084,7 +1335,7 @@ export default function MarketMoodScreen({
                             ]}
                           >
                             <Text style={[styles.dipStatusTxt, { color: item.dipColor }]}>
-                              {item.dipBadge}
+                              {isProMode ? item.dipBadge : simpleBadgeText}
                             </Text>
                           </View>
                         </View>
@@ -1092,22 +1343,25 @@ export default function MarketMoodScreen({
                           {item.name}
                         </Text>
 
-                        <View style={styles.dipMetaLine}>
-                          <Text style={styles.dipMetaTxt}>
-                            {item.distFrom200DmaPct !== null
-                              ? `200-DMA: ${item.distFrom200DmaPct >= 0 ? '+' : ''}${item.distFrom200DmaPct}%`
-                              : `52W H: ${formatInrPrice(item.high52w)}`}
-                            {item.rsi14 !== null ? ` • RSI ${item.rsi14}` : ''}
-                            {item.deliveryPct ? ` • Deliv ${item.deliveryPct}%` : ''}
-                          </Text>
-                        </View>
+                        {isProMode && (
+                          <View style={styles.dipMetaLine}>
+                            <Text style={styles.dipMetaTxt}>
+                              {item.distFrom200DmaPct !== null
+                                ? `200-DMA: ${item.distFrom200DmaPct >= 0 ? '+' : ''}${item.distFrom200DmaPct}%`
+                                : `52W H: ${formatInrPrice(item.high52w)}`}
+                              {item.rsi14 !== null ? ` • RSI ${item.rsi14}` : ''}
+                              {item.deliveryPct ? ` • Deliv ${item.deliveryPct}%` : ''}
+                            </Text>
+                          </View>
+                        )}
 
                         {item.whaleCount > 0 && (
                           <View style={styles.whaleHolderRow}>
                             <Ionicons name="shield-checkmark" size={12} color="#10B981" />
                             <Text style={styles.whaleHolderTxt} numberOfLines={1}>
-                              Held by {item.whaleCount} Whale{item.whaleCount > 1 ? 's' : ''}:{' '}
-                              {item.whaleNames.join(', ')}
+                              {isProMode
+                                ? `Held by ${item.whaleCount} Whale${item.whaleCount > 1 ? 's' : ''}: ${item.whaleNames.join(', ')}`
+                                : `${item.whaleCount} Big Investor${item.whaleCount > 1 ? 's' : ''} Hold This`}
                             </Text>
                           </View>
                         )}
@@ -1117,7 +1371,7 @@ export default function MarketMoodScreen({
                         <Text style={styles.dipPrice}>{formatInrPrice(item.closePrice)}</Text>
                         {item.drawdownPct !== null && (
                           <Text style={[styles.dipDdVal, { color: item.dipColor }]}>
-                            {item.drawdownPct}% vs 52W
+                            {item.drawdownPct}% {isProMode ? 'vs 52W' : 'from High'}
                           </Text>
                         )}
                         <Text
@@ -1127,12 +1381,34 @@ export default function MarketMoodScreen({
                           ]}
                         >
                           {isDayUp ? '+' : ''}
-                          {(item.dayChangePct ?? 0).toFixed(2)}% 1D
+                          {(item.dayChangePct ?? 0).toFixed(2)}% Today
                         </Text>
                       </View>
                     </TouchableOpacity>
                   );
                 })}
+
+                {activeDipList.length > 6 && (
+                  <TouchableOpacity
+                    style={styles.showMoreBtn}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setDipShowAll((prev) => !prev);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.showMoreTxt}>
+                      {dipShowAll
+                        ? 'Show Top 6 Only'
+                        : `Show More Stocks (${activeDipList.length})`}
+                    </Text>
+                    <Ionicons
+                      name={dipShowAll ? 'chevron-up' : 'chevron-down'}
+                      size={15}
+                      color="#10B981"
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </View>
@@ -1146,9 +1422,13 @@ export default function MarketMoodScreen({
                     <Ionicons name="notifications-outline" size={18} color="#F59E0B" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.alertGuardTitle}>Smart Dip Alert Guard</Text>
+                    <Text style={styles.alertGuardTitle}>
+                      {isProMode ? 'Smart Dip Alert Guard' : 'Market Girne Par Alert Paao'}
+                    </Text>
                     <Text style={styles.alertGuardSub}>
-                      Notify on-device whenever India Market Mood drops into your target zone
+                      {isProMode
+                        ? 'Notify on-device whenever India Market Mood drops into your target zone'
+                        : 'Jab bhi market sasta ho (Score target se neeche jaye), turant alert paayein'}
                     </Text>
                   </View>
                 </View>
@@ -1165,9 +1445,9 @@ export default function MarketMoodScreen({
 
               <View style={styles.thresholdRow}>
                 {[
-                  { score: 30, label: 'Deep Dip (≤30)' },
-                  { score: 40, label: 'Smart Dip (≤40)' },
-                  { score: 50, label: 'Cool Off (≤50)' },
+                  { score: 30, simple: 'Heavy Sale (≤30)', pro: 'Deep Dip (≤30)' },
+                  { score: 40, simple: 'Accha Dip (≤40)', pro: 'Smart Dip (≤40)' },
+                  { score: 50, simple: 'Normal Cool (≤50)', pro: 'Cool Off (≤50)' },
                 ].map((opt) => {
                   const active = alertConfig.thresholdScore === opt.score;
                   return (
@@ -1192,7 +1472,7 @@ export default function MarketMoodScreen({
                           active && styles.thresholdChipTxtActive,
                         ]}
                       >
-                        {opt.label}
+                        {isProMode ? opt.pro : opt.simple}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -1206,7 +1486,9 @@ export default function MarketMoodScreen({
               >
                 <Ionicons name="checkmark-circle" size={16} color="#F59E0B" />
                 <Text style={styles.testAlertTxt}>
-                  Run Live Threshold Check &amp; Send Preview Alert
+                  {isProMode
+                    ? 'Run Live Threshold Check & Send Preview Alert'
+                    : 'Alert Check Karein & Test Notification Bhejein'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1216,11 +1498,83 @@ export default function MarketMoodScreen({
           <View style={styles.disclaimerCard}>
             <Ionicons name="information-circle-outline" size={16} color="#64748B" />
             <Text style={styles.disclaimerTxt}>
-              Educational Quant Telemetry Only: Regime scores compute live distance from 200-DMA, 52-Week High drawdowns, Wilder RSI-14, and official AMFI / NSE Bhavcopy feeds. Not SEBI investment advice or buy/sell targets.
+              Educational Data Only: Yeh screen NSE, Yahoo live quotes aur AMFI data se market valuation trend dikhati hai. Investment decision lene se pehle apna risk check zaroor karein.
             </Text>
           </View>
         </>
       )}
+
+      {/* 10-Second Plain-Language Cheat-Sheet Modal */}
+      <Modal
+        visible={showGuideModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowGuideModal(false)}
+      >
+        <View style={styles.guideBackdrop}>
+          <View style={styles.guideSheet}>
+            <View style={styles.guideHeader}>
+              <Text style={styles.guideTitle}>Market Mood Kaise Samjhein?</Text>
+              <TouchableOpacity
+                onPress={() => setShowGuideModal(false)}
+                style={styles.guideCloseBtn}
+              >
+                <Ionicons name="close" size={20} color="#CBD5E1" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.guideList}>
+              <View style={styles.guideRow}>
+                <View style={[styles.guideDot, { backgroundColor: '#10B981' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideRowTitle}>0 se 44 (Green / Blue) = Market Sasta Hai</Text>
+                  <Text style={styles.guideRowSub}>
+                    Stocks discount pe mil rahe hain. Regular SIP chalayein aur extra dip buying add kar sakte hain.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.guideRow}>
+                <View style={[styles.guideDot, { backgroundColor: '#38BDF8' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideRowTitle}>45 se 64 (Sky Blue) = Fair / Sahi Market</Text>
+                  <Text style={styles.guideRowSub}>
+                    Na sasta na mehenga. Bina tension monthly SIP continue rakhein.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.guideRow}>
+                <View style={[styles.guideDot, { backgroundColor: '#F59E0B' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideRowTitle}>65 se 100 (Orange / Red) = Market Garam Hai</Text>
+                  <Text style={styles.guideRowSub}>
+                    Market tezi me upar hai. Purani SIP mat rokein, lekin ek saath bada lumpsum lagane ke bajay Safe Reserve me wait karein.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.guideRow}>
+                <View style={[styles.guideDot, { backgroundColor: '#A855F7' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.guideRowTitle}>Simple View vs Pro Quant Lab</Text>
+                  <Text style={styles.guideRowSub}>
+                    Simple View aam investors ke liye easy Hinglish verdict deta hai. Pro Quant Lab advance charts (200-DMA, RSI-14, 13Y AMFI history) dikhata hai.
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.guideGotItBtn}
+              onPress={() => setShowGuideModal(false)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.guideGotItTxt}>Samajh Aa Gaya ✓</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {selectedStock && (
         <StockDetailModal
@@ -1250,7 +1604,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
     marginTop: 2,
   },
   liveDatePill: {
@@ -1273,11 +1627,11 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   topRightBtns: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   miniActionBtn: {
     flexDirection: 'row',
@@ -1285,7 +1639,7 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: '#0E1525',
     borderRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.09)',
@@ -1294,6 +1648,46 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 11,
     fontWeight: '700',
+  },
+  modeSwitchWrap: {
+    flexDirection: 'row',
+    backgroundColor: '#0C1220',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 14,
+    gap: 5,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  modeTabSimpleActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  modeTabProActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+  },
+  modeTabTxt: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  modeTabSimpleTxt: {
+    color: '#10B981',
+  },
+  modeTabProTxt: {
+    color: '#38BDF8',
   },
   loadingCard: {
     backgroundColor: '#0D131F',
@@ -1352,7 +1746,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   regimePillText: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.4,
   },
@@ -1395,7 +1789,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.06)',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   verdictHeadline: {
     color: '#F8FAFC',
@@ -1407,6 +1801,32 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 11.5,
     lineHeight: 17,
+  },
+  quickActionGrid: {
+    flexDirection: 'row',
+    gap: 7,
+    marginBottom: 10,
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: '#0A101C',
+    borderRadius: 11,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.07)',
+  },
+  quickActionLbl: {
+    color: '#64748B',
+    fontSize: 8.5,
+    fontWeight: '800',
+    marginBottom: 3,
+  },
+  quickActionVal: {
+    fontSize: 11,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   telemetryGrid: {
     flexDirection: 'row',
@@ -1431,7 +1851,7 @@ const styles = StyleSheet.create({
   },
   telemetryVal: {
     color: '#FFFFFF',
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '900',
   },
   sectionBlock: {
@@ -1459,9 +1879,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   benchCard: {
-    width: 118,
+    width: 122,
     backgroundColor: '#0D131F',
-    borderRadius: 14,
+    borderRadius: 15,
     padding: 10,
     marginRight: 8,
     borderWidth: 1,
@@ -1471,12 +1891,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   benchShortName: {
     color: '#F8FAFC',
     fontSize: 12,
     fontWeight: '800',
+    flex: 1,
+    marginRight: 4,
   },
   benchScoreChip: {
     paddingHorizontal: 6,
@@ -1487,15 +1909,25 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '900',
   },
-  benchEtfSym: {
-    color: '#64748B',
-    fontSize: 9.5,
-    fontWeight: '700',
+  miniHeatTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#1E293B',
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  miniHeatFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  benchBadgeLabel: {
+    fontSize: 10,
+    fontWeight: '800',
   },
   benchDdText: {
-    color: '#CBD5E1',
-    fontSize: 10.5,
-    fontWeight: '700',
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '600',
     marginTop: 2,
   },
   benchDetailCard: {
@@ -1546,6 +1978,85 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     marginTop: 2,
+  },
+  range52Box: {
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  range52Header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  range52Lbl: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  range52Mid: {
+    color: '#CBD5E1',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  rangeTrack: {
+    height: 6,
+    borderRadius: 4,
+    backgroundColor: '#1E293B',
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  rangeFill: {
+    height: 6,
+    borderRadius: 4,
+  },
+  rangeThumb: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    marginLeft: -6,
+  },
+  simpleBenchHintBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 7,
+    backgroundColor: '#090E18',
+    borderRadius: 11,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  simpleBenchHintTxt: {
+    flex: 1,
+    color: '#CBD5E1',
+    fontSize: 11.5,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  proDrawerToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    backgroundColor: 'rgba(56, 189, 248, 0.09)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.24)',
+  },
+  proDrawerToggleTxt: {
+    color: '#38BDF8',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  proLabDrawer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.07)',
   },
   chartMetaRow: {
     flexDirection: 'row',
@@ -1608,44 +2119,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  range52Box: {
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  range52Header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  range52Lbl: {
-    color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  rangeTrack: {
-    height: 6,
-    borderRadius: 4,
-    backgroundColor: '#1E293B',
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  rangeFill: {
-    height: 6,
-    borderRadius: 4,
-  },
-  rangeThumb: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    marginLeft: -6,
-  },
   techRow: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: 2,
+    marginTop: 8,
   },
   techPill: {
     flex: 1,
@@ -1841,6 +2318,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
+    flex: 1,
+    marginRight: 8,
   },
   allocDot: {
     width: 10,
@@ -2034,6 +2513,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 1,
   },
+  showMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#0C1422',
+    borderRadius: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginTop: 2,
+  },
+  showMoreTxt: {
+    color: '#10B981',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   alertGuardCard: {
     backgroundColor: '#0D131F',
     borderRadius: 18,
@@ -2129,5 +2625,74 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 10,
     lineHeight: 15,
+  },
+  guideBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(4, 6, 12, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  guideSheet: {
+    backgroundColor: '#0D131F',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 20,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  guideHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  guideTitle: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  guideCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#162033',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideList: {
+    gap: 14,
+    marginBottom: 18,
+  },
+  guideRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  guideDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 5,
+  },
+  guideRowTitle: {
+    color: '#F8FAFC',
+    fontSize: 13.5,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  guideRowSub: {
+    color: '#94A3B8',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  guideGotItBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  guideGotItTxt: {
+    color: '#06110D',
+    fontSize: 14,
+    fontWeight: '900',
   },
 });

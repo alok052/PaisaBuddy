@@ -97,6 +97,14 @@ export function getMoodRegime(score) {
       key: 'EXTREME_DIP',
       label: 'Extreme Dip • Value',
       shortLabel: 'EXTREME DIP',
+      simpleBadge: 'Heavy Sale',
+      simpleShortLabel: 'HEAVY SALE • BUY',
+      simpleHeadline: 'Market Kaafi Sasta Hai — Extra SIP & Buying Ka Best Time',
+      simpleGuidance:
+        'Stocks apne 1-saal ke highs aur long-term average se kaafi saste mil rahe hain. Darne ke bajay extra SIP aur parts me invest karne ka historically strong mauka hai.',
+      sipAction: '+50% Extra SIP',
+      lumpsumAction: '2-4 Parts Me Buy',
+      marketZoneText: 'Deep Discount',
       color: '#10B981',
       bgColor: 'rgba(16, 185, 129, 0.16)',
       borderColor: 'rgba(16, 185, 129, 0.42)',
@@ -113,6 +121,14 @@ export function getMoodRegime(score) {
       key: 'SMART_DIP',
       label: 'Smart Dip Zone',
       shortLabel: 'SMART DIP',
+      simpleBadge: 'Accha Dip',
+      simpleShortLabel: 'ACCHA DIP • VALUE',
+      simpleHeadline: 'Healthy Girawat — Normal SIP Plus Thoda Extra Daalna Sahi Hai',
+      simpleGuidance:
+        'Prices peak se acchi-khasi cool off hui hain. Apni monthly SIP chalne dein aur chahein toh thoda top-up ya step-by-step buying add karein.',
+      sipAction: '+25% Top-Up OK',
+      lumpsumAction: 'Slow Parts Buy',
+      marketZoneText: 'Attractive Rate',
       color: '#22D3EE',
       bgColor: 'rgba(34, 211, 238, 0.16)',
       borderColor: 'rgba(34, 211, 238, 0.4)',
@@ -129,6 +145,14 @@ export function getMoodRegime(score) {
       key: 'FAIR_ZONE',
       label: 'Neutral • Fair Zone',
       shortLabel: 'FAIR ZONE',
+      simpleBadge: 'Fair Rate',
+      simpleShortLabel: 'SAHI RATE • NORMAL',
+      simpleHeadline: 'Balanced Market — Bina Tension Normal SIP Chalne Dein',
+      simpleGuidance:
+        'Market na zyada sasta hai na zyada mehenga. Har mahine apni regular SIP chalayein aur har saal 10% step-up karte rahein.',
+      sipAction: 'Normal SIP Chalao',
+      lumpsumAction: '3-6 Month Split',
+      marketZoneText: 'Balanced Price',
       color: '#38BDF8',
       bgColor: 'rgba(56, 189, 248, 0.16)',
       borderColor: 'rgba(56, 189, 248, 0.38)',
@@ -145,6 +169,14 @@ export function getMoodRegime(score) {
       key: 'WARM_MOMENTUM',
       label: 'Warm • Momentum',
       shortLabel: 'WARM ZONE',
+      simpleBadge: 'Thoda Garam',
+      simpleShortLabel: 'THODA GARAM • TEZI',
+      simpleHeadline: 'Market Upar Hai — Normal SIP Rakho, Ek Saath Bada Paisa Mat Daalo',
+      simpleGuidance:
+        'Tezi ki wajah se market apne average se thoda upar chal raha hai. Apni purani SIP bilkul na rokein, bas naya bada cash 6 mahine ke parts me daalein.',
+      sipAction: 'Regular SIP Rakho',
+      lumpsumAction: 'Ek Saath Mat Daalo',
+      marketZoneText: 'Thoda Mehenga',
       color: '#F59E0B',
       bgColor: 'rgba(245, 158, 11, 0.16)',
       borderColor: 'rgba(245, 158, 11, 0.42)',
@@ -160,6 +192,14 @@ export function getMoodRegime(score) {
     key: 'EXTREME_GREED',
     label: 'Overheated • Caution',
     shortLabel: 'OVERHEATED',
+    simpleBadge: 'Bahut Garam',
+    simpleShortLabel: 'OVERHEATED • SAVDHAAN',
+    simpleHeadline: 'Market Kaafi Garam Hai — Lalach Se Bachein, Reserve Safe Rakhein',
+    simpleGuidance:
+      'Prices kaafi tezi se upar bhagi hain. Long-term SIP chalne dein, lekin naya bada buying hold par rakhein aur Gold/Safe cash balance rakhein.',
+    sipAction: 'Base SIP Only',
+    lumpsumAction: 'Wait For Dip',
+    marketZoneText: 'Bahut Mehenga',
     color: '#EF4444',
     bgColor: 'rgba(239, 68, 68, 0.16)',
     borderColor: 'rgba(239, 68, 68, 0.45)',
@@ -558,37 +598,45 @@ export function buildSmartDipAllocator(monthlyBudget = 25000, riskProfile = 'BAL
     {
       key: 'NIFTY50',
       label: 'Nifty 50 Core Index',
+      simpleLabel: 'Top 50 Safe Stocks (Nifty)',
       pct: niftyPct,
       amount: Math.round((budget * niftyPct) / 100),
       color: '#10B981',
       tag: niftyScore <= 44 ? 'DIP BUY TILT' : niftyScore >= 68 ? 'CORE SIP ONLY' : 'STEADY CORE',
+      simpleTag: niftyScore <= 44 ? 'Sasta Mauka • Zyada Daalo' : 'Stable Core SIP',
       moodScore: niftyScore,
     },
     {
       key: 'MID150',
       label: 'Nifty Midcap 150',
+      simpleLabel: 'Midcap Growth Companies',
       pct: midPct,
       amount: Math.round((budget * midPct) / 100),
       color: '#38BDF8',
       tag: midScore <= 44 ? 'ATTRACTIVE DIP' : midScore >= 68 ? 'MODERATED' : 'BALANCED',
+      simpleTag: midScore <= 44 ? 'Discount Zone' : 'Balanced Growth',
       moodScore: midScore,
     },
     {
       key: 'SMALL250',
       label: 'Nifty Smallcap 250',
+      simpleLabel: 'Smallcap High-Growth',
       pct: smallPct,
       amount: Math.round((budget * smallPct) / 100),
       color: '#A855F7',
       tag: smallScore <= 44 ? 'CONTRARIAN DIP' : smallScore >= 68 ? 'TRIM RISK' : 'GROWTH SLEEVE',
+      simpleTag: smallScore >= 68 ? 'Thoda Control Me Rakho' : 'High Growth Sleeve',
       moodScore: smallScore,
     },
     {
       key: 'GOLD',
       label: 'Gold ETF / Sovereign Hedge',
+      simpleLabel: 'Gold Safety Shield',
       pct: goldBase,
       amount: Math.round((budget * goldBase) / 100),
       color: '#FBBF24',
       tag: goldScore <= 38 ? 'GOLD DIP HEDGE' : 'PORTFOLIO SHIELD',
+      simpleTag: 'Market Girne Par Suraksha',
       moodScore: goldScore,
     },
   ];
@@ -597,10 +645,12 @@ export function buildSmartDipAllocator(monthlyBudget = 25000, riskProfile = 'BAL
     buckets.push({
       key: 'LIQUID_STP',
       label: 'Liquid / Arbitrage STP Reserve',
+      simpleLabel: 'Safe Cash Reserve (Dip Fund)',
       pct: cashBufferPct,
       amount: Math.max(0, budget - buckets.reduce((a, b) => a + b.amount, 0)),
       color: '#94A3B8',
       tag: 'DIP AMMUNITION',
+      simpleTag: 'Market Gire Tab Lagane Ke Liye',
       moodScore: null,
     });
   } else {
@@ -620,6 +670,10 @@ export function buildSmartDipAllocator(monthlyBudget = 25000, riskProfile = 'BAL
       cashBufferPct > 0
         ? `Because Large/Momentum indices are warm (${Math.round(equityComposite)}/100), holding ${cashBufferPct}% in Liquid/Arbitrage STP lets you auto-deploy harder whenever Mood drops below 40.`
         : `Indices sit in an attractive accumulation band (${Math.round(equityComposite)}/100) — 100% staggered deployment maximized into Core Equity + Gold Hedge.`,
+    simpleStrategyNote:
+      cashBufferPct > 0
+        ? `Market abhi thoda garam (${Math.round(equityComposite)}/100) hai — isliye ${cashBufferPct}% paisa Safe Reserve me rakhna smart hai taaki jab dip aaye tab saste me kharid sakein.`
+        : `Market abhi sahi ya discount rate (${Math.round(equityComposite)}/100) par hai — apna 100% budget Equity + Gold me chalne dein.`,
   };
 }
 
