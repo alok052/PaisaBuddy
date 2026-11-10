@@ -207,6 +207,72 @@ def fetch_master_securities():
     return master
 
 
+def parse_bhavcopy_date1(date_str):
+    """Parse NSE Bhavcopy DATE1 column (e.g. '09-Nov-2026') into datetime.date."""
+    s = (date_str or '').strip()
+    if not s:
+        return None
+    for fmt in ('%d-%b-%Y', '%d-%m-%Y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def prune_holiday_duplicate_dates(existing_histories):
+    """
+    Remove NSE market-holiday dates where nsearchives served an exact byte/OHLCV mirror
+    of the previous trading day (e.g. DATE1 matched the prior day across all bellwethers).
+    """
+    if not existing_histories:
+        return 0, []
+
+    bellwethers = [s for s in ('NIFTYBEES', 'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'SBIN') if s in existing_histories]
+    if len(bellwethers) < 3:
+        return 0, []
+
+    maps = {}
+    all_dates = set()
+    for sym in bellwethers:
+        pts = existing_histories.get(sym) or []
+        m = {}
+        for pt in pts:
+            if isinstance(pt, list) and len(pt) >= 5:
+                d = str(pt[0])
+                m[d] = tuple(pt[1:5])
+                all_dates.add(d)
+        maps[sym] = m
+
+    sorted_dates = sorted(all_dates)
+    dup_dates = set()
+    for i in range(1, len(sorted_dates)):
+        prev_d = sorted_dates[i - 1]
+        cur_d = sorted_dates[i]
+        compared = 0
+        exact_matches = 0
+        for sym in bellwethers:
+            p1 = maps[sym].get(prev_d)
+            p2 = maps[sym].get(cur_d)
+            if p1 is not None and p2 is not None:
+                compared += 1
+                if p1 == p2:
+                    exact_matches += 1
+        if compared >= 3 and exact_matches == compared:
+            dup_dates.add(cur_d)
+
+    if not dup_dates:
+        return 0, []
+
+    pruned_points = 0
+    for sym, pts in list(existing_histories.items()):
+        filtered = [pt for pt in pts if not (isinstance(pt, list) and len(pt) >= 2 and str(pt[0]) in dup_dates)]
+        pruned_points += len(pts) - len(filtered)
+        existing_histories[sym] = filtered
+
+    return pruned_points, sorted(dup_dates)
+
+
 def fetch_bhavcopy_day(dt_date):
     """Fetch official NSE full Bhavcopy for a single date. Returns (iso_date, rows_by_symbol) or (iso_date, None) on holiday."""
     dstr = dt_date.strftime('%d%m%Y')
@@ -219,6 +285,14 @@ def fetch_bhavcopy_day(dt_date):
         raise
 
     rows = parse_stripped_csv(raw)
+    for r in rows[:15]:
+        actual_dt = parse_bhavcopy_date1(r.get('DATE1'))
+        if actual_dt is not None:
+            # NSE archives serve previous session's CSV on market holidays with old DATE1
+            if actual_dt != dt_date:
+                return dt_date.isoformat(), None
+            break
+
     by_sym = {}
     for r in rows:
         series = (r.get('SERIES') or '').upper().strip()
@@ -418,6 +492,9 @@ def main():
         print(f"  -> Incremental mode: loading existing histories + scanning last {lookback_cal_days} days...")
         existing_histories = fetch_existing_histories_from_supabase()
         print(f"  -> Loaded {len(existing_histories)} existing 1Y histories from Supabase.")
+        pruned_pts, pruned_dates = prune_holiday_duplicate_dates(existing_histories)
+        if pruned_dates:
+            print(f"  -> Pruned {len(pruned_dates)} mirrored NSE holiday dates ({pruned_pts} duplicate points): {', '.join(pruned_dates[-6:])}")
     else:
         lookback_cal_days = 370
         is_full_backfill = True

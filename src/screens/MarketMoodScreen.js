@@ -280,7 +280,11 @@ export default function MarketMoodScreen({
         <View style={styles.liveDatePill}>
           <View style={[styles.liveDot, { backgroundColor: overallRegime.color }]} />
           <Text style={styles.liveDateText}>
-            LIVE DATA • {report?.latestDataDate || 'Syncing...'}
+            {report?.hasLiveIntradayTick
+              ? `LIVE • ${report?.latestDataDate} • ${report?.liveTickTimeIst || 'IST'}`
+              : report?.hasRealtimeOverlay
+              ? `LIVE CLOSE • ${report?.latestDataDate}`
+              : `NSE EOD • ${report?.latestDataDate || 'Syncing...'}`}
           </Text>
         </View>
 
@@ -576,7 +580,7 @@ export default function MarketMoodScreen({
                         ? formatShortDate(touchedPt.date)
                         : `${selectedBenchmark.dayChangePct >= 0 ? '+' : ''}${
                             selectedBenchmark.dayChangePct
-                          }% EOD`}
+                          }% ${selectedBenchmark.isLiveIntraday ? 'LIVE' : 'EOD'}`}
                     </Text>
                   </View>
                 </View>

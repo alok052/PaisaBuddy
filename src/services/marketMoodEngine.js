@@ -755,10 +755,142 @@ export function buildDipRadarLists({
 let cachedMoodReport = null;
 let cachedMoodAt = 0;
 const MOOD_CACHE_TTL_MS = 5 * 60 * 1000;
+const MOOD_INTRADAY_CACHE_TTL_MS = 60 * 1000;
+const IST_OFFSET_SEC = 19800; // UTC+05:30 (fixed India Standard Time)
+
+export function toIstIsoDate(unixSec) {
+  const sec = Number(unixSec);
+  if (!Number.isFinite(sec) || sec <= 0) return null;
+  return new Date((sec + IST_OFFSET_SEC) * 1000).toISOString().slice(0, 10);
+}
+
+export function toIstTimeLabel(unixSec) {
+  const sec = Number(unixSec);
+  if (!Number.isFinite(sec) || sec <= 0) return null;
+  return `${new Date((sec + IST_OFFSET_SEC) * 1000).toISOString().slice(11, 16)} IST`;
+}
+
+export function isIndiaEquityMarketHoursNow(nowMs = Date.now()) {
+  const d = new Date(nowMs + IST_OFFSET_SEC * 1000);
+  const day = d.getUTCDay(); // 1 = Mon .. 5 = Fri
+  if (day < 1 || day > 5) return false;
+  const mins = d.getUTCHours() * 60 + d.getUTCMinutes();
+  return mins >= 555 && mins <= 935; // 09:15 .. 15:35 IST
+}
+
+export function mergeYahooLiveIntoSeries(basePts = [], yahooTick = null) {
+  if (!Array.isArray(basePts) || basePts.length === 0 || !yahooTick) {
+    return { points: basePts || [], usedOverlay: false, isLiveIntraday: false, liveTimeLabel: null };
+  }
+  const livePrice = Number(yahooTick.livePrice);
+  const istDate = yahooTick.istDate;
+  if (!Number.isFinite(livePrice) || livePrice <= 0 || !istDate) {
+    return { points: basePts, usedOverlay: false, isLiveIntraday: false, liveTimeLabel: null };
+  }
+
+  const pts = [...basePts];
+  const lastPt = pts[pts.length - 1];
+  const lastDate = String(lastPt?.date || '');
+  const roundedLive = Number(livePrice.toFixed(2));
+  const intradayFlag = Boolean(yahooTick.isMarketOpen || isIndiaEquityMarketHoursNow());
+
+  if (istDate > lastDate) {
+    // Backfill any intermediate trading candles between Supabase EOD & today
+    const extraBars = Array.isArray(yahooTick.dailyBars) ? yahooTick.dailyBars : [];
+    extraBars.forEach((b) => {
+      if (b && b.date && b.date > lastDate && b.date < istDate && b.close > 0) {
+        pts.push({ date: b.date, close: Number(Number(b.close).toFixed(2)) });
+      }
+    });
+    pts.push({ date: istDate, close: roundedLive });
+    return {
+      points: pts,
+      usedOverlay: true,
+      isLiveIntraday: intradayFlag,
+      liveTimeLabel: yahooTick.istTime || null,
+    };
+  }
+
+  if (istDate === lastDate && yahooTick.isMarketOpen) {
+    pts[pts.length - 1] = { date: istDate, close: roundedLive };
+    return {
+      points: pts,
+      usedOverlay: true,
+      isLiveIntraday: true,
+      liveTimeLabel: yahooTick.istTime || null,
+    };
+  }
+
+  return { points: pts, usedOverlay: false, isLiveIntraday: false, liveTimeLabel: null };
+}
+
+export async function fetchYahooLiveTick(nseSymbol, timeoutMs = 4500) {
+  const cleanSym = String(nseSymbol || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
+  if (!cleanSym || typeof fetch !== 'function') return null;
+
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(cleanSym + '.NS')}?range=5d&interval=1d`;
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const res = json?.chart?.result?.[0];
+    const meta = res?.meta || {};
+    const livePrice = Number(meta.regularMarketPrice);
+    const istDate = toIstIsoDate(meta.regularMarketTime);
+    if (!Number.isFinite(livePrice) || livePrice <= 0 || !istDate) return null;
+
+    const tsList = Array.isArray(res?.timestamp) ? res.timestamp : [];
+    const quoteCloses = res?.indicators?.quote?.[0]?.close || [];
+    const barByDate = new Map();
+    for (let i = 0; i < tsList.length; i++) {
+      const d = toIstIsoDate(tsList[i]);
+      const c = Number(quoteCloses[i]);
+      if (d && Number.isFinite(c) && c > 0) {
+        barByDate.set(d, Number(c.toFixed(2)));
+      }
+    }
+    const dailyBars = Array.from(barByDate.entries())
+      .map(([date, close]) => ({ date, close }))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    let prevClose = null;
+    for (let i = dailyBars.length - 1; i >= 0; i--) {
+      if (dailyBars[i].date < istDate) {
+        prevClose = dailyBars[i].close;
+        break;
+      }
+    }
+
+    const dayChangePct =
+      prevClose && prevClose > 0 ? Number((((livePrice - prevClose) / prevClose) * 100).toFixed(2)) : null;
+
+    return {
+      symbol: cleanSym,
+      livePrice: Number(livePrice.toFixed(2)),
+      istDate,
+      istTime: toIstTimeLabel(meta.regularMarketTime),
+      marketState: meta.marketState || null,
+      isMarketOpen: meta.marketState === 'REGULAR',
+      prevClose,
+      dayChangePct,
+      dailyBars,
+    };
+  } catch (err) {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 /**
  * Fetch complete Live Market Mood & Smart Dip Radar Snapshot:
  * - Batch NSE ETF daily Bhavcopy history + spot snapshots (Supabase)
+ * - Real-time Yahoo Finance NSE ETF intraday & same-day EOD overlay (updates live 9:15 AM–3:30 PM & post-close)
  * - Multi-year AMFI Direct Index NAV curves (api.mfapi.in) for 13Y forward edge
  * - Live NSE Market Breadth across 10Cr+ liquid EQ shares
  * - Pre-validated Watchlist, Whale & Top Quality Pullback candidates with 200-DMA & RSI-14
@@ -769,7 +901,10 @@ export async function fetchMarketMoodSnapshot({
   whalesList = null,
 } = {}) {
   const now = Date.now();
-  if (!forceRefresh && cachedMoodReport && now - cachedMoodAt < MOOD_CACHE_TTL_MS) {
+  const activeTtl = isIndiaEquityMarketHoursNow(now)
+    ? MOOD_INTRADAY_CACHE_TTL_MS
+    : MOOD_CACHE_TTL_MS;
+  if (!forceRefresh && cachedMoodReport && now - cachedMoodAt < activeTtl) {
     // Re-run lightweight scanner with latest watchlist without refetching APIs
     const updatedDips = buildDipRadarLists({
       nseStocks: cachedMoodReport._nseStocks || [],
@@ -785,8 +920,8 @@ export async function fetchMarketMoodSnapshot({
 
   const etfSymbols = BENCHMARK_CONFIGS.map((b) => b.etfSymbol);
 
-  // 1. Fetch NSE directory + whales + ETF histories + AMFI multi-year histories concurrently
-  const [nseStocks, resolvedWhales, etfHistMap, amfiResults] = await Promise.all([
+  // 1. Fetch NSE directory + whales + ETF histories + AMFI + Live Yahoo benchmark ticks concurrently
+  const [nseStocks, resolvedWhales, etfHistMap, amfiResults, yahooBenchTicks] = await Promise.all([
     fetchNseStocksIndex({ forceRefresh }).catch(() => []),
     Array.isArray(whalesList) && whalesList.length > 0
       ? Promise.resolve(whalesList)
@@ -806,10 +941,19 @@ export async function fetchMarketMoodSnapshot({
         }
       })
     ),
+    Promise.all(
+      BENCHMARK_CONFIGS.map(async (cfg) => ({
+        key: cfg.key,
+        tick: await fetchYahooLiveTick(cfg.etfSymbol),
+      }))
+    ).catch(() => []),
   ]);
 
   const nseMap = new Map((nseStocks || []).map((s) => [s.symbol, s]));
   const amfiMap = new Map(amfiResults.map((r) => [r.key, r.points]));
+  const yahooBenchMap = new Map(
+    (yahooBenchTicks || []).filter((r) => r && r.tick).map((r) => [r.key, r.tick])
+  );
 
   // 2. Analyze every benchmark index/sector/gold cleanly
   const benchmarks = BENCHMARK_CONFIGS.map((cfg) => {
@@ -822,7 +966,14 @@ export async function fetchMarketMoodSnapshot({
     const primaryPts = etfPts.length >= 200 ? etfPts : amfiPts;
     const primarySource = etfPts.length >= 200 ? 'NSE_ETF' : amfiPts.length >= 50 ? 'AMFI_INDEX' : 'SNAPSHOT';
 
-    let analysis = analyzePriceSeries(primaryPts, { checkSplits: false });
+    // Apply live Yahoo intraday / same-day EOD tick when newer than Supabase Bhavcopy (same ETF ₹ scale)
+    const yhTick = primarySource === 'NSE_ETF' ? yahooBenchMap.get(cfg.key) || null : null;
+    const mergedSeries = mergeYahooLiveIntoSeries(primaryPts, yhTick);
+    const effectivePts = mergedSeries.points;
+    const usedRealtimeOverlay = mergedSeries.usedOverlay;
+    const isLiveIntraday = mergedSeries.isLiveIntraday;
+
+    let analysis = analyzePriceSeries(effectivePts, { checkSplits: false });
     if (!analysis && etfRow?.closePrice > 0) {
       const estHigh = etfRow.high52w || etfRow.closePrice;
       const estLow = etfRow.low52w || etfRow.closePrice;
@@ -856,12 +1007,25 @@ export async function fetchMarketMoodSnapshot({
       };
     }
 
-    // Cross-validate latest EOD close from nse_stocks if slightly fresher than series
-    const liveClose = etfRow?.closePrice > 0 ? etfRow.closePrice : analysis?.latestClose ?? null;
-    const liveDayPct =
-      etfRow?.dayChangePct !== null && etfRow?.dayChangePct !== undefined
-        ? etfRow.dayChangePct
-        : analysis?.dayChangePct ?? 0;
+    // Prefer fresh live Yahoo tick when newer than Bhavcopy row; otherwise exact NSE Bhavcopy EOD
+    const liveClose = usedRealtimeOverlay
+      ? analysis?.latestClose ?? yhTick?.livePrice ?? etfRow?.closePrice ?? null
+      : etfRow?.closePrice > 0
+      ? etfRow.closePrice
+      : analysis?.latestClose ?? null;
+    const liveDayPct = usedRealtimeOverlay
+      ? analysis?.dayChangePct ?? yhTick?.dayChangePct ?? etfRow?.dayChangePct ?? 0
+      : etfRow?.dayChangePct !== null && etfRow?.dayChangePct !== undefined
+      ? etfRow.dayChangePct
+      : analysis?.dayChangePct ?? 0;
+
+    const latestDate = usedRealtimeOverlay
+      ? yhTick?.istDate || analysis?.latestDate || 'Live'
+      : etfRow?.lastTradeDate || analysis?.latestDate || 'Live';
+
+    const high52W = Math.max(etfRow?.high52w || 0, analysis?.high52W || 0, liveClose || 0) || liveClose;
+    const lowCandidates = [etfRow?.low52w, analysis?.low52W, liveClose].filter((v) => v > 0);
+    const low52W = lowCandidates.length > 0 ? Math.min(...lowCandidates) : liveClose;
 
     // Multi-year forward edge from AMFI historical index curve
     const amfiAnalysis = amfiPts.length >= 200 ? analyzePriceSeries(amfiPts, { checkSplits: false }) : null;
@@ -870,13 +1034,16 @@ export async function fetchMarketMoodSnapshot({
 
     return {
       ...cfg,
-      primarySource,
+      primarySource: usedRealtimeOverlay ? 'YAHOO_LIVE_OVERLAY' : primarySource,
+      usedRealtimeOverlay,
+      isLiveIntraday,
+      liveTickTimeIst: mergedSeries.liveTimeLabel,
       etfName: etfRow?.name || cfg.etfSymbol,
       latestClose: liveClose,
       dayChangePct: Number(Number(liveDayPct).toFixed(2)),
-      latestDate: etfRow?.lastTradeDate || analysis?.latestDate || 'Live',
-      high52W: etfRow?.high52w || analysis?.high52W || liveClose,
-      low52W: etfRow?.low52w || analysis?.low52W || liveClose,
+      latestDate,
+      high52W,
+      low52W,
       change1yPct: etfRow?.change1yPct ?? analysis?.change1yPct ?? 0,
       dma50: analysis?.dma50 ?? null,
       dma200: analysis?.dma200 ?? null,
@@ -908,13 +1075,21 @@ export async function fetchMarketMoodSnapshot({
   const overallMoodScore = weightSum > 0 ? Math.round(weightedScore / weightSum) : 52;
   const overallRegime = getMoodRegime(overallMoodScore);
 
+  const hasRealtimeOverlay = benchmarks.some((b) => b.usedRealtimeOverlay);
+  const hasLiveIntradayTick = benchmarks.some((b) => b.isLiveIntraday);
+  const liveTickTimeIst = benchmarks.find((b) => b.liveTickTimeIst)?.liveTickTimeIst || null;
+
   // 4. Compute NSE Market Breadth & Batch-Fetch Stock Histories for Dip Scanner Candidates
   const marketBreadth = computeMarketBreadthFromNse(nseStocks);
 
   const dipCandidateSymbols = new Set();
+  const watchlistSyms = [];
   (watchlist || []).forEach((w) => {
     const sym = String(w?.symbol || w?.key || '').toUpperCase().replace(/\.(NS|BO)$/i, '').trim();
-    if (sym) dipCandidateSymbols.add(sym);
+    if (sym) {
+      dipCandidateSymbols.add(sym);
+      if (nseMap.has(sym) && watchlistSyms.length < 6) watchlistSyms.push(sym);
+    }
   });
 
   // Include whale-held Indian equities that are currently down >=5% from 52W High
@@ -951,17 +1126,48 @@ export async function fetchMarketMoodSnapshot({
   sortedPullbacks.forEach((s) => dipCandidateSymbols.add(s.symbol));
 
   const candidateList = Array.from(dipCandidateSymbols).slice(0, 108);
-  const stockHistoryMap = await fetchBatchNseHistories(candidateList).catch(() => new Map());
+  const [stockHistoryMap, watchlistTicks] = await Promise.all([
+    fetchBatchNseHistories(candidateList).catch(() => new Map()),
+    hasRealtimeOverlay && watchlistSyms.length > 0
+      ? Promise.all(watchlistSyms.map((s) => fetchYahooLiveTick(s))).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  // Overlay live Yahoo intraday / same-day close onto saved NSE Watchlist stocks when newer than Bhavcopy
+  let effectiveNseStocks = nseStocks;
+  if (hasRealtimeOverlay && Array.isArray(watchlistTicks) && watchlistTicks.some(Boolean)) {
+    const wlTickMap = new Map(watchlistTicks.filter(Boolean).map((t) => [t.symbol, t]));
+    effectiveNseStocks = nseStocks.map((st) => {
+      const tick = st?.symbol ? wlTickMap.get(st.symbol) : null;
+      if (!tick) return st;
+      const curHist = stockHistoryMap.get(st.symbol) || [];
+      const merged = mergeYahooLiveIntoSeries(curHist, tick);
+      if (merged.usedOverlay) {
+        stockHistoryMap.set(st.symbol, merged.points);
+        return {
+          ...st,
+          closePrice: tick.livePrice,
+          dayChangePct: tick.dayChangePct ?? st.dayChangePct,
+          high52w: Math.max(st.high52w || 0, tick.livePrice),
+          lastTradeDate: tick.istDate || st.lastTradeDate,
+        };
+      }
+      return st;
+    });
+  }
 
   const { watchlistDips, whaleDips, leaderDips } = buildDipRadarLists({
-    nseStocks,
+    nseStocks: effectiveNseStocks,
     stockHistoryMap,
     watchlist,
     whalesList: resolvedWhales,
   });
 
   const niftyAnchor = benchmarks.find((b) => b.key === 'NIFTY50') || benchmarks[0];
-  const latestDataDate = benchmarks.find((b) => b.latestDate && b.latestDate !== 'Live')?.latestDate || 'Live EOD';
+  const latestDataDate =
+    benchmarks.find((b) => b.usedRealtimeOverlay && b.latestDate)?.latestDate ||
+    benchmarks.find((b) => b.latestDate && b.latestDate !== 'Live')?.latestDate ||
+    'Live EOD';
 
   const report = {
     overallMoodScore,
@@ -973,8 +1179,11 @@ export async function fetchMarketMoodSnapshot({
     whaleDips,
     leaderDips,
     latestDataDate,
+    hasRealtimeOverlay,
+    hasLiveIntradayTick,
+    liveTickTimeIst,
     generatedAt: new Date().toISOString(),
-    _nseStocks: nseStocks,
+    _nseStocks: effectiveNseStocks,
     _stockHistoryMap: stockHistoryMap,
     _whalesList: resolvedWhales,
   };
