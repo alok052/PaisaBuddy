@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DhanLens — Privacy Policy &amp; SEBI Disclosures</title>
+  <meta name="description" content="Official Privacy Policy, Data Safety details, On-Device Data Deletion instructions, and SEBI Educational Disclaimer for DhanLens (com.dhanlens.sip.swp.stocks)." />
+  <style>
+    :root {
+      --bg: #07090E;
+      --card: #0E1420;
+      --card-2: #0B121D;
+      --border: #1E293B;
+      --primary: #10B981;
+      --primary-soft: rgba(16, 185, 129, 0.12);
+      --sky: #38BDF8;
+      --amber: #F59E0B;
+      --rose: #F43F5E;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+      --subtle: #64748B;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+      background: radial-gradient(circle at top right, #0A201A 0%, var(--bg) 42%);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 28px 18px 64px;
+    }
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #07090E;
+      font-weight: 900;
+      font-size: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      margin: 0;
+    }
+    .brand-title span { color: var(--primary); }
+    .brand-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .nav-pill {
+      padding: 7px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .nav-pill:hover {
+      border-color: var(--primary);
+      text-decoration: none;
+    }
+    .hero {
+      background: linear-gradient(135deg, #0A1D1A 0%, #071216 55%, #0D111A 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 22px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+    .hero p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: #E2E8F0;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .meta-grid strong { color: var(--text); }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+    }
+    .badge-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: var(--primary-soft);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .card p, .card li {
+      color: var(--muted);
+      font-size: 14.5px;
+      margin: 8px 0;
+    }
+    .card ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+    .card strong { color: var(--text); }
+    .callout {
+      background: var(--card-2);
+      border-left: 3px solid var(--amber);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 14px 0 4px;
+      font-size: 14px;
+      color: #E2E8F0;
+    }
+    .callout-emerald {
+      border-left-color: var(--primary);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 13.5px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    th {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+      font-weight: 700;
+    }
+    td { color: var(--muted); }
+    .footer {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      color: var(--subtle);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-badge">₹</div>
+        <div>
+          <p class="brand-title">DHAN<span>LENS</span></p>
+          <p class="brand-sub">Privacy-First Indian Market &amp; Portfolio Analytics</p>
+        </div>
+      </div>
+      <nav class="nav-links" aria-label="Page Sections">
+        <a class="nav-pill" href="#privacy-policy">Privacy Policy</a>
+        <a class="nav-pill" href="#data-safety">Data &amp; Permissions</a>
+        <a class="nav-pill" href="#deletion">Data Deletion</a>
+        <a class="nav-pill" href="#sebi-disclaimer">SEBI Disclaimer</a>
+      </nav>
+    </header>
+
+    <section class="hero" id="privacy-policy">
+      <div class="eyebrow">Official Governance &amp; Privacy Notice</div>
+      <h1>DhanLens Privacy Policy &amp; Regulatory Disclosures</h1>
+      <p>
+        DhanLens is built with a strict <strong>local-first, zero-broker-login</strong> architecture.
+        Analyze SIPs, SWPs, Lumpsum growth, Mutual Fund Overlap, NSE stocks, and public institutional disclosures
+        without creating an account or sharing brokerage passwords.
+      </p>
+      <div class="pill-row">
+        <span class="pill">No Sign-Up / No OTP</span>
+        <span class="pill">Zero Broker Credentials</span>
+        <span class="pill">On-Device Sandbox Storage</span>
+        <span class="pill">Zero Ads &amp; Zero Tracking SDKs</span>
+      </div>
+      <div class="meta-grid">
+        <div><strong>Application:</strong> DhanLens (v1.0.0)</div>
+        <div><strong>Package ID:</strong> <code>com.dhanlens.sip.swp.stocks</code></div>
+        <div><strong>Effective Date:</strong> November 11, 2026</div>
+        <div><strong>Support &amp; Privacy Email:</strong> <a href="mailto:alokgoswami052@gmail.com">alokgoswami052@gmail.com</a></div>
+      </div>
+    </section>
+
+    <article class="card">
+      <h2><span class="badge-num">1</span> Zero Account &amp; Zero Broker Login Policy</h2>
+      <p>
+        DhanLens does <strong>not</strong> require user registration, mobile numbers, email sign-up, KYC documents
+        (PAN/Aadhaar), bank account linking, or demat/brokerage logins. We never ask for, process, or store credentials
+        for Zerodha, Groww, Angel One, Upstox, CDSL, NSDL, or any bank or broker.
+      </p>
+      <p>
+        When you tap an external shortcut button inside the app (such as viewing a stock quote on NSE India, Screener, SEBI,
+        MFCentral, or opening your chosen broker portal), DhanLens opens the public website directly in your phone’s browser.
+      </p>
+    </article>
+
+    <article class="card" id="data-safety">
+      <h2><span class="badge-num">2</span> Information Stored On Your Device (Local-First)</h2>
+      <p>
+        Any personalization data you enter stays inside private application storage on your Android device — DhanLens does
+        not upload your personal portfolio, watchlist, or tax scenarios to a developer-controlled database:
+      </p>
+      <ul>
+        <li><strong>Watchlist, Dividend, Tax Harvest &amp; Dip Alert Rules:</strong> Stored locally as JSON files inside private app sandbox storage.</li>
+        <li><strong>Imported Portfolio Holdings:</strong> Saved strictly on your device so your portfolio health and overlap metrics load offline.</li>
+        <li><strong>Optional Google Gemini API Key:</strong> If you optionally configure your own Google AI Studio API key for AI OCR parsing of screenshots/PDFs, it is stored locally using Android hardware-backed encrypted storage (<code>expo-secure-store</code> / Android Keystore).</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2><span class="badge-num">3</span> Portfolio Import (CSV, Excel, &amp; Optional AI OCR)</h2>
+      <ul>
+        <li><strong>CSV, Excel (<code>.xlsx</code> / <code>.xls</code>) &amp; Text Paste:</strong> Parsed <strong>100% offline on your device</strong>. Nothing leaves your phone.</li>
+        <li><strong>Optional Screenshot / PDF Statement OCR:</strong> Occurs only when you explicitly pick a specific image or PDF file and tap run with your own Gemini API key. The selected file is sent directly over encrypted HTTPS (<code>TLS</code>) from your device to Google’s official Gemini API (<code>generativelanguage.googleapis.com</code>) solely to extract your holdings table. DhanLens developers operate no intermediary server and do not view, log, or retain uploaded statements.</li>
+        <li><strong>Anonymous Public Market Feeds:</strong> Read-only HTTPS requests fetch public market &amp; filing figures from public AMFI NAV feeds (<code>api.mfapi.in</code>), public equity chart feeds, and read-only public disclosure tables (NSE Bhavcopy EOD data, SEBI &gt;1% shareholding &amp; US SEC Form 13F-HR filings hosted on Supabase). No personal identifiers are attached.</li>
+      </ul>
+    </article>
+
+    <article class="card">
+      <h2><span class="badge-num">4</span> App Permissions &amp; Zero Advertising</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Permission / Capability</th>
+            <th>Status in DhanLens</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Internet (<code>INTERNET</code>)</strong></td>
+            <td>Used</td>
+            <td>Fetch public read-only NSE prices, AMFI NAVs, disclosure tables, and user-initiated optional Gemini OCR.</td>
+          </tr>
+          <tr>
+            <td><strong>System Photo / Document Picker</strong></td>
+            <td>User-Triggered Only</td>
+            <td>Grants temporary access strictly to the single CSV, Excel, PDF, or screenshot you select.</td>
+          </tr>
+          <tr>
+            <td><strong>Notifications (<code>POST_NOTIFICATIONS</code>)</strong></td>
+            <td>Optional</td>
+            <td>Delivers user-configured local on-device reminders and disclosure alerts.</td>
+          </tr>
+          <tr>
+            <td><strong>Camera, Microphone, Contacts, Location, SMS, Call Logs</strong></td>
+            <td>Strictly Blocked / Not Used</td>
+            <td>Explicitly removed at manifest build level (<code>tools:node="remove"</code>).</td>
+          </tr>
+          <tr>
+            <td><strong>Advertising ID (<code>AD_ID</code>) &amp; Third-Party Ad SDKs</strong></td>
+            <td>Not Included</td>
+            <td>Zero ads, zero behavioral profiling, zero data selling or broker sharing.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 12px;">
+        <em>Legacy Android Support Note:</em> Devices running Android 12 or older (API 32 and below) use scoped legacy storage
+        flags (<code>maxSdkVersion="32"</code>) exclusively when picking local CSV/Excel files or exporting your own PDF audit report.
+      </p>
+    </article>
+
+    <article class="card" id="deletion">
+      <h2><span class="badge-num">5</span> Data Control &amp; Data Deletion</h2>
+      <p>You have full, immediate control over all data stored by DhanLens:</p>
+      <ul>
+        <li><strong>In-App One-Tap Wipe:</strong> Open <strong>Menu → Privacy Policy &amp; Legal → Clear Local Data</strong> to permanently erase your saved watchlist, imported portfolio holdings, dividend settings, tax inputs, dip alert rules, and optional Gemini API key immediately.</li>
+        <li><strong>App Uninstall:</strong> Uninstalling DhanLens removes all local sandbox storage files from your device.</li>
+        <li><strong>Support Assistance:</strong> Because DhanLens maintains no cloud account database of personal user data, there is no remote personal profile to delete. For privacy questions or assistance, contact <a href="mailto:alokgoswami052@gmail.com">alokgoswami052@gmail.com</a> (replies within 48 hours).</li>
+      </ul>
+      <div class="callout callout-emerald">
+        <strong>Age Requirement &amp; Children’s Privacy:</strong> DhanLens provides financial calculators and capital-market analytics intended for users aged <strong>18 years and older</strong>. We do not knowingly collect personal information from children.
+      </div>
+    </article>
+
+    <article class="card" id="sebi-disclaimer">
+      <h2><span class="badge-num">6</span> Financial Features &amp; SEBI Educational Disclaimer</h2>
+      <p>
+        <strong>Educational &amp; Mathematical Calculators Only:</strong> DhanLens (including its SIP Step-Up, SWP, Lumpsum, Stock Average,
+        Home Loan EMI Prepayment, Financial Goal Planner, Dividend Yield, LTCG Tax Estimator, Mutual Fund Overlap, Market Mood,
+        and Whale Disclosure modules) is strictly an <strong>informational, educational, and mathematical calculation utility</strong>.
+      </p>
+      <ul>
+        <li>Neither DhanLens nor its developer is registered with the Securities and Exchange Board of India (SEBI) as an Investment Adviser (RIA), Research Analyst (RA), Portfolio Manager (PMS), or Stock Broker.</li>
+        <li>DhanLens does <strong>not</strong> execute trades, manage funds, open demat accounts, or issue personalized buy/sell recommendations.</li>
+        <li>DhanLens does <strong>not</strong> offer, facilitate, broker, or connect users to personal loans, BNPL credit, or lending services; the EMI tool performs standard mathematical amortization math offline on user-entered inputs.</li>
+        <li>Public institutional disclosures reflect statutory SEBI (&gt;1% shareholding / bulk &amp; block deal) and US SEC Form 13F-HR quarterly filings, which carry regulatory reporting lag (up to 45 days for SEC 13F).</li>
+      </ul>
+      <div class="callout">
+        <strong>Market Risk Notice:</strong> Equity and mutual fund investments are subject to market risks. Historical CAGRs and projections do not guarantee future returns. Verify NAVs, corporate actions, and tax rules against official AMC/exchange records and consult a SEBI-registered adviser before making financial decisions.
+      </div>
+    </article>
+
+    <article class="card">
+      <h2><span class="badge-num">7</span> Policy Updates &amp; Contact</h2>
+      <p>
+        We may update this Privacy Policy to reflect new app modules or regulatory requirements. The effective date at the top of
+        this page always reflects the latest revision.
+      </p>
+      <p>
+        <strong>Developer Contact / Grievance Officer:</strong> Alok Goswami •
+        <a href="mailto:alokgoswami052@gmail.com">alokgoswami052@gmail.com</a> •
+        Package: <code>com.dhanlens.sip.swp.stocks</code>
+      </p>
+    </article>
+
+    <footer class="footer">
+      DhanLens • Educational Market Analytics &amp; Wealth Calculators • India
+    </footer>
+  </div>
+</body>
+</html>
